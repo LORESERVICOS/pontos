@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relógio de Ponto Eletrônico</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+<style>
+body{font-family:Inter;background:#f8fafc;margin:0}
+header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
+.card{background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin:20px auto}
+button{padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;margin:2px}
+button:hover{background:#1d4ed8}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
+th{background:#f1f5f9}
+.verde{color:green;font-weight:bold;}
+.vermelho{color:red;font-weight:bold;}
+input,select{padding:4px 6px;margin:2px 0;}
+</style>
+</head>
+<body>
+<header>
+  Bem-vindo, <span id="nomeUsuario"></span>
+</header>
+
+<!-- LOGIN -->
+<div id="loginSection" class="card" style="max-width:400px">
+  <h2>Login</h2>
+  <input id="username" placeholder="Usuário"><br><br>
+  <input id="password" type="password" placeholder="Senha"><br><br>
+  <button onclick="login()">Entrar</button>
+</div>
+
+<!-- OPERACIONAL -->
+<div id="operacionalSection" class="hidden">
+  <div class="card" style="max-width:600px">
+    <h2>Registro de Ponto</h2>
+    <div id="dataAtual"></div>
+    <div id="horaAtual"></div>
+    <hr>
+    <div id="botoesRegistro"></div>
+    <hr>
+    <h3>Marcações do Dia</h3>
+    <div id="registrosUsuario"></div>
+    <hr>
+    <button onclick="logout()">Sair</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminSection" class="hidden">
+  <div class="card" style="max-width:1200px">
+    <h2>Relatório – Cartão de Ponto</h2>
+    <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
+    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
+    <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
+    <input type="date" id="dataInicio">
+    <input type="date" id="dataFim">
+    <select id="tipoRelatorio">
+      <option value="simples">Relatório Simples</option>
+      <option value="comGeo">Com Geolocalização</option>
+    </select>
+    <button onclick="gerarRelatorioMensal()">Gerar</button>
+    <button onclick="gerarExcel()">Excel</button>
+    <button onclick="gerarPDFAdmin()">PDF</button>
+    <button onclick="logout()">Sair</button>
+    <div id="cartaoFuncionario"></div>
+  </div>
+</div>
+
+<!-- MODAL CADASTRO FUNCIONARIO -->
+<div id="modalFuncionario" class="card hidden" style="max-width:500px">
+  <h3>Cadastro / Edição de Funcionário</h3>
+
+  <label>Código Funcionário:<br>
+    <input id="novoCodigo" placeholder="Código">
+  </label><br>
+
+  <label>Nome Funcionário:<br>
+    <input id="novoNome" placeholder="Nome completo">
+  </label><br>
+
+  <label>Usuário (login):<br>
+    <input id="novoUser" placeholder="Usuário">
+  </label><br>
+
+  <label>Senha:<br>
+    <input id="novoPass" type="password" placeholder="Senha">
+  </label><br>
+
+  <label>Cargo:<br>
+    <input id="novoCargo" placeholder="Cargo/Função">
+  </label><br>
+
+  <label>PIS:<br>
+    <input id="novoPis" placeholder="PIS">
+  </label><br>
+
+  <label>Depto/Setor:<br>
+    <input id="novoSetor" placeholder="Departamento / Setor">
+  </label><br>
+
+  <label>Local de Trabalho:<br>
+    <input id="novoLocal" placeholder="Local de trabalho">
+  </label><br>
+
+  <p><strong>Escala padrão semanal do funcionário</strong><br>
+    Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
+  </p>
+
+  <label>Segunda-feira:<br>
+    <input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Terça-feira:<br>
+    <input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Quarta-feira:<br>
+    <input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Quinta-feira:<br>
+    <input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Sexta-feira:<br>
+    <input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Sábado:<br>
+    <input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
+  </label><br>
+
+  <label>Domingo:<br>
+    <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
+  </label><br><br>
+
+  <button onclick="salvarFuncionario()">Salvar</button>
+  <button onclick="fecharCadastroFuncionario()">Cancelar</button>
+</div>
+
+<!-- MODAL ESCALA MENSAL -->
+<div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
+  <h3>Editar Escala Mensal (manual)</h3>
+  <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
+  <div id="conteudoEscala"></div>
+  <button onclick="salvarEscalaMensal()">Salvar Escala</button>
+  <button onclick="fecharEscalaMensal()">Cancelar</button>
+</div>
+
+<script>
+// ====== DADOS ======
+let users = {
+  admin:{
+    password:"admin123",
+    role:"admin"
+  },
+  jaqueline:{
+    password:"123456",
+    role:"operacional",
+    pis:"370.394.838.82",
+    codigo:"001",
+    nomeCompleto:"Jaqueline",
+    cargo:"Colaboradora",
+    setor:"Geral",
+    localTrabalho:"Matriz",
+    escalaMensal:{},
+    // escala semanal: 1=Seg ... 6=Sáb, 0=Dom
+    escalaSemanal:{
+      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
+    }
+  },
+  maria:{
+    password:"123",
+    role:"operacional",
+    pis:"124.45678.90-1",
+    codigo:"002",
+    nomeCompleto:"Maria",
+    cargo:"Colaboradora",
+    setor:"Geral",
+    localTrabalho:"Filial",
+    escalaMensal:{},
+    escalaSemanal:{
+      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
+    }
+  },
+  ana:{
+    password:"123",
+    role:"operacional",
+    pis:"124.45678.90-1",
+    codigo:"003",
+    nomeCompleto:"Ana",
+    cargo:"Colaboradora",
+    setor:"Geral",
+    localTrabalho:"Filial",
+    escalaMensal:{},
+    escalaSemanal:{
+      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
+    }
+  },
+  gui:{
+    password:"12",
+    role:"operacional",
+    pis:"133.45678.90-1",
+    codigo:"004",
+    nomeCompleto:"Gui",
+    cargo:"Colaborador",
+    setor:"Geral",
+    localTrabalho:"Matriz",
+    escalaMensal:{},
+    escalaSemanal:{
+      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
+    }
+  }
+};
+
+let currentUser=null;
+let dadosAtual={}, dataAtualRel="";
+const feriados=["01/01","07/09","25/12"];
+
+const justificativas = [
+  "Nenhum",
+  "Férias",
+  "Falta Justificada",
+  "Falta Injustificada",
+  "Falta Abonada",
+  "Atestado Médico Dias",
+  "Atestado Médico Horas",
+  "Licença Maternidade",
+  "Licença Paternidade",
+  "Licença INSS+15 D",
+  "Acidente de Trabalho",
+  "Feriado"
+];
+
+// ====== FUNÇÕES GERAIS ======
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function hm(h){
+  if(!h || typeof h!=="string" || !h.includes(":")) return 0;
+  const[x,y]=h.split(":").map(Number);
+  return x*60+y;
+}
+function fmt(m){
+  const sign = m<0 ? "-" : "";
+  const abs = Math.abs(m);
+  const h = String(Math.floor(abs/60)).padStart(2,"0");
+  const mm = String(abs%60).padStart(2,"0");
+  return sign + h + ":" + mm;
+}
+
+// interpreta string da escala semanal e devolve minutos de jornada
+function cargaEscalaMin(escStr){
+  if(!escStr) return 0;
+  const s = escStr.toString().toUpperCase().trim();
+  if(s==="FOLGA") return 0;
+
+  // padrão HH:MM
+  if(/^\d{2}:\d{2}$/.test(s)) return hm(s);
+
+  // formato "08:00 as 17:00 = 08:00" → pega depois do "="
+  if(s.includes("=")){
+    const partes = s.split("=");
+    const carga = partes[partes.length-1].trim();
+    if(/^\d{2}:\d{2}$/.test(carga)) return hm(carga);
+  }
+  return 0;
+}
+
+// ====== LOGIN ======
+function login(){
+  const u=username.value.trim(), p=password.value.trim();
+  if(users[u] && users[u].password===p){
+    currentUser=u;
+    nomeUsuario.textContent=users[u].nomeCompleto || u;
+    loginSection.classList.add("hidden");
+    if(users[u].role==="admin"){
+      adminSection.classList.remove("hidden");
+      preencherFuncionarios();
+    } else {
+      operacionalSection.classList.remove("hidden");
+      mostrarDataHora();
+      mostrarRegistrosUsuario();
+    }
+  } else alert("Login inválido");
+}
+function logout(){location.reload();}
+
+// ====== OPERACIONAL ======
+function registrar(tipo){
+  const agora=new Date();
+  const hora=agora.toLocaleTimeString().slice(0,5);
+  const data=agora.toLocaleDateString();
+  navigator.geolocation.getCurrentPosition(
+    pos=> salvarRegistro(tipo,hora,data,`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
+    ()=> salvarRegistro(tipo,hora,data,"Não registrada")
+  );
+}
+function salvarRegistro(tipo,hora,data,geo){
+  const d=JSON.parse(localStorage.getItem("registros")||"{}");
+  d[currentUser]??={};
+  d[currentUser][data]??={};
+  d[currentUser][data][tipo]=hora;
+  d[currentUser][data]["geo"+capitalize(tipo)]=geo;
+  localStorage.setItem("registros",JSON.stringify(d));
+  mostrarRegistrosUsuario();
+}
+function mostrarDataHora(){
+  setInterval(()=>{
+    const a=new Date();
+    dataAtual.textContent="Data: "+a.toLocaleDateString();
+    horaAtual.textContent="Hora: "+a.toLocaleTimeString();
+  },1000);
+}
+function mostrarRegistrosUsuario(){
+  const hoje=new Date().toLocaleDateString();
+  const d=JSON.parse(localStorage.getItem("registros")||"{}");
+  const r=d[currentUser]?.[hoje]||{};
+  registrosUsuario.innerHTML="";
+  botoesRegistro.innerHTML="";
+  ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
+    if(r[t]){
+      registrosUsuario.innerHTML+=`<div><strong>${capitalize(t)}:</strong> ${r[t]} <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button></div>`;
+    }
+  });
+  if(!r.entrada) botoesRegistro.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
+  else if(!r.saidaAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
+  else if(!r.retornoAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
+  else if(!r.saida) botoesRegistro.innerHTML=`<button onclick="registrar('saida')">Saída</button>`;
+  else botoesRegistro.innerHTML="✅ Jornada finalizada";
+}
+
+// ====== COMPROVANTE INDIVIDUAL ======
+function gerarComprovante(tipo){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const hoje=new Date().toLocaleDateString();
+  const d=JSON.parse(localStorage.getItem("registros")||"{}");
+  const r=d[currentUser]?.[hoje]||{};
+  const hora=r[tipo]||"";
+  const geo=r["geo"+capitalize(tipo)]||"";
+
+  doc.setFontSize(14);
+  doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
+  doc.setFontSize(11);
+  doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
+  doc.text(`PIS: ${users[currentUser]?.pis||""}`,14,36);
+  doc.text(`Data: ${hoje}`,14,42);
+  doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
+  doc.text(`Horário: ${hora}`,14,54);
+  doc.text(`Geolocalização: ${geo}`,14,60);
+  doc.save(`comprovante_${tipo}_${hoje}.pdf`);
+}
+
+// ====== AJUSTE ======
+function campo(valor, c, adminView = true){
+  const vazio = !valor || valor === "-";
+  const evento = dadosAtual[c+"_evento"];
+
+  // HORA REAL
+  if(!vazio && !evento){
+    if(adminView){
+      return valor + (dadosAtual[c+"_editado"]
+        ? ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
+        : "");
+    }
+    return valor;
+  }
+
+  // JUSTIFICATIVA
+  if(evento){
+    if(adminView){
+      return evento +
+        ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`;
+    }
+    return evento;
+  }
+
+  // EM BRANCO → +AJUSTAR
+  if(adminView){
+    return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
+  }
+  return "";
+}
+
+function abrirAjuste(u,d,c){
+  const dados = JSON.parse(localStorage.getItem("registros")||"{}");
+  dados[u]??={};
+  dados[u][d]??={};
+  const atual = dados[u][d];
+
+  let popup = document.createElement("div");
+  popup.style.position="fixed";
+  popup.style.top="50%";
+  popup.style.left="50%";
+  popup.style.transform="translate(-50%,-50%)";
+  popup.style.background="#fff";
+  popup.style.padding="20px";
+  popup.style.border="1px solid #333";
+  popup.style.zIndex=1000;
+
+  popup.innerHTML=`
+    <h3>Ajustar ${c}</h3>
+    <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${atual[c]||""}"></label><br><br>
+    <label>Justificar: 
+      <select id="selectJustificacao">
+        <option value="">--Escolha--</option>
+        ${justificativas.map(j=>`<option value="${j}" ${atual[c+"_evento"]===j?'selected':''}>${j}</option>`).join("")}
+      </select>
+    </label><br><br>
+    <button id="okBtn">Ok</button>
+    <button id="cancelBtn">Cancelar</button>
+  `;
+
+  document.body.appendChild(popup);
+
+  popup.querySelector("#okBtn").onclick=()=>{
+    const h = popup.querySelector("#inputHoras").value.trim();
+    const ev = popup.querySelector("#selectJustificacao").value;
+
+    // "Nenhum" → limpa justificativas do dia e volta para +Ajustar
+    if(ev === "Nenhum"){
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        delete atual[campoNome+"_evento"];
+        delete atual[campoNome+"_editado"];
+        if(atual[campoNome] === "-" || atual[campoNome] === "" || atual[campoNome] == null){
+          delete atual[campoNome];
+        }
+      });
+      delete atual.atestadoHorasMin;
+      localStorage.setItem("registros",JSON.stringify(dados));
+      popup.remove();
+      gerarRelatorioMensal();
+      return;
+    }
+
+    // ATESTADO MÉDICO DIAS → intervalo de datas
+    if(ev === "Atestado Médico Dias"){
+      const intervalo = prompt("Informe o intervalo do atestado (formato: dd/mm/aaaa - dd/mm/aaaa):", d+" - "+d);
+      if(intervalo){
+        const partes = intervalo.split("-");
+        if(partes.length===2){
+          const iniStr = partes[0].trim();
+          const fimStr = partes[1].trim();
+          const [di,mi,ai] = iniStr.split("/").map(Number);
+          const [df,mf,af] = fimStr.split("/").map(Number);
+          if(di&&mi&&ai&&df&&mf&&af){
+            let dataIni = new Date(ai,mi-1,di);
+            let dataFim = new Date(af,mf-1,df);
+            if(dataIni > dataFim){
+              const tmp = dataIni; dataIni = dataFim; dataFim = tmp;
+            }
+            let cursor = new Date(dataIni);
+            while(cursor <= dataFim){
+              const cdia = String(cursor.getDate()).padStart(2,"0");
+              const cmes = String(cursor.getMonth()+1).padStart(2,"0");
+              const cano = cursor.getFullYear();
+              const chave = `${cdia}/${cmes}/${cano}`;
+              dados[u]??={};
+              dados[u][chave]??={};
+              const reg = dados[u][chave];
+              ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+                reg[campoNome]="-";
+                reg[campoNome+"_evento"]=ev;
+                reg[campoNome+"_editado"]=true;
+              });
+              delete reg.atestadoHorasMin;
+              cursor.setDate(cursor.getDate()+1);
+            }
+            localStorage.setItem("registros",JSON.stringify(dados));
+            popup.remove();
+            gerarRelatorioMensal();
+            return;
+          }
+        }
+      }
+      // se não preencheu direito, continua para lógica normal abaixo
+    }
+
+    // ATESTADO MÉDICO HORAS → data + hora início/fim
+    if(ev === "Atestado Médico Horas"){
+      const dataAtestadoStr = prompt("Data do atestado (dd/mm/aaaa):", d);
+      if(!dataAtestadoStr){ popup.remove(); return; }
+      const [ddia,dmes,dano] = dataAtestadoStr.split("/").map(Number);
+      if(!ddia||!dmes||!dano){ popup.remove(); return; }
+      const dataAtestadoKey = `${String(ddia).padStart(2,"0")}/${String(dmes).padStart(2,"0")}/${dano}`;
+      const hIni = prompt("Hora INÍCIO do atestado (HH:MM):","08:00");
+      const hFim = prompt("Hora FIM do atestado (HH:MM):","10:00");
+      if(!hIni || !hFim){ popup.remove(); return; }
+      const minutosAtestado = Math.max(0, hm(hFim) - hm(hIni));
+      dados[u]??={};
+      dados[u][dataAtestadoKey]??={};
+      const regA = dados[u][dataAtestadoKey];
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        regA[campoNome]="-";
+        regA[campoNome+"_evento"]=ev;
+        regA[campoNome+"_editado"]=true;
+      });
+      regA.atestadoHorasMin = minutosAtestado;
+      localStorage.setItem("registros",JSON.stringify(dados));
+      popup.remove();
+      gerarRelatorioMensal();
+      return;
+    }
+
+    // Se digitou horas manualmente → só o campo
+    if(h){
+      atual[c]=h;
+      atual[c+"_evento"]="";
+      atual[c+"_editado"]=true;
+      delete atual.atestadoHorasMin;
+    }
+    // Se escolheu uma justificativa "normal" → aplica nos 4 campos do dia
+    else if(ev){
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        atual[campoNome]="-";
+        atual[campoNome+"_evento"]=ev;
+        atual[campoNome+"_editado"]=true;
+      });
+      delete atual.atestadoHorasMin;
+    }
+
+    localStorage.setItem("registros",JSON.stringify(dados));
+    popup.remove();
+    gerarRelatorioMensal();
+  };
+
+  popup.querySelector("#cancelBtn").onclick=()=>{popup.remove();};
+}
+
+// ====== FUNÇÕES ADMIN ======
+function preencherFuncionarios(){
+  const select=document.getElementById("funcionarioSelect");
+  select.innerHTML="<option value=''>Selecionar Funcionário</option>";
+  Object.keys(users).forEach(u=>{
+    if(users[u].role==="operacional"){
+      const option=document.createElement("option");
+      option.value=u; option.textContent=users[u].nomeCompleto || u;
+      select.appendChild(option);
+    }
+  });
+}
+
+// ====== RELATÓRIO CARTÃO DE PONTO ======
+function gerarRelatorioMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u || !dataInicio.value) return;
+  const tipo=document.getElementById("tipoRelatorio").value;
+  const registros=JSON.parse(localStorage.getItem("registros")||"{}")[u]||{};
+  const escSem = users[u].escalaSemanal || {};
+
+  let totalPeriodo=0;
+  let totalAtestadosMin = 0;
+  let totalAfastamentosMin = 0;
+  let totalAtrasosFaltasMin = 0;
+
+  let html=`<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
+  html+=`<p>Código: ${users[u].codigo || ""} | PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
+  html+=`<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
+  html+=`<table id="tabelaRelatorio"><tr>
+  <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
+  if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
+  html+="</tr>";
+
+  const inicio = new Date(dataInicio.value);
+  const fim = dataFim.value ? new Date(dataFim.value) : inicio;
+  let currentDate = new Date(inicio);
+
+  while(currentDate <= fim){
+    const dia = String(currentDate.getDate()).padStart(2,"0");
+    const mes = String(currentDate.getMonth()+1).padStart(2,"0");
+    const ano = currentDate.getFullYear();
+    const d = `${dia}/${mes}/${ano}`;
+    const ddmm = `${dia}/${mes}`;
+
+    dadosAtual = registros[d] || {};
+    dataAtualRel = d;
+
+    const JORNADA_PADRAO = 480; // 8h
+
+    const weekday = currentDate.getDay(); // 0=Dom ... 6=Sáb
+    const escStr = escSem[weekday] || "";
+    const jornadaEscala = cargaEscalaMin(escStr);
+    const isFeriadoLista = feriados.includes(ddmm);
+
+    let min = 0;
+
+    const eventos = [
+      dadosAtual.entrada_evento,
+      dadosAtual.saidaAlmoco_evento,
+      dadosAtual.retornoAlmoco_evento,
+      dadosAtual.saida_evento
+    ].filter(Boolean);
+    const eventoDia = eventos[0] || "";
+
+    const temTodasMarcacoes =
+      dadosAtual.entrada &&
+      dadosAtual.saidaAlmoco &&
+      dadosAtual.retornoAlmoco &&
+      dadosAtual.saida;
+
+    const temAlgumaMarcacao =
+      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
+
+    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
+
+    // ==== CÁLCULO TOTAL MINUTOS (min) ====
+    if(!eventoDia){
+      // sem justificativa
+      if(temTodasMarcacoes){
+        min =
+          (hm(dadosAtual.saidaAlmoco) - hm(dadosAtual.entrada)) +
+          (hm(dadosAtual.saida) - hm(dadosAtual.retornoAlmoco));
+      }
+
+      // NOVA REGRA FERIADO (lista): TOTAL = 0:00
+      if(isFeriadoLista){
+        min = 0;
+      }
+
+      // FOLGA programada e sem registro (não feriado de lista)
+      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao){
+        min = 0;
+      }
+
+    } else {
+      // COM JUSTIFICATIVA
+      switch(eventoDia){
+        case "Falta Justificada":
+          min = -JORNADA_PADRAO;
+          totalAtestadosMin += -min;
+          break;
+
+        case "Atestado Médico Dias":
+          min = -JORNADA_PADRAO;
+          totalAtestadosMin += -min;
+          break;
+
+        case "Atestado Médico Horas": {
+          const minutosAtestado = dadosAtual.atestadoHorasMin || JORNADA_PADRAO;
+          min = -minutosAtestado;
+          totalAtestadosMin += minutosAtestado;
+          break;
+        }
+
+        case "Falta Injustificada":
+          min = -JORNADA_PADRAO;
+          totalAtrasosFaltasMin += min; // negativo
+          break;
+
+        case "Falta Abonada":
+          min = JORNADA_PADRAO;
+          totalAtestadosMin += min;
+          break;
+
+        case "Férias":
+        case "Licença Maternidade":
+        case "Licença Paternidade":
+        case "Licença INSS+15 D":
+        case "Acidente de Trabalho":
+          min = JORNADA_PADRAO;
+          totalAfastamentosMin += min;
+          break;
+
+        case "Feriado":
+          // feriado justificado → total 0:00
+          min = 0;
+          break;
+      }
+    }
+
+    totalPeriodo += min;
+
+    // ==== CRÉDITO (TOTAL - ESCALA) ====
+    let creditoMin = min - jornadaEscala;
+
+    // FERIADO COM MARCAÇÃO → crédito fixo 16:00
+    if(isFeriadoLista && temAlgumaMarcacao){
+      creditoMin = 16 * 60; // 16:00
+    }
+
+    let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+    if(isFeriadoLista) nomeDia="Feriado";
+
+    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
+
+    // FOLGA programada e sem registro/justificativa (não feriado listado)
+    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
+      conteudoEntrada = "FOLGA";
+      conteudoSaidaAlm = "FOLGA";
+      conteudoRetorno  = "FOLGA";
+      conteudoSaida    = "FOLGA";
+    } else {
+      conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
+      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
+      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
+      conteudoSaida     = campo(dadosAtual.saida,"saida");
+    }
+
+    html+=`<tr>
+      <td>${d}</td>
+      <td>${nomeDia}</td>
+      <td>${conteudoEntrada}</td>
+      <td>${conteudoSaidaAlm}</td>
+      <td>${conteudoRetorno}</td>
+      <td>${conteudoSaida}</td>
+      <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
+      <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>`;
+    if(tipo==="comGeo"){
+      html+=`<td>${dadosAtual.geoEntrada||""}</td>
+             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
+             <td>${dadosAtual.geoRetorno||""}</td>
+             <td>${dadosAtual.geoSaida||""}</td>`;
+    }
+    html+="</tr>";
+    currentDate.setDate(currentDate.getDate()+1);
+  }
+
+  html+=`<tr><th colspan="6">TOTAL</th>
+           <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
+           <th></th>
+         </tr></table>`;
+
+  // ==== TOTALIZADORES ====
+  html+=`<br><h4>Totais do Período</h4>`;
+  html+=`<p><strong>Total trabalhado (registros + justificativas positivas/negativas):</strong> ${fmt(totalPeriodo)}</p>`;
+  html+=`<p><strong>Total de atestados</strong> (Atestado dias/horas, Falta Justificada, Falta Abonada, Licença INSS+15 D): ${fmt(totalAtestadosMin)}</p>`;
+  html+=`<p><strong>Total de afastamentos</strong> (Férias, Licença Maternidade, Licença Paternidade, Acidente de Trabalho): ${fmt(totalAfastamentosMin)}</p>`;
+  html+=`<p><strong>Total atrasos/faltas</strong> (Falta Injustificada): ${fmt(totalAtrasosFaltasMin)}</p>`;
+
+  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+  document.getElementById("cartaoFuncionario").innerHTML=html;
+}
+
+
+function gerarExcel(){
+  const tabelaOriginal = document.querySelector("#tabelaRelatorio");
+  if(!tabelaOriginal){
+    alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
+    return;
+  }
+
+  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+
+  // Clona a tabela para não mexer na que está na tela
+  const tabela = tabelaOriginal.cloneNode(true);
+
+  if(!opt){
+    // ORIGINAL: marcações ajustadas em branco
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")){
+        td.innerHTML = "";
+      }
+    });
+  } else {
+    // AJUSTADO: remove apenas os botões
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // ---------- monta array de linhas (AoA) manualmente ----------
+  const linhas = [];
+  const trs = tabela.querySelectorAll("tr");
+
+  // função para gerar número de série do Excel (sem depender de fuso)
+  function excelSerialFromDMY(dd, mm, yyyy){
+    const excelEpoch = Date.UTC(1899, 11, 30); // 30/12/1899
+    const dtUTC = Date.UTC(yyyy, mm - 1, dd);
+    return (dtUTC - excelEpoch) / 86400000;   // ms → dias
+  }
+
+  trs.forEach((tr, rowIndex) => {
+    const row = [];
+    const cells = tr.querySelectorAll("th,td");
+
+    cells.forEach((cell, colIndex) => {
+      let txt = (cell.innerText || cell.textContent || "").trim();
+
+      // COLUNA A (Data) nas linhas de dados (a partir da 2ª linha)
+      if(rowIndex > 0 && colIndex === 0){
+        const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if(m){
+          const dd = parseInt(m[1],10);
+          const mm = parseInt(m[2],10);
+          const yyyy = parseInt(m[3],10);
+          const serial = excelSerialFromDMY(dd, mm, yyyy);
+          row.push(serial);            // número de série do Excel
+        } else {
+          row.push(txt);               // se não bater o formato, deixa texto
+        }
+      } else {
+        // demais colunas mantidas como texto do jeito que está
+        row.push(txt);
+      }
+    });
+
+    linhas.push(row);
+  });
+
+  // cria worksheet a partir do array de arrays
+  const ws = XLSX.utils.aoa_to_sheet(linhas);
+
+  // ---------- aplica formato de data na coluna A ----------
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  for(let r = 1; r <= range.e.r; r++){        // começa na linha 1 (pula cabeçalho)
+    const addr = XLSX.utils.encode_cell({ c: 0, r: r }); // coluna 0 = A
+    const cell = ws[addr];
+    if(cell && typeof cell.v === "number"){
+      cell.t = "n";               // número
+      cell.z = "dd/mm/yyyy";      // formato visual da célula
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
+  XLSX.writeFile(wb, "cartao_ponto.xlsx");
+}
+
+
+
+/* PDF ADMIN */
+function gerarPDFAdmin(){
+  const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
+
+  const func = funcionarioSelect.value;
+  const dados = JSON.parse(localStorage.getItem("registros")||"{}")[func] || {};
+
+  // calcula faltas injustificadas para resumo
+  let qtdFaltasInjustificadas = 0;
+  if(dataInicio.value){
+    const inicio = new Date(dataInicio.value);
+    const fim = dataFim.value ? new Date(dataFim.value) : inicio;
+    let currentDate = new Date(inicio);
+
+    while(currentDate <= fim){
+      const dia = String(currentDate.getDate()).padStart(2,"0");
+      const mes = String(currentDate.getMonth()+1).padStart(2,"0");
+      const ano = currentDate.getFullYear();
+      const d = `${dia}/${mes}/${ano}`;
+
+      const regDia = dados[d] || {};
+      const eventosDia = [
+        regDia.entrada_evento,
+        regDia.saidaAlmoco_evento,
+        regDia.retornoAlmoco_evento,
+        regDia.saida_evento
+      ].filter(Boolean);
+
+      if(eventosDia.includes("Falta Injustificada")){
+        qtdFaltasInjustificadas++;
+      }
+
+      currentDate.setDate(currentDate.getDate()+1);
+    }
+  }
+
+  doc.setFontSize(12);
+  doc.text("RELATÓRIO MENSAL DE PONTO",105,10,{align:"center"});
+  doc.setFontSize(9);
+  doc.text(
+    `Faltas Injustificadas (desconto férias): ${qtdFaltasInjustificadas} dia(s)`,
+    200,
+    10,
+    {align:"right"}
+  );
+
+  doc.setFontSize(10);
+  const u = func;
+  doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
+  doc.text(`Código: ${users[u]?.codigo || ""}`,14,24);
+  doc.text(`PIS: ${users[u]?.pis || ""}`,14,30);
+  doc.text(`Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}`,14,36);
+
+  const tabela=document.querySelector("#tabelaRelatorio").cloneNode(true);
+  if(!opt){
+    // ORIGINAL: campos ajustados vazios
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")){
+        td.innerHTML="";
+      }
+    });
+  } else {
+    // AJUSTADO: remove só os botões
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
+
+  doc.autoTable({startY:42,html:tabela});
+  doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
+  doc.save("cartao_ponto.pdf");
+}
+
+// ====== CADASTRO FUNCIONÁRIO ======
+function abrirCadastroFuncionario(){
+  // abre modal e reseta escala padrão
+  modalFuncionario.classList.remove("hidden");
+  escSeg.value = "08:00";
+  escTer.value = "08:00";
+  escQua.value = "08:00";
+  escQui.value = "08:00";
+  escSex.value = "08:00";
+  escSab.value = "04:00";
+  escDom.value = "FOLGA";
+}
+function fecharCadastroFuncionario(){ modalFuncionario.classList.add("hidden"); }
+
+function salvarFuncionario(){
+  const codigo=novoCodigo.value.trim();
+  const nome=novoNome.value.trim();
+  const u=novoUser.value.trim();
+  const p=novoPass.value.trim();
+  const cargo=novoCargo.value.trim();
+  const pis=novoPis.value.trim();
+  const setor=novoSetor.value.trim();
+  const local=novoLocal.value.trim();
+
+  // escala semanal digitada
+  const eSeg = (escSeg.value || "").trim() || "08:00";
+  const eTer = (escTer.value || "").trim() || eSeg;
+  const eQua = (escQua.value || "").trim() || eSeg;
+  const eQui = (escQui.value || "").trim() || eSeg;
+  const eSex = (escSex.value || "").trim() || eSeg;
+  const eSab = (escSab.value || "").trim() || "04:00";
+  const eDom = (escDom.value || "").trim() || "FOLGA";
+
+  if(!u||!p||!pis||!nome){
+    alert("Preencha pelo menos: Nome, Usuário, Senha e PIS");
+    return;
+  }
+
+  users[u]={
+    password:p,
+    role:"operacional",
+    pis:pis,
+    codigo:codigo,
+    nomeCompleto:nome,
+    cargo:cargo,
+    setor:setor,
+    localTrabalho:local,
+    escalaMensal:{},
+    escalaSemanal:{
+      1:eSeg,
+      2:eTer,
+      3:eQua,
+      4:eQui,
+      5:eSex,
+      6:eSab,
+      0:eDom
+    }
+  };
+
+  preencherFuncionarios();
+  fecharCadastroFuncionario();
+
+  novoCodigo.value="";
+  novoNome.value="";
+  novoUser.value="";
+  novoPass.value="";
+  novoCargo.value="";
+  novoPis.value="";
+  novoSetor.value="";
+  novoLocal.value="";
+  escSeg.value="08:00";
+  escTer.value="08:00";
+  escQua.value="08:00";
+  escQui.value="08:00";
+  escSex.value="08:00";
+  escSab.value="04:00";
+  escDom.value="FOLGA";
+
+  alert("Funcionário salvo com sucesso!");
+}
+
+// ====== ESCALA MENSAL (MANUAL) ======
+function abrirEscalaMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return alert("Selecione um funcionário");
+  const conteudo=document.getElementById("conteudoEscala");
+  conteudo.innerHTML="";
+  for(let i=1;i<=31;i++){
+    const val = users[u].escalaMensal[i]||"";
+    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
+  }
+  modalEscala.classList.remove("hidden");
+}
+function fecharEscalaMensal(){ modalEscala.classList.add("hidden"); }
+function salvarEscalaMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return;
+  for(let i=1;i<=31;i++){
+    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
+  }
+  fecharEscalaMensal();
+  alert("Escala mensal manual salva (quando preenchida, pode ser usada futuramente em regras adicionais)!");
+}
+</script>
+</body>
+</html>
