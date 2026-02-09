@@ -154,7 +154,26 @@ input,select{padding:4px 6px;margin:2px 0;}
 </div>
 
 <script>
-// ====== DADOS ======
+// ====== CONFIG GOOGLE PLANILHAS ======
+const URL_API = "https://script.google.com/macros/s/AKfycbxoR3SXsddBA5DT65iLKMCu-1dfIaghrHhGEDBhjCVpbHwAPNttstbjuMIpUuRrfLgdjA/exec"; // <-- COLE A URL DO APPS SCRIPT AQUI
+
+function enviarParaPlanilha(payload){
+  // Envia dados para o Apps Script (Google Planilhas)
+  // Obs.: com mode:"no-cors" você não consegue ler a resposta,
+  // mas evita muitos problemas de CORS. Para teste, pode tirar o mode.
+  fetch(URL_API, {
+    method: "POST",
+    mode: "no-cors",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  }).catch(err=>{
+    console.error("Erro ao enviar para planilha:", err);
+  });
+}
+
+// ====== DADOS LOCAIS ======
 let users = {
   admin:{
     password:"admin123",
@@ -170,7 +189,6 @@ let users = {
     setor:"Geral",
     localTrabalho:"Matriz",
     escalaMensal:{},
-    // escala semanal: 1=Seg ... 6=Sáb, 0=Dom
     escalaSemanal:{
       1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
     }
@@ -254,16 +272,13 @@ function fmt(m){
   return sign + h + ":" + mm;
 }
 
-// interpreta string da escala semanal e devolve minutos de jornada
 function cargaEscalaMin(escStr){
   if(!escStr) return 0;
   const s = escStr.toString().toUpperCase().trim();
   if(s==="FOLGA") return 0;
 
-  // padrão HH:MM
   if(/^\d{2}:\d{2}$/.test(s)) return hm(s);
 
-  // formato "08:00 as 17:00 = 08:00" → pega depois do "="
   if(s.includes("=")){
     const partes = s.split("=");
     const carga = partes[partes.length-1].trim();
@@ -297,11 +312,16 @@ function registrar(tipo){
   const hora=agora.toLocaleTimeString().slice(0,5);
   const data=agora.toLocaleDateString();
   navigator.geolocation.getCurrentPosition(
-    pos=> salvarRegistro(tipo,hora,data,`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
-    ()=> salvarRegistro(tipo,hora,data,"Não registrada")
+    pos=> {
+      const geoStr = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+      salvarRegistro(tipo,hora,data,geoStr,pos.coords);
+    },
+    ()=> salvarRegistro(tipo,hora,data,"Não registrada",null)
   );
 }
-function salvarRegistro(tipo,hora,data,geo){
+
+function salvarRegistro(tipo,hora,data,geo,coords){
+  // salva localmente (como já fazia)
   const d=JSON.parse(localStorage.getItem("registros")||"{}");
   d[currentUser]??={};
   d[currentUser][data]??={};
@@ -309,7 +329,40 @@ function salvarRegistro(tipo,hora,data,geo){
   d[currentUser][data]["geo"+capitalize(tipo)]=geo;
   localStorage.setItem("registros",JSON.stringify(d));
   mostrarRegistrosUsuario();
+
+  // também envia para Google Planilhas
+  let latitude = "";
+  let longitude = "";
+  if(coords){
+    latitude = coords.latitude;
+    longitude = coords.longitude;
+  } else if(geo && geo !== "Não registrada"){
+    const partes = geo.split(",");
+    latitude = (partes[0] || "").trim();
+    longitude = (partes[1] || "").trim();
+  }
+
+  const usuario = currentUser;
+  const userInfo = users[currentUser] || {};
+
+  const payload = {
+    tipo: "registroPonto",
+    id_registro: Date.now(),
+    usuario_login: usuario,
+    codigo: userInfo.codigo || "",
+    nome: userInfo.nomeCompleto || usuario,
+    data: data,
+    hora: hora,
+    tipo_marcacao: tipo,
+    latitude: latitude,
+    longitude: longitude,
+    geo: geo,
+    dispositivo: navigator.userAgent || ""
+  };
+
+  enviarParaPlanilha(payload);
 }
+
 function mostrarDataHora(){
   setInterval(()=>{
     const a=new Date();
@@ -362,7 +415,6 @@ function campo(valor, c, adminView = true){
   const vazio = !valor || valor === "-";
   const evento = dadosAtual[c+"_evento"];
 
-  // HORA REAL
   if(!vazio && !evento){
     if(adminView){
       return valor + (dadosAtual[c+"_editado"]
@@ -371,8 +423,6 @@ function campo(valor, c, adminView = true){
     }
     return valor;
   }
-
-  // JUSTIFICATIVA
   if(evento){
     if(adminView){
       return evento +
@@ -380,8 +430,6 @@ function campo(valor, c, adminView = true){
     }
     return evento;
   }
-
-  // EM BRANCO → +AJUSTAR
   if(adminView){
     return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
   }
@@ -423,7 +471,6 @@ function abrirAjuste(u,d,c){
     const h = popup.querySelector("#inputHoras").value.trim();
     const ev = popup.querySelector("#selectJustificacao").value;
 
-    // "Nenhum" → limpa justificativas do dia e volta para +Ajustar
     if(ev === "Nenhum"){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
         delete atual[campoNome+"_evento"];
@@ -439,7 +486,6 @@ function abrirAjuste(u,d,c){
       return;
     }
 
-    // ATESTADO MÉDICO DIAS → intervalo de datas
     if(ev === "Atestado Médico Dias"){
       const intervalo = prompt("Informe o intervalo do atestado (formato: dd/mm/aaaa - dd/mm/aaaa):", d+" - "+d);
       if(intervalo){
@@ -479,10 +525,8 @@ function abrirAjuste(u,d,c){
           }
         }
       }
-      // se não preencheu direito, continua para lógica normal abaixo
     }
 
-    // ATESTADO MÉDICO HORAS → data + hora início/fim
     if(ev === "Atestado Médico Horas"){
       const dataAtestadoStr = prompt("Data do atestado (dd/mm/aaaa):", d);
       if(!dataAtestadoStr){ popup.remove(); return; }
@@ -508,14 +552,12 @@ function abrirAjuste(u,d,c){
       return;
     }
 
-    // Se digitou horas manualmente → só o campo
     if(h){
       atual[c]=h;
       atual[c+"_evento"]="";
       atual[c+"_editado"]=true;
       delete atual.atestadoHorasMin;
     }
-    // Se escolheu uma justificativa "normal" → aplica nos 4 campos do dia
     else if(ev){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
         atual[campoNome]="-";
@@ -609,27 +651,20 @@ function gerarRelatorioMensal(){
 
     const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
 
-    // ==== CÁLCULO TOTAL MINUTOS (min) ====
     if(!eventoDia){
-      // sem justificativa
       if(temTodasMarcacoes){
         min =
           (hm(dadosAtual.saidaAlmoco) - hm(dadosAtual.entrada)) +
           (hm(dadosAtual.saida) - hm(dadosAtual.retornoAlmoco));
       }
-
-      // NOVA REGRA FERIADO (lista): TOTAL = 0:00
       if(isFeriadoLista){
         min = 0;
       }
-
-      // FOLGA programada e sem registro (não feriado de lista)
       if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao){
         min = 0;
       }
 
     } else {
-      // COM JUSTIFICATIVA
       switch(eventoDia){
         case "Falta Justificada":
           min = -JORNADA_PADRAO;
@@ -650,7 +685,7 @@ function gerarRelatorioMensal(){
 
         case "Falta Injustificada":
           min = -JORNADA_PADRAO;
-          totalAtrasosFaltasMin += min; // negativo
+          totalAtrasosFaltasMin += min;
           break;
 
         case "Falta Abonada":
@@ -668,7 +703,6 @@ function gerarRelatorioMensal(){
           break;
 
         case "Feriado":
-          // feriado justificado → total 0:00
           min = 0;
           break;
       }
@@ -676,12 +710,10 @@ function gerarRelatorioMensal(){
 
     totalPeriodo += min;
 
-    // ==== CRÉDITO (TOTAL - ESCALA) ====
     let creditoMin = min - jornadaEscala;
 
-    // FERIADO COM MARCAÇÃO → crédito fixo 16:00
     if(isFeriadoLista && temAlgumaMarcacao){
-      creditoMin = 16 * 60; // 16:00
+      creditoMin = 16 * 60;
     }
 
     let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
@@ -689,7 +721,6 @@ function gerarRelatorioMensal(){
 
     let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
 
-    // FOLGA programada e sem registro/justificativa (não feriado listado)
     if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
       conteudoEntrada = "FOLGA";
       conteudoSaidaAlm = "FOLGA";
@@ -726,7 +757,6 @@ function gerarRelatorioMensal(){
            <th></th>
          </tr></table>`;
 
-  // ==== TOTALIZADORES ====
   html+=`<br><h4>Totais do Período</h4>`;
   html+=`<p><strong>Total trabalhado (registros + justificativas positivas/negativas):</strong> ${fmt(totalPeriodo)}</p>`;
   html+=`<p><strong>Total de atestados</strong> (Atestado dias/horas, Falta Justificada, Falta Abonada, Licença INSS+15 D): ${fmt(totalAtestadosMin)}</p>`;
@@ -737,7 +767,6 @@ function gerarRelatorioMensal(){
   document.getElementById("cartaoFuncionario").innerHTML=html;
 }
 
-
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
   if(!tabelaOriginal){
@@ -747,18 +776,15 @@ function gerarExcel(){
 
   const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
 
-  // Clona a tabela para não mexer na que está na tela
   const tabela = tabelaOriginal.cloneNode(true);
 
   if(!opt){
-    // ORIGINAL: marcações ajustadas em branco
     [...tabela.querySelectorAll("td")].forEach(td=>{
       if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")){
         td.innerHTML = "";
       }
     });
   } else {
-    // AJUSTADO: remove apenas os botões
     [...tabela.querySelectorAll("td")].forEach(td=>{
       td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
     });
@@ -766,15 +792,13 @@ function gerarExcel(){
 
   const wb = XLSX.utils.book_new();
 
-  // ---------- monta array de linhas (AoA) manualmente ----------
   const linhas = [];
   const trs = tabela.querySelectorAll("tr");
 
-  // função para gerar número de série do Excel (sem depender de fuso)
   function excelSerialFromDMY(dd, mm, yyyy){
-    const excelEpoch = Date.UTC(1899, 11, 30); // 30/12/1899
+    const excelEpoch = Date.UTC(1899, 11, 30);
     const dtUTC = Date.UTC(yyyy, mm - 1, dd);
-    return (dtUTC - excelEpoch) / 86400000;   // ms → dias
+    return (dtUTC - excelEpoch) / 86400000;
   }
 
   trs.forEach((tr, rowIndex) => {
@@ -784,7 +808,6 @@ function gerarExcel(){
     cells.forEach((cell, colIndex) => {
       let txt = (cell.innerText || cell.textContent || "").trim();
 
-      // COLUNA A (Data) nas linhas de dados (a partir da 2ª linha)
       if(rowIndex > 0 && colIndex === 0){
         const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         if(m){
@@ -792,12 +815,11 @@ function gerarExcel(){
           const mm = parseInt(m[2],10);
           const yyyy = parseInt(m[3],10);
           const serial = excelSerialFromDMY(dd, mm, yyyy);
-          row.push(serial);            // número de série do Excel
+          row.push(serial);
         } else {
-          row.push(txt);               // se não bater o formato, deixa texto
+          row.push(txt);
         }
       } else {
-        // demais colunas mantidas como texto do jeito que está
         row.push(txt);
       }
     });
@@ -805,25 +827,21 @@ function gerarExcel(){
     linhas.push(row);
   });
 
-  // cria worksheet a partir do array de arrays
   const ws = XLSX.utils.aoa_to_sheet(linhas);
 
-  // ---------- aplica formato de data na coluna A ----------
   const range = XLSX.utils.decode_range(ws["!ref"]);
-  for(let r = 1; r <= range.e.r; r++){        // começa na linha 1 (pula cabeçalho)
-    const addr = XLSX.utils.encode_cell({ c: 0, r: r }); // coluna 0 = A
+  for(let r = 1; r <= range.e.r; r++){
+    const addr = XLSX.utils.encode_cell({ c: 0, r: r });
     const cell = ws[addr];
     if(cell && typeof cell.v === "number"){
-      cell.t = "n";               // número
-      cell.z = "dd/mm/yyyy";      // formato visual da célula
+      cell.t = "n";
+      cell.z = "dd/mm/yyyy";
     }
   }
 
   XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
   XLSX.writeFile(wb, "cartao_ponto.xlsx");
 }
-
-
 
 /* PDF ADMIN */
 function gerarPDFAdmin(){
@@ -834,7 +852,6 @@ function gerarPDFAdmin(){
   const func = funcionarioSelect.value;
   const dados = JSON.parse(localStorage.getItem("registros")||"{}")[func] || {};
 
-  // calcula faltas injustificadas para resumo
   let qtdFaltasInjustificadas = 0;
   if(dataInicio.value){
     const inicio = new Date(dataInicio.value);
@@ -882,14 +899,12 @@ function gerarPDFAdmin(){
 
   const tabela=document.querySelector("#tabelaRelatorio").cloneNode(true);
   if(!opt){
-    // ORIGINAL: campos ajustados vazios
     [...tabela.querySelectorAll("td")].forEach(td=>{
       if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")){
         td.innerHTML="";
       }
     });
   } else {
-    // AJUSTADO: remove só os botões
     [...tabela.querySelectorAll("td")].forEach(td=>{
       td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
     });
@@ -902,7 +917,6 @@ function gerarPDFAdmin(){
 
 // ====== CADASTRO FUNCIONÁRIO ======
 function abrirCadastroFuncionario(){
-  // abre modal e reseta escala padrão
   modalFuncionario.classList.remove("hidden");
   escSeg.value = "08:00";
   escTer.value = "08:00";
@@ -924,7 +938,6 @@ function salvarFuncionario(){
   const setor=novoSetor.value.trim();
   const local=novoLocal.value.trim();
 
-  // escala semanal digitada
   const eSeg = (escSeg.value || "").trim() || "08:00";
   const eTer = (escTer.value || "").trim() || eSeg;
   const eQua = (escQua.value || "").trim() || eSeg;
@@ -958,6 +971,23 @@ function salvarFuncionario(){
       0:eDom
     }
   };
+
+  // Envia cadastro para Google Planilhas
+  const payload = {
+    tipo: "cadastroFuncionario",
+    usuario_login: u,
+    codigo: codigo,
+    nome: nome,
+    pis: pis,
+    cargo: cargo,
+    setor: setor,
+    localTrabalho: local,
+    senha: p,
+    escalaSemanal: {
+      1:eSeg,2:eTer,3:eQua,4:eQui,5:eSex,6:eSab,0:eDom
+    }
+  };
+  enviarParaPlanilha(payload);
 
   preencherFuncionarios();
   fecharCadastroFuncionario();
