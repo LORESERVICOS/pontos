@@ -304,7 +304,15 @@ function login(){
     }
   } else alert("Login inválido");
 }
-function logout(){location.reload();}
+function logout(){
+  currentUser = null;
+  nomeUsuario.textContent = "";
+
+  // volta pra tela de login
+  document.getElementById("loginSection").classList.remove("hidden");
+  document.getElementById("operacionalSection").classList.add("hidden");
+  document.getElementById("adminSection").classList.add("hidden");
+}
 
 // ====== OPERACIONAL ======
 function registrar(tipo){
