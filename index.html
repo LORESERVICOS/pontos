@@ -155,17 +155,19 @@ input,select{padding:4px 6px;margin:2px 0;}
 
 <script>
 // ====== CONFIG GOOGLE PLANILHAS ======
-const URL_API = "https://script.google.com/macros/s/AKfycbxoR3SXsddBA5DT65iLKMCu-1dfIaghrHhGEDBhjCVpbHwAPNttstbjuMIpUuRrfLgdjA/exec"; // sua URL
+const URL_API = "https://script.google.com/macros/s/AKfycbxoR3SXsddBA5DT65iLKMCu-1dfIaghrHhGEDBhjCVpbHwAPNttstbjuMIpUuRrfLgdjA/exec";
 
 function enviarParaPlanilha(payload){
   console.log("Enviando para planilha:", payload);
-  fetch(URL_API, {
+  return fetch(URL_API, {
     method: "POST",
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify(payload)
   })
   .then(res => res.text())
   .then(txt => {
     console.log("Resposta da API (Apps Script):", txt);
+    try { return JSON.parse(txt); } catch(e){ return txt; }
   })
   .catch(err => {
     console.error("Erro ao enviar para planilha:", err);
@@ -175,72 +177,17 @@ function enviarParaPlanilha(payload){
 
 // ====== DADOS LOCAIS ======
 let users = {
-  admin:{
-    password:"admin123",
-    role:"admin"
-  },
-  // estes exemplos podem ser removidos depois que tudo estiver 100% na planilha
-  jaqueline:{
-    password:"123456",
-    role:"operacional",
-    pis:"370.394.838.82",
-    codigo:"001",
-    nomeCompleto:"Jaqueline",
-    cargo:"Colaboradora",
-    setor:"Geral",
-    localTrabalho:"Matriz",
-    escalaMensal:{},
-    escalaSemanal:{
-      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
-    }
-  },
-  maria:{
-    password:"123",
-    role:"operacional",
-    pis:"124.45678.90-1",
-    codigo:"002",
-    nomeCompleto:"Maria",
-    cargo:"Colaboradora",
-    setor:"Geral",
-    localTrabalho:"Filial",
-    escalaMensal:{},
-    escalaSemanal:{
-      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
-    }
-  },
-  ana:{
-    password:"123",
-    role:"operacional",
-    pis:"124.45678.90-1",
-    codigo:"003",
-    nomeCompleto:"Ana",
-    cargo:"Colaboradora",
-    setor:"Geral",
-    localTrabalho:"Filial",
-    escalaMensal:{},
-    escalaSemanal:{
-      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
-    }
-  },
-  gui:{
-    password:"12",
-    role:"operacional",
-    pis:"133.45678.90-1",
-    codigo:"004",
-    nomeCompleto:"Gui",
-    cargo:"Colaborador",
-    setor:"Geral",
-    localTrabalho:"Matriz",
-    escalaMensal:{},
-    escalaSemanal:{
-      1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
-    }
+  admin: {
+    password: "admin123",
+    role: "admin",
+    nomeCompleto: "Administrador"
   }
 };
 
-let currentUser=null;
-let dadosAtual={}, dataAtualRel="";
-const feriados=["01/01","07/09","25/12"];
+let currentUser = null;
+let dadosAtual = {};
+let dataAtualRel = "";
+const feriados = ["01/01","07/09","25/12"];
 
 const justificativas = [
   "Nenhum",
@@ -277,9 +224,7 @@ function cargaEscalaMin(escStr){
   if(!escStr) return 0;
   const s = escStr.toString().toUpperCase().trim();
   if(s==="FOLGA") return 0;
-
   if(/^\d{2}:\d{2}$/.test(s)) return hm(s);
-
   if(s.includes("=")){
     const partes = s.split("=");
     const carga = partes[partes.length-1].trim();
@@ -289,7 +234,6 @@ function cargaEscalaMin(escStr){
 }
 
 // ====== LOGIN ======
-// NOVO: login consulta a planilha FUNCIONARIOS para usuários operacionais
 async function login(){
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
@@ -299,7 +243,7 @@ async function login(){
     return;
   }
 
-  // ADMIN continua local
+  // ADMIN local
   if(u === "admin"){
     if(users.admin && users.admin.password === p){
       currentUser = "admin";
@@ -314,65 +258,31 @@ async function login(){
     }
   }
 
-  // FUNCIONÁRIOS: buscar na planilha FUNCIONARIOS
   try{
-    const payload = {
-      tipo: "buscarFuncionarioPorLogin",
-      usuario_login: u,
-      senha_ponto: p
-    };
+    const payload = { action: "login", usuario: u, senha: p };
+    const dadosResposta = await enviarParaPlanilha(payload);
+    console.log("Resposta login planilha (parseada):", dadosResposta);
 
-    const resp = await fetch(URL_API, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-
-    const txt = await resp.text();
-    console.log("Resposta login planilha:", txt);
-
-    let dadosResposta = null;
-    try{
-      dadosResposta = JSON.parse(txt);
-    }catch(e){
-      dadosResposta = null;
-    }
-
-    // Se não encontrar ou não vier sucesso -> mensagem de cadastro
-    if(!dadosResposta || !dadosResposta.sucesso || !dadosResposta.funcionario){
-      alert("Usuário não cadastrado. Peça ao administrador para efetuar o cadastro.");
+    if(!dadosResposta || !dadosResposta.success || !dadosResposta.user){
+      alert((dadosResposta && dadosResposta.msg) || "Usuário não cadastrado. Peça ao administrador para efetuar o cadastro.");
       return;
     }
 
-    const f = dadosResposta.funcionario;
+    const f = dadosResposta.user;
 
-    // Monta escala semanal a partir do retorno da planilha
-    const escalaSemanal = {};
-    if(f.escalaSemanal){
-      Object.assign(escalaSemanal, f.escalaSemanal);
-    } else {
-      if(f.escalaSeg) escalaSemanal[1] = f.escalaSeg;
-      if(f.escalaTer) escalaSemanal[2] = f.escalaTer;
-      if(f.escalaQua) escalaSemanal[3] = f.escalaQua;
-      if(f.escalaQui) escalaSemanal[4] = f.escalaQui;
-      if(f.escalaSex) escalaSemanal[5] = f.escalaSex;
-      if(f.escalaSab) escalaSemanal[6] = f.escalaSab;
-      if(f.escalaDom) escalaSemanal[0] = f.escalaDom;
-    }
-
-    // Guarda o usuário em memória local para o resto do sistema
     users[u] = {
       password: p,
-      role: "operacional",
+      role: f.role || "operacional",
       pis: f.pis || "",
       codigo: f.codigo || "",
-      nomeCompleto: f.nome || u,
+      nomeCompleto: f.nomeCompleto || f.login || u,
       cargo: f.cargo || "",
       setor: f.setor || "",
-      localTrabalho: f.local_trabalho || f.localTrabalho || "",
-      escalaMensal: {},
-      escalaSemanal: Object.keys(escalaSemanal).length ? escalaSemanal : {
-        1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
-      }
+      localTrabalho: f.localTrabalho || "",
+      escalaMensal: f.escalaMensal || {},
+      escalaSemanal: (f.escalaSemanal && Object.keys(f.escalaSemanal).length)
+        ? f.escalaSemanal
+        : { 1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA" }
     };
 
     currentUser = u;
@@ -382,7 +292,7 @@ async function login(){
     mostrarDataHora();
     mostrarRegistrosUsuario();
 
-  }catch(err){
+  } catch(err){
     console.error("Erro ao buscar funcionário na planilha:", err);
     alert("Erro ao buscar funcionário na planilha. Tente novamente ou fale com o administrador.");
   }
@@ -391,7 +301,6 @@ async function login(){
 function logout(){
   currentUser = null;
   document.getElementById("nomeUsuario").textContent = "";
-
   document.getElementById("loginSection").classList.remove("hidden");
   document.getElementById("operacionalSection").classList.add("hidden");
   document.getElementById("adminSection").classList.add("hidden");
@@ -435,7 +344,7 @@ function salvarRegistro(tipo,hora,data,geo,coords){
   const userInfo = users[currentUser] || {};
 
   const payload = {
-    tipo: "registroPonto",
+    action: "registroPonto",
     id_registro: Date.now(),
     usuario_login: usuario,
     codigo: userInfo.codigo || "",
@@ -505,11 +414,12 @@ function gerarComprovante(tipo){
 function campo(valor, c, adminView = true){
   const vazio = !valor || valor === "-";
   const evento = dadosAtual[c+"_evento"];
+  const funcSelect = document.getElementById("funcionarioSelect");
 
   if(!vazio && !evento){
     if(adminView){
       return valor + (dadosAtual[c+"_editado"]
-        ? ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
+        ? ` <button style="font-size:11px" onclick="abrirAjuste('${funcSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
         : "");
     }
     return valor;
@@ -517,12 +427,12 @@ function campo(valor, c, adminView = true){
   if(evento){
     if(adminView){
       return evento +
-        ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`;
+        ` <button style="font-size:11px" onclick="abrirAjuste('${funcSelect.value}','${dataAtualRel}','${c}')">Editar</button>`;
     }
     return evento;
   }
   if(adminView){
-    return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
+    return `<button style="font-size:11px" onclick="abrirAjuste('${funcSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
   }
   return "";
 }
@@ -681,8 +591,12 @@ function preencherFuncionarios(){
 
 // ====== RELATÓRIO CARTÃO DE PONTO ======
 function gerarRelatorioMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
-  if(!u || !dataInicio.value) return;
+  const funcSelect = document.getElementById("funcionarioSelect");
+  const u = funcSelect.value;
+  const dataInicioEl = document.getElementById("dataInicio");
+  const dataFimEl = document.getElementById("dataFim");
+
+  if(!u || !dataInicioEl.value) return;
   const tipo=document.getElementById("tipoRelatorio").value;
   const registros=JSON.parse(localStorage.getItem("registros")||"{}")[u]||{};
   const escSem = users[u].escalaSemanal || {};
@@ -694,14 +608,14 @@ function gerarRelatorioMensal(){
 
   let html=`<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
   html+=`<p>Código: ${users[u].codigo || ""} | PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
-  html+=`<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
+  html+=`<p>Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}</p>`;
   html+=`<table id="tabelaRelatorio"><tr>
   <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
   if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
   html+="</tr>";
 
-  const inicio = new Date(dataInicio.value);
-  const fim = dataFim.value ? new Date(dataFim.value) : inicio;
+  const inicio = new Date(dataInicioEl.value);
+  const fim = dataFimEl.value ? new Date(dataFimEl.value) : inicio;
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
@@ -930,17 +844,21 @@ function gerarExcel(){
 
 /* PDF ADMIN */
 function gerarPDFAdmin(){
+  const dataInicioEl = document.getElementById("dataInicio");
+  const dataFimEl = document.getElementById("dataFim");
+  const funcSelect = document.getElementById("funcionarioSelect");
+
   const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF('p','mm','a4');
 
-  const func = funcionarioSelect.value;
+  const func = funcSelect.value;
   const dados = JSON.parse(localStorage.getItem("registros")||"{}")[func] || {};
 
   let qtdFaltasInjustificadas = 0;
-  if(dataInicio.value){
-    const inicio = new Date(dataInicio.value);
-    const fim = dataFim.value ? new Date(dataFim.value) : inicio;
+  if(dataInicioEl.value){
+    const inicio = new Date(dataInicioEl.value);
+    const fim = dataFimEl.value ? new Date(dataFimEl.value) : inicio;
     let currentDate = new Date(inicio);
 
     while(currentDate <= fim){
@@ -980,7 +898,7 @@ function gerarPDFAdmin(){
   doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
   doc.text(`Código: ${users[u]?.codigo || ""}`,14,24);
   doc.text(`PIS: ${users[u]?.pis || ""}`,14,30);
-  doc.text(`Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}`,14,36);
+  doc.text(`Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}`,14,36);
 
   const tabela=document.querySelector("#tabelaRelatorio").cloneNode(true);
   if(!opt){
@@ -1058,24 +976,34 @@ function salvarFuncionario(){
   };
 
   const payload = {
-    tipo: "cadastroFuncionario",
+    action: "cadastrarFuncionario",
     usuario_login: u,
-    codigo: codigo,
-    nome: nome,
+    senha_ponto: p,
+    role: "operacional",
     pis: pis,
+    codigo: codigo,
+    nomeCompleto: nome,
     cargo: cargo,
     setor: setor,
     localTrabalho: local,
-    senha: p,
     escalaSemanal: {
       1:eSeg,2:eTer,3:eQua,4:eQui,5:eSex,6:eSab,0:eDom
     }
   };
-  console.log("Enviando cadastroFuncionario:", payload);
-  enviarParaPlanilha(payload);
 
-  preencherFuncionarios();
-  fecharCadastroFuncionario();
+  enviarParaPlanilha(payload).then(res => {
+    console.log("Resposta cadastroFuncionario:", res);
+    if(res && res.success){
+      alert("Funcionário salvo com sucesso!");
+      preencherFuncionarios();
+      fecharCadastroFuncionario();
+    } else {
+      alert((res && res.msg) || "Erro ao salvar funcionário na planilha.");
+    }
+  }).catch(err => {
+    console.error("Erro no cadastroFuncionario:", err);
+    alert("Erro ao salvar funcionário. Veja o console.");
+  });
 
   novoCodigo.value="";
   novoNome.value="";
@@ -1092,8 +1020,6 @@ function salvarFuncionario(){
   escSex.value="08:00";
   escSab.value="04:00";
   escDom.value="FOLGA";
-
-  alert("Funcionário salvo com sucesso!");
 }
 
 // ====== ESCALA MENSAL (MANUAL) ======
