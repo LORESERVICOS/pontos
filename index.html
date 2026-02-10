@@ -155,21 +155,21 @@ input,select{padding:4px 6px;margin:2px 0;}
 
 <script>
 // ====== CONFIG GOOGLE PLANILHAS ======
-const URL_API = "https://script.google.com/macros/s/AKfycbxoR3SXsddBA5DT65iLKMCu-1dfIaghrHhGEDBhjCVpbHwAPNttstbjuMIpUuRrfLgdjA/exec"; // <-- COLE A URL DO APPS SCRIPT AQUI
+const URL_API = "https://script.google.com/macros/s/AKfycbxoR3SXsddBA5DT65iLKMCu-1dfIaghrHhGEDBhjCVpbHwAPNttstbjuMIpUuRrfLgdjA/exec"; // sua URL
 
 function enviarParaPlanilha(payload){
-  // Envia dados para o Apps Script (Google Planilhas)
-  // Obs.: com mode:"no-cors" você não consegue ler a resposta,
-  // mas evita muitos problemas de CORS. Para teste, pode tirar o mode.
+  console.log("Enviando para planilha:", payload);
   fetch(URL_API, {
     method: "POST",
-    mode: "no-cors",
-    headers: {
-      "Content-Type": "application/json"
-    },
     body: JSON.stringify(payload)
-  }).catch(err=>{
+  })
+  .then(res => res.text())
+  .then(txt => {
+    console.log("Resposta da API (Apps Script):", txt);
+  })
+  .catch(err => {
     console.error("Erro ao enviar para planilha:", err);
+    alert("Erro ao enviar para a planilha. Veja o console do navegador.");
   });
 }
 
@@ -321,7 +321,6 @@ function registrar(tipo){
 }
 
 function salvarRegistro(tipo,hora,data,geo,coords){
-  // salva localmente (como já fazia)
   const d=JSON.parse(localStorage.getItem("registros")||"{}");
   d[currentUser]??={};
   d[currentUser][data]??={};
@@ -330,7 +329,6 @@ function salvarRegistro(tipo,hora,data,geo,coords){
   localStorage.setItem("registros",JSON.stringify(d));
   mostrarRegistrosUsuario();
 
-  // também envia para Google Planilhas
   let latitude = "";
   let longitude = "";
   if(coords){
@@ -623,9 +621,9 @@ function gerarRelatorioMensal(){
     dadosAtual = registros[d] || {};
     dataAtualRel = d;
 
-    const JORNADA_PADRAO = 480; // 8h
+    const JORNADA_PADRAO = 480;
 
-    const weekday = currentDate.getDay(); // 0=Dom ... 6=Sáb
+    const weekday = currentDate.getDay();
     const escStr = escSem[weekday] || "";
     const jornadaEscala = cargaEscalaMin(escStr);
     const isFeriadoLista = feriados.includes(ddmm);
@@ -670,29 +668,24 @@ function gerarRelatorioMensal(){
           min = -JORNADA_PADRAO;
           totalAtestadosMin += -min;
           break;
-
         case "Atestado Médico Dias":
           min = -JORNADA_PADRAO;
           totalAtestadosMin += -min;
           break;
-
         case "Atestado Médico Horas": {
           const minutosAtestado = dadosAtual.atestadoHorasMin || JORNADA_PADRAO;
           min = -minutosAtestado;
           totalAtestadosMin += minutosAtestado;
           break;
         }
-
         case "Falta Injustificada":
           min = -JORNADA_PADRAO;
           totalAtrasosFaltasMin += min;
           break;
-
         case "Falta Abonada":
           min = JORNADA_PADRAO;
           totalAtestadosMin += min;
           break;
-
         case "Férias":
         case "Licença Maternidade":
         case "Licença Paternidade":
@@ -701,7 +694,6 @@ function gerarRelatorioMensal(){
           min = JORNADA_PADRAO;
           totalAfastamentosMin += min;
           break;
-
         case "Feriado":
           min = 0;
           break;
@@ -972,7 +964,6 @@ function salvarFuncionario(){
     }
   };
 
-  // Envia cadastro para Google Planilhas
   const payload = {
     tipo: "cadastroFuncionario",
     usuario_login: u,
@@ -987,6 +978,7 @@ function salvarFuncionario(){
       1:eSeg,2:eTer,3:eQua,4:eQui,5:eSex,6:eSab,0:eDom
     }
   };
+  console.log("Enviando cadastroFuncionario:", payload);
   enviarParaPlanilha(payload);
 
   preencherFuncionarios();
