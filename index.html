@@ -179,6 +179,7 @@ let users = {
     password:"admin123",
     role:"admin"
   },
+  // estes exemplos podem ser removidos depois que tudo estiver 100% na planilha
   jaqueline:{
     password:"123456",
     role:"operacional",
@@ -288,27 +289,109 @@ function cargaEscalaMin(escStr){
 }
 
 // ====== LOGIN ======
-function login(){
-  const u=username.value.trim(), p=password.value.trim();
-  if(users[u] && users[u].password===p){
-    currentUser=u;
-    nomeUsuario.textContent=users[u].nomeCompleto || u;
-    loginSection.classList.add("hidden");
-    if(users[u].role==="admin"){
-      adminSection.classList.remove("hidden");
+// NOVO: login consulta a planilha FUNCIONARIOS para usuários operacionais
+async function login(){
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+
+  if(!u || !p){
+    alert("Informe usuário e senha.");
+    return;
+  }
+
+  // ADMIN continua local
+  if(u === "admin"){
+    if(users.admin && users.admin.password === p){
+      currentUser = "admin";
+      document.getElementById("nomeUsuario").textContent = "Administrador";
+      document.getElementById("loginSection").classList.add("hidden");
+      document.getElementById("adminSection").classList.remove("hidden");
       preencherFuncionarios();
+      return;
     } else {
-      operacionalSection.classList.remove("hidden");
-      mostrarDataHora();
-      mostrarRegistrosUsuario();
+      alert("Senha do administrador inválida.");
+      return;
     }
-  } else alert("Login inválido");
+  }
+
+  // FUNCIONÁRIOS: buscar na planilha FUNCIONARIOS
+  try{
+    const payload = {
+      tipo: "buscarFuncionarioPorLogin",
+      usuario_login: u,
+      senha_ponto: p
+    };
+
+    const resp = await fetch(URL_API, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    const txt = await resp.text();
+    console.log("Resposta login planilha:", txt);
+
+    let dadosResposta = null;
+    try{
+      dadosResposta = JSON.parse(txt);
+    }catch(e){
+      dadosResposta = null;
+    }
+
+    // Se não encontrar ou não vier sucesso -> mensagem de cadastro
+    if(!dadosResposta || !dadosResposta.sucesso || !dadosResposta.funcionario){
+      alert("Usuário não cadastrado. Peça ao administrador para efetuar o cadastro.");
+      return;
+    }
+
+    const f = dadosResposta.funcionario;
+
+    // Monta escala semanal a partir do retorno da planilha
+    const escalaSemanal = {};
+    if(f.escalaSemanal){
+      Object.assign(escalaSemanal, f.escalaSemanal);
+    } else {
+      if(f.escalaSeg) escalaSemanal[1] = f.escalaSeg;
+      if(f.escalaTer) escalaSemanal[2] = f.escalaTer;
+      if(f.escalaQua) escalaSemanal[3] = f.escalaQua;
+      if(f.escalaQui) escalaSemanal[4] = f.escalaQui;
+      if(f.escalaSex) escalaSemanal[5] = f.escalaSex;
+      if(f.escalaSab) escalaSemanal[6] = f.escalaSab;
+      if(f.escalaDom) escalaSemanal[0] = f.escalaDom;
+    }
+
+    // Guarda o usuário em memória local para o resto do sistema
+    users[u] = {
+      password: p,
+      role: "operacional",
+      pis: f.pis || "",
+      codigo: f.codigo || "",
+      nomeCompleto: f.nome || u,
+      cargo: f.cargo || "",
+      setor: f.setor || "",
+      localTrabalho: f.local_trabalho || f.localTrabalho || "",
+      escalaMensal: {},
+      escalaSemanal: Object.keys(escalaSemanal).length ? escalaSemanal : {
+        1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"
+      }
+    };
+
+    currentUser = u;
+    document.getElementById("nomeUsuario").textContent = users[u].nomeCompleto;
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("operacionalSection").classList.remove("hidden");
+    mostrarDataHora();
+    mostrarRegistrosUsuario();
+
+  }catch(err){
+    console.error("Erro ao buscar funcionário na planilha:", err);
+    alert("Erro ao buscar funcionário na planilha. Tente novamente ou fale com o administrador.");
+  }
 }
+
 function logout(){
   currentUser = null;
-  nomeUsuario.textContent = "";
+  document.getElementById("nomeUsuario").textContent = "";
 
-  // volta pra tela de login
   document.getElementById("loginSection").classList.remove("hidden");
   document.getElementById("operacionalSection").classList.add("hidden");
   document.getElementById("adminSection").classList.add("hidden");
@@ -372,14 +455,16 @@ function salvarRegistro(tipo,hora,data,geo,coords){
 function mostrarDataHora(){
   setInterval(()=>{
     const a=new Date();
-    dataAtual.textContent="Data: "+a.toLocaleDateString();
-    horaAtual.textContent="Hora: "+a.toLocaleTimeString();
+    document.getElementById("dataAtual").textContent="Data: "+a.toLocaleDateString();
+    document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString();
   },1000);
 }
 function mostrarRegistrosUsuario(){
   const hoje=new Date().toLocaleDateString();
   const d=JSON.parse(localStorage.getItem("registros")||"{}");
   const r=d[currentUser]?.[hoje]||{};
+  const registrosUsuario=document.getElementById("registrosUsuario");
+  const botoesRegistro=document.getElementById("botoesRegistro");
   registrosUsuario.innerHTML="";
   botoesRegistro.innerHTML="";
   ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
@@ -917,7 +1002,7 @@ function gerarPDFAdmin(){
 
 // ====== CADASTRO FUNCIONÁRIO ======
 function abrirCadastroFuncionario(){
-  modalFuncionario.classList.remove("hidden");
+  document.getElementById("modalFuncionario").classList.remove("hidden");
   escSeg.value = "08:00";
   escTer.value = "08:00";
   escQua.value = "08:00";
@@ -926,7 +1011,7 @@ function abrirCadastroFuncionario(){
   escSab.value = "04:00";
   escDom.value = "FOLGA";
 }
-function fecharCadastroFuncionario(){ modalFuncionario.classList.add("hidden"); }
+function fecharCadastroFuncionario(){ document.getElementById("modalFuncionario").classList.add("hidden"); }
 
 function salvarFuncionario(){
   const codigo=novoCodigo.value.trim();
@@ -1021,9 +1106,9 @@ function abrirEscalaMensal(){
     const val = users[u].escalaMensal[i]||"";
     conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
   }
-  modalEscala.classList.remove("hidden");
+  document.getElementById("modalEscala").classList.remove("hidden");
 }
-function fecharEscalaMensal(){ modalEscala.classList.add("hidden"); }
+function fecharEscalaMensal(){ document.getElementById("modalEscala").classList.add("hidden"); }
 function salvarEscalaMensal(){
   const u=document.getElementById("funcionarioSelect").value;
   if(!u) return;
