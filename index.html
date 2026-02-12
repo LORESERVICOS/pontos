@@ -210,7 +210,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwxBa-DDtruDJFQhBEP
 /** =========================================================
  *  ✅ Estado em memória (sem login local)
  *  ========================================================= */
-let users = {};             // usado só após login (info do usuário logado + funcionários carregados)
+let users = {};             // guarda dados do logado + cache de funcionários
 let currentUser = null;     // login atual
 let currentRole = null;     // role atual
 let dadosAtual = {}, dataAtualRel = "";
@@ -302,7 +302,6 @@ async function restaurarSessaoSePossivel(){
     return;
   }
 
-  // revalida na planilha
   try{
     const data = await apiPost_({ tipo:"login", usuario:u, senha:p });
     if(data.status !== "ok"){
@@ -359,6 +358,7 @@ function aplicarUsuarioLogado_(u, p, info){
   currentUser = u;
   currentRole = (info.role || "operacional").toLowerCase();
 
+  // cache do usuário logado
   users[currentUser] = {
     password: p, // compatibilidade (não é usado pra validar localmente)
     role: currentRole,
@@ -420,19 +420,23 @@ async function recarregarFuncionarios(){
     const list = data.funcionarios || [];
     select.innerHTML = "<option value=''>Selecionar Funcionário</option>";
 
-    // guarda em memória (para nomes no relatório etc.)
+    // cache básico
     list.forEach(f=>{
-      users[f.login] = users[f.login] || {};
-      users[f.login].role = (f.role || "operacional").toLowerCase();
-      users[f.login].nomeCompleto = f.nome || f.login;
+      const login = (f.login || f.usuario_login || "").toString().trim();
+      if(!login) return;
+      users[login] = users[login] || {};
+      users[login].role = (f.role || "operacional").toLowerCase();
+      users[login].nomeCompleto = (f.nome || f.nomeCompleto || login);
     });
 
     list
-      .filter(f => (f.role || "operacional").toLowerCase() === "operacional")
+      .filter(f => ((f.role || "operacional").toLowerCase() === "operacional"))
       .forEach(f=>{
+        const login = (f.login || f.usuario_login || "").toString().trim();
+        if(!login) return;
         const opt = document.createElement("option");
-        opt.value = f.login;
-        opt.textContent = f.nome || f.login;
+        opt.value = login;
+        opt.textContent = f.nome || f.nomeCompleto || login;
         select.appendChild(opt);
       });
 
@@ -480,7 +484,7 @@ async function abrirCadastroFuncionario(){
     return;
   }
 
-  // EDIÇÃO: busca na planilha
+  // EDIÇÃO
   modoFuncionario.textContent = "EDITANDO";
   btnExcluirFunc.classList.remove("hidden");
   btnSalvarFunc.disabled = true;
@@ -496,23 +500,23 @@ async function abrirCadastroFuncionario(){
     }
 
     const f = data.funcionario || {};
-    novoCodigo.value = f.codigo || "";
-    novoNome.value   = f.nome || f.nomeCompleto || uSel;
-    novoUser.value   = f.usuario_login || uSel;
-    novoPass.value   = f.senha_ponto || "";
-    novoCargo.value  = f.cargo || "";
-    novoPis.value    = f.pis || "";
-    novoSetor.value  = f.setor || "";
-    novoLocal.value  = f.local_trabalho || f.localTrabalho || "";
-    novoRole.value   = (f.role || "operacional").toLowerCase();
+    novoCodigo.value = (f.codigo || "");
+    novoNome.value   = (f.nome || f.nomeCompleto || uSel);
+    novoUser.value   = (f.usuario_login || uSel);
+    novoPass.value   = (f.senha_ponto || "");
+    novoCargo.value  = (f.cargo || "");
+    novoPis.value    = (f.pis || "");
+    novoSetor.value  = (f.setor || "");
+    novoLocal.value  = (f.local_trabalho || f.localTrabalho || "");
+    novoRole.value   = ((f.role || "operacional").toLowerCase());
 
-    escSeg.value = f.escSeg || "08:00";
-    escTer.value = f.escTer || "08:00";
-    escQua.value = f.escQua || "08:00";
-    escQui.value = f.escQui || "08:00";
-    escSex.value = f.escSex || "08:00";
-    escSab.value = f.escSab || "04:00";
-    escDom.value = f.escDom || "FOLGA";
+    escSeg.value = (f.escSeg || "08:00");
+    escTer.value = (f.escTer || "08:00");
+    escQua.value = (f.escQua || "08:00");
+    escQui.value = (f.escQui || "08:00");
+    escSex.value = (f.escSex || "08:00");
+    escSab.value = (f.escSab || "04:00");
+    escDom.value = (f.escDom || "FOLGA");
 
   }catch(e){
     console.error(e);
@@ -529,6 +533,7 @@ function fecharCadastroFuncionario(){
 
 async function salvarFuncionario(){
   msgFuncionario.textContent = "";
+
   const codigo = novoCodigo.value.trim();
   const nome   = novoNome.value.trim();
   const u      = novoUser.value.trim();
@@ -581,7 +586,7 @@ async function salvarFuncionario(){
       return;
     }
 
-    // atualiza memória
+    // atualiza cache em memória
     users[u] = users[u] || {};
     users[u].nomeCompleto = nome || u;
     users[u].role = role;
@@ -595,13 +600,11 @@ async function salvarFuncionario(){
     msgFuncionario.textContent = "✅ Salvo na planilha.";
     await recarregarFuncionarios();
 
-    // se editou o próprio logado, atualiza header/nome
     if(currentUser && u.toLowerCase() === currentUser.toLowerCase()){
       nomeUsuario.textContent = nome || currentUser;
     }
 
-    // fecha depois de salvar
-    setTimeout(()=>fecharCadastroFuncionario(), 400);
+    setTimeout(()=>fecharCadastroFuncionario(), 350);
 
   }catch(e){
     console.error(e);
@@ -645,7 +648,7 @@ async function excluirFuncionario(){
 }
 
 /** =========================================================
- *  OPERACIONAL: registros (mantido localStorage como você já usava)
+ *  OPERACIONAL: registros (localStorage)
  *  ========================================================= */
 function registrar(tipo){
   const agora = new Date();
@@ -721,7 +724,7 @@ function gerarComprovante(tipo){
 }
 
 /** =========================================================
- *  AJUSTE (mantido igual ao seu padrão)
+ *  AJUSTE (igual ao seu)
  *  ========================================================= */
 function campo(valor, c, adminView = true){
   const vazio = !valor || valor === "-";
@@ -873,8 +876,7 @@ function abrirAjuste(u,d,c){
       atual[c+"_evento"]="";
       atual[c+"_editado"]=true;
       delete atual.atestadoHorasMin;
-    }
-    else if(ev){
+    } else if(ev){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
         atual[campoNome]="-";
         atual[campoNome+"_evento"]=ev;
@@ -892,11 +894,9 @@ function abrirAjuste(u,d,c){
 }
 
 /** =========================================================
- *  RELATÓRIO (usa dados do localStorage de registros + escala do "users" em memória)
- *  - Quando você selecionar funcionário, a gente busca a escala dele na planilha (se precisar).
+ *  RELATÓRIO (registros locais + escala da planilha via obterFuncionario)
  *  ========================================================= */
 async function garantirFuncionarioCarregado_(u){
-  // se já temos escalaSemanal, ok
   if(users[u]?.escalaSemanal) return;
 
   try{
@@ -965,7 +965,6 @@ async function gerarRelatorioMensal(){
     dataAtualRel = d;
 
     const JORNADA_PADRAO = 480; // 8h
-
     const weekday = currentDate.getDay(); // 0=Dom ... 6=Sáb
     const escStr = escSem[weekday] || "";
     const jornadaEscala = cargaEscalaMin(escStr);
@@ -998,12 +997,8 @@ async function gerarRelatorioMensal(){
           (hm(dadosAtual.saidaAlmoco) - hm(dadosAtual.entrada)) +
           (hm(dadosAtual.saida) - hm(dadosAtual.retornoAlmoco));
       }
-      if(isFeriadoLista){
-        min = 0;
-      }
-      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao){
-        min = 0;
-      }
+      if(isFeriadoLista) min = 0;
+      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
     } else {
       switch(eventoDia){
         case "Falta Justificada":
@@ -1092,16 +1087,16 @@ async function gerarRelatorioMensal(){
 
   html+=`<br><h4>Totais do Período</h4>`;
   html+=`<p><strong>Total trabalhado (registros + justificativas positivas/negativas):</strong> ${fmt(totalPeriodo)}</p>`;
-  html+=`<p><strong>Total de atestados</strong> (Atestado dias/horas, Falta Justificada, Falta Abonada, Licença INSS+15 D): ${fmt(totalAtestadosMin)}</p>`;
-  html+=`<p><strong>Total de afastamentos</strong> (Férias, Licença Maternidade, Licença Paternidade, Acidente de Trabalho): ${fmt(totalAfastamentosMin)}</p>`;
-  html+=`<p><strong>Total atrasos/faltas</strong> (Falta Injustificada): ${fmt(totalAtrasosFaltasMin)}</p>`;
-
+  html+=`<p><strong>Total de atestados</strong>: ${fmt(totalAtestadosMin)}</p>`;
+  html+=`<p><strong>Total de afastamentos</strong>: ${fmt(totalAfastamentosMin)}</p>`;
+  html+=`<p><strong>Total atrasos/faltas</strong>: ${fmt(totalAtrasosFaltasMin)}</p>`;
   html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+
   document.getElementById("cartaoFuncionario").innerHTML = html;
 }
 
 /** =========================================================
- *  EXCEL / PDF (mantidos)
+ *  EXCEL / PDF (mantidos do seu padrão)
  *  ========================================================= */
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
@@ -1237,7 +1232,7 @@ function gerarPDFAdmin(){
 }
 
 /** =========================================================
- *  ESCALA MENSAL (mantido local no navegador)
+ *  ESCALA MENSAL (local)
  *  ========================================================= */
 function abrirEscalaMensal(){
   const u = document.getElementById("funcionarioSelect").value;
