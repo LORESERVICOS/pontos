@@ -7,56 +7,40 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
-
 <style>
-  body{font-family:Inter;background:#f8fafc;margin:0}
-  header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
-  .card{background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin:20px auto}
-  button{padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;margin:2px}
-  button:hover{background:#1d4ed8}
-  button:disabled{opacity:.6;cursor:not-allowed}
-  .hidden{display:none}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
-  th{background:#f1f5f9}
-  .verde{color:green;font-weight:bold;}
-  .vermelho{color:red;font-weight:bold;}
-  input,select{padding:6px 8px;margin:2px 0;border:1px solid #d1d5db;border-radius:10px;outline:none}
-  input:focus,select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .muted{color:#64748b;font-size:12px}
-  .danger{background:#dc2626}
-  .danger:hover{background:#b91c1c}
-  .ghost{background:#0f172a}
-  .ghost:hover{background:#111827}
-  .pill{display:inline-block;background:#eef2ff;color:#3730a3;padding:4px 8px;border-radius:999px;font-size:12px}
+body{font-family:Inter;background:#f8fafc;margin:0}
+header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
+.card{background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin:20px auto}
+button{padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;margin:2px}
+button:hover{background:#1d4ed8}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
+th{background:#f1f5f9}
+.verde{color:green;font-weight:bold;}
+.vermelho{color:red;font-weight:bold;}
+input,select{padding:4px 6px;margin:2px 0;}
 </style>
 </head>
-
 <body>
 <header>
   Bem-vindo, <span id="nomeUsuario"></span>
 </header>
 
 <!-- LOGIN -->
-<div id="loginSection" class="card" style="max-width:420px">
-  <h2 style="margin-top:0">Login</h2>
-  <div class="muted">Login é validado <strong>pela planilha (Apps Script)</strong>. Não usa login local.</div>
-  <br>
-  <input id="username" placeholder="Usuário" autocomplete="off" style="width:100%"><br><br>
-  <input id="password" type="password" placeholder="Senha" autocomplete="off" style="width:100%"><br><br>
+<div id="loginSection" class="card" style="max-width:400px">
+  <h2>Login</h2>
+  <input id="username" placeholder="Usuário" autocomplete="off"><br><br>
+  <input id="password" type="password" placeholder="Senha" autocomplete="off"><br><br>
   <button id="btnLogin" onclick="login()">Entrar</button>
   <div id="loginMsg" style="margin-top:10px;font-size:13px;color:#b91c1c;"></div>
 </div>
 
 <!-- OPERACIONAL -->
 <div id="operacionalSection" class="hidden">
-  <div class="card" style="max-width:680px">
-    <div class="row" style="justify-content:space-between">
-      <h2 style="margin:0">Registro de Ponto</h2>
-      <span id="badgeRole" class="pill"></span>
-    </div>
-    <div id="dataAtual" style="margin-top:10px"></div>
+  <div class="card" style="max-width:600px">
+    <h2>Registro de Ponto</h2>
+    <div id="dataAtual"></div>
     <div id="horaAtual"></div>
     <hr>
     <div id="botoesRegistro"></div>
@@ -70,132 +54,101 @@
 
 <!-- ADMIN -->
 <div id="adminSection" class="hidden">
-  <div class="card" style="max-width:1250px">
-    <div class="row" style="justify-content:space-between">
-      <h2 style="margin:0">Relatório – Cartão de Ponto</h2>
-      <span id="badgeRoleAdmin" class="pill"></span>
-    </div>
-
-    <div class="row" style="margin-top:10px">
-      <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
-      <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button>
-      <button class="ghost" onclick="recarregarFuncionarios()">Recarregar funcionários</button>
-      <button onclick="logout()">Sair</button>
-    </div>
-
-    <br>
-    <div class="row">
-      <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
-      <input type="date" id="dataInicio">
-      <input type="date" id="dataFim">
-      <select id="tipoRelatorio">
-        <option value="simples">Relatório Simples</option>
-        <option value="comGeo">Com Geolocalização</option>
-      </select>
-      <button onclick="gerarRelatorioMensal()">Gerar</button>
-      <button onclick="gerarExcel()">Excel</button>
-      <button onclick="gerarPDFAdmin()">PDF</button>
-    </div>
-
+  <div class="card" style="max-width:1200px">
+    <h2>Relatório – Cartão de Ponto</h2>
+    <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
+    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
+    <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
+    <input type="date" id="dataInicio">
+    <input type="date" id="dataFim">
+    <select id="tipoRelatorio">
+      <option value="simples">Relatório Simples</option>
+      <option value="comGeo">Com Geolocalização</option>
+    </select>
+    <button onclick="gerarRelatorioMensal()">Gerar</button>
+    <button onclick="gerarExcel()">Excel</button>
+    <button onclick="gerarPDFAdmin()">PDF</button>
+    <button onclick="logout()">Sair</button>
     <div id="cartaoFuncionario"></div>
   </div>
 </div>
 
 <!-- MODAL CADASTRO FUNCIONARIO -->
-<div id="modalFuncionario" class="card hidden" style="max-width:560px">
-  <div class="row" style="justify-content:space-between">
-    <h3 style="margin:0">Cadastro / Edição de Funcionário</h3>
-    <span id="modoFuncionario" class="pill">NOVO</span>
-  </div>
-  <div class="muted" style="margin-top:8px">
-    Tudo aqui é salvo na <strong>planilha</strong> (dinâmico). Depois de salvar, o login já funciona.
-  </div>
-  <hr>
+<div id="modalFuncionario" class="card hidden" style="max-width:500px">
+  <h3>Cadastro / Edição de Funcionário</h3>
 
   <label>Código Funcionário:<br>
-    <input id="novoCodigo" placeholder="Código" style="width:100%">
+    <input id="novoCodigo" placeholder="Código">
   </label><br>
 
   <label>Nome Funcionário:<br>
-    <input id="novoNome" placeholder="Nome completo" style="width:100%">
+    <input id="novoNome" placeholder="Nome completo">
   </label><br>
 
   <label>Usuário (login):<br>
-    <input id="novoUser" placeholder="Usuário" style="width:100%">
+    <input id="novoUser" placeholder="Usuário">
   </label><br>
 
   <label>Senha:<br>
-    <input id="novoPass" type="password" placeholder="Senha" style="width:100%">
+    <input id="novoPass" type="password" placeholder="Senha">
   </label><br>
 
   <label>Cargo:<br>
-    <input id="novoCargo" placeholder="Cargo/Função" style="width:100%">
+    <input id="novoCargo" placeholder="Cargo/Função">
   </label><br>
 
   <label>PIS:<br>
-    <input id="novoPis" placeholder="PIS" style="width:100%">
+    <input id="novoPis" placeholder="PIS">
   </label><br>
 
   <label>Depto/Setor:<br>
-    <input id="novoSetor" placeholder="Departamento / Setor" style="width:100%">
+    <input id="novoSetor" placeholder="Departamento / Setor">
   </label><br>
 
   <label>Local de Trabalho:<br>
-    <input id="novoLocal" placeholder="Local de trabalho" style="width:100%">
-  </label><br>
-
-  <label>Role (perfil):<br>
-    <select id="novoRole" style="width:100%">
-      <option value="operacional">operacional</option>
-      <option value="admin">admin</option>
-    </select>
+    <input id="novoLocal" placeholder="Local de trabalho">
   </label><br>
 
   <p><strong>Escala padrão semanal do funcionário</strong><br>
     Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
   </p>
 
-  <div class="row">
-    <div style="flex:1;min-width:170px">
-      <label>Segunda-feira:<br><input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00" style="width:100%"></label>
-    </div>
-    <div style="flex:1;min-width:170px">
-      <label>Terça-feira:<br><input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00" style="width:100%"></label>
-    </div>
-    <div style="flex:1;min-width:170px">
-      <label>Quarta-feira:<br><input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00" style="width:100%"></label>
-    </div>
-  </div>
+  <label>Segunda-feira:<br>
+    <input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
 
-  <div class="row">
-    <div style="flex:1;min-width:170px">
-      <label>Quinta-feira:<br><input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00" style="width:100%"></label>
-    </div>
-    <div style="flex:1;min-width:170px">
-      <label>Sexta-feira:<br><input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00" style="width:100%"></label>
-    </div>
-    <div style="flex:1;min-width:170px">
-      <label>Sábado:<br><input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00" style="width:100%"></label>
-    </div>
-  </div>
+  <label>Terça-feira:<br>
+    <input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Quarta-feira:<br>
+    <input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Quinta-feira:<br>
+    <input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Sexta-feira:<br>
+    <input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
+
+  <label>Sábado:<br>
+    <input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
+  </label><br>
 
   <label>Domingo:<br>
-    <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA" style="width:100%">
+    <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
   </label><br><br>
 
-  <div class="row">
-    <button id="btnSalvarFunc" onclick="salvarFuncionario()">Salvar</button>
-    <button onclick="fecharCadastroFuncionario()">Cancelar</button>
-    <button id="btnExcluirFunc" class="danger hidden" onclick="excluirFuncionario()">Excluir</button>
-  </div>
-
-  <div id="msgFuncionario" class="muted" style="margin-top:10px"></div>
+  <button onclick="salvarFuncionario()">Salvar</button>
+  <button onclick="fecharCadastroFuncionario()">Cancelar</button>
 </div>
 
 <!-- MODAL ESCALA MENSAL -->
-<div id="modalEscala" class="card hidden" style="max-width:680px;max-height:520px;overflow:auto">
+<div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
   <h3>Editar Escala Mensal (manual)</h3>
-  <p class="muted">Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal). (Fica no navegador, como você já usava.)</p>
+  <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
   <div id="conteudoEscala"></div>
   <button onclick="salvarEscalaMensal()">Salvar Escala</button>
   <button onclick="fecharEscalaMensal()">Cancelar</button>
@@ -208,39 +161,103 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwxBa-DDtruDJFQhBEPonsRnrv0jb2gB7etz9EsoEj9MGuXmDs0hJpab0Tv7zXoMgq/exec";
 
 /** =========================================================
- *  ✅ Estado em memória (sem login local)
+ *  ====== DADOS (mantive seu padrão) ======
+ *  Obs: defaultUsers só serve como fallback local; o login agora valida na planilha.
  *  ========================================================= */
-let users = {};             // guarda dados do logado + cache de funcionários
-let currentUser = null;     // login atual
-let currentRole = null;     // role atual
-let dadosAtual = {}, dataAtualRel = "";
+const defaultUsers = {
+  admin:{ password:"admin123", role:"admin" },
+  jaqueline:{
+    password:"123456", role:"operacional", pis:"370.394.838.82", codigo:"001", nomeCompleto:"Jaqueline",
+    cargo:"Colaboradora", setor:"Geral", localTrabalho:"Matriz",
+    escalaMensal:{}, escalaSemanal:{ 1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA" }
+  }
+};
 
-const feriados = ["01/01","07/09","25/12"];
+let users = {};
+let currentUser=null;
+let dadosAtual={}, dataAtualRel="";
+const feriados=["01/01","07/09","25/12"];
 
 const justificativas = [
-  "Nenhum",
-  "Férias",
-  "Falta Justificada",
-  "Falta Injustificada",
-  "Falta Abonada",
-  "Atestado Médico Dias",
-  "Atestado Médico Horas",
-  "Licença Maternidade",
-  "Licença Paternidade",
-  "Licença INSS+15 D",
-  "Acidente de Trabalho",
-  "Feriado"
+  "Nenhum","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
+  "Atestado Médico Dias","Atestado Médico Horas","Licença Maternidade","Licença Paternidade",
+  "Licença INSS+15 D","Acidente de Trabalho","Feriado"
 ];
 
-/** =========================================================
- *  Utils
- *  ========================================================= */
-function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+/** ====== PERSISTÊNCIA DE USUÁRIOS (LOCALSTORAGE) ======
+ *  Mantido para o ADMIN ver lista / editar localmente,
+ *  mas o LOGIN agora vem da planilha (Apps Script).
+ */
+function carregarUsuarios(){
+  try{
+    const str = localStorage.getItem("usersPonto");
+    if(str){
+      const obj = JSON.parse(str);
+      if(obj && typeof obj === "object"){
+        users = obj;
+      }else{
+        users = {...defaultUsers};
+        salvarUsuarios();
+      }
+    }else{
+      users = {...defaultUsers};
+      salvarUsuarios();
+    }
+  }catch(e){
+    console.error("Erro ao carregar usuários do localStorage:", e);
+    users = {...defaultUsers};
+  }
+}
+function salvarUsuarios(){
+  try{ localStorage.setItem("usersPonto", JSON.stringify(users)); }
+  catch(e){ console.error("Erro ao salvar usuários no localStorage:", e); }
+}
+carregarUsuarios();
 
+/** =========================================================
+ *  ✅ SESSÃO (não fica logado permanentemente)
+ *  - Ao fechar a aba, some.
+ *  - Ao recarregar, tenta restaurar usando usuario+senha guardados na sessão.
+ *  ========================================================= */
+function mostrarSomenteLogin(){
+  loginSection.classList.remove("hidden");
+  operacionalSection.classList.add("hidden");
+  adminSection.classList.add("hidden");
+  nomeUsuario.textContent = "";
+}
+
+async function restaurarSessaoSePossivel(){
+  const ok = sessionStorage.getItem("auth_ok") === "1";
+  const u = sessionStorage.getItem("auth_user");
+  const p = sessionStorage.getItem("auth_pass"); // só na sessão da aba
+  if(!ok || !u || !p){
+    mostrarSomenteLogin();
+    return;
+  }
+
+  // tenta revalidar pela planilha (mais seguro)
+  try{
+    const data = await authPlanilha_(u,p);
+    if(data.status !== "ok"){
+      sessionStorage.removeItem("auth_ok");
+      sessionStorage.removeItem("auth_user");
+      sessionStorage.removeItem("auth_pass");
+      mostrarSomenteLogin();
+      return;
+    }
+    aplicarUsuarioLogado_(u,p,data.user);
+  }catch(e){
+    console.error("Falha ao restaurar sessão:", e);
+    mostrarSomenteLogin();
+  }
+}
+
+/** ====== FUNÇÕES GERAIS ====== */
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function hm(h){
   if(!h || typeof h!=="string" || !h.includes(":")) return 0;
-  const [x,y] = h.split(":").map(Number);
-  return x*60 + y;
+  const[x,y]=h.split(":").map(Number);
+  return x*60+y;
 }
 function fmt(m){
   const sign = m<0 ? "-" : "";
@@ -262,66 +279,73 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-async function apiPost_(payload){
+/** =========================================================
+ *  ✅ LOGIN (AGORA VIA PLANILHA / APPS SCRIPT)
+ *  ========================================================= */
+async function authPlanilha_(usuario, senha){
   const resp = await fetch(SCRIPT_URL, {
     method: "POST",
     headers: {"Content-Type":"text/plain;charset=utf-8"}, // evita CORS preflight
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ tipo:"login", usuario, senha })
   });
+
   const text = await resp.text();
-  try { return JSON.parse(text); }
-  catch(e){ throw new Error("WebApp não retornou JSON: " + text.slice(0,200)); }
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error("Resposta do WebApp não é JSON: " + text.slice(0,150)); }
+  return data;
 }
 
-function setTela_(tela){
+function aplicarUsuarioLogado_(u, p, info){
+  info = info || {};
+
+  // injeta/atualiza no objeto users para o sistema continuar funcionando
+  users[u] = {
+    password: p, // compatibilidade
+    role: info.role || users[u]?.role || "operacional",
+    pis: info.pis || users[u]?.pis || "",
+    codigo: info.codigo || users[u]?.codigo || "",
+    nomeCompleto: info.nomeCompleto || users[u]?.nomeCompleto || u,
+    cargo: info.cargo || users[u]?.cargo || "",
+    setor: info.setor || users[u]?.setor || "",
+    localTrabalho: info.localTrabalho || users[u]?.localTrabalho || "",
+    escalaMensal: users[u]?.escalaMensal || {},
+    escalaSemanal: info.escalaSemanal || users[u]?.escalaSemanal || {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"}
+  };
+
+  salvarUsuarios();
+
+  currentUser = u;
+  nomeUsuario.textContent = users[u].nomeCompleto || u;
+
   loginSection.classList.add("hidden");
-  operacionalSection.classList.add("hidden");
-  adminSection.classList.add("hidden");
+  loginMsg.textContent = "";
 
-  if(tela==="login") loginSection.classList.remove("hidden");
-  if(tela==="operacional") operacionalSection.classList.remove("hidden");
-  if(tela==="admin") adminSection.classList.remove("hidden");
-}
-
-function setBadge_(){
-  const txt = currentRole ? `perfil: ${currentRole}` : "";
-  if(document.getElementById("badgeRole")) badgeRole.textContent = txt;
-  if(document.getElementById("badgeRoleAdmin")) badgeRoleAdmin.textContent = txt;
-}
-
-/** =========================================================
- *  ✅ Sessão (somente na aba)
- *  ========================================================= */
-async function restaurarSessaoSePossivel(){
-  const ok = sessionStorage.getItem("auth_ok") === "1";
-  const u = sessionStorage.getItem("auth_user");
-  const p = sessionStorage.getItem("auth_pass");
-
-  if(!ok || !u || !p){
-    setTela_("login");
-    return;
+  if(users[u].role === "admin"){
+    adminSection.classList.remove("hidden");
+    operacionalSection.classList.add("hidden");
+    preencherFuncionarios();
+  }else{
+    operacionalSection.classList.remove("hidden");
+    adminSection.classList.add("hidden");
+    mostrarDataHora();
+    mostrarRegistrosUsuario();
   }
 
-  try{
-    const data = await apiPost_({ tipo:"login", usuario:u, senha:p });
-    if(data.status !== "ok"){
-      sessionStorage.clear();
-      setTela_("login");
-      return;
-    }
-    aplicarUsuarioLogado_(u,p,data.user || {});
-  }catch(e){
-    console.error(e);
-    setTela_("login");
-  }
+  // guarda sessão só na aba (some ao fechar)
+  sessionStorage.setItem("auth_ok","1");
+  sessionStorage.setItem("auth_user", u);
+  sessionStorage.setItem("auth_pass", p);
+
+  // limpa campos
+  username.value = "";
+  password.value = "";
 }
 
-/** =========================================================
- *  ✅ LOGIN (sempre pela planilha)
- *  ========================================================= */
 async function login(){
   const u = username.value.trim();
   const p = password.value.trim();
+
   loginMsg.textContent = "";
 
   if(!u || !p){
@@ -333,7 +357,7 @@ async function login(){
   btnLogin.textContent = "Validando...";
 
   try{
-    const data = await apiPost_({ tipo:"login", usuario:u, senha:p });
+    const data = await authPlanilha_(u,p);
 
     if(data.status !== "ok"){
       loginMsg.textContent = data.message || "Login inválido";
@@ -341,381 +365,96 @@ async function login(){
       return;
     }
 
-    aplicarUsuarioLogado_(u, p, data.user || {});
-    username.value = "";
-    password.value = "";
+    aplicarUsuarioLogado_(u,p,data.user);
 
   }catch(e){
     console.error(e);
-    loginMsg.textContent = "Erro ao conectar com o WebApp. Veja F12 > Console.";
+    loginMsg.textContent = "Erro de conexão com o WebApp. (Veja F12 > Console)";
   }finally{
     btnLogin.disabled = false;
     btnLogin.textContent = "Entrar";
   }
 }
 
-function aplicarUsuarioLogado_(u, p, info){
-  currentUser = u;
-  currentRole = (info.role || "operacional").toLowerCase();
-
-  // cache do usuário logado
-  users[currentUser] = {
-    password: p, // compatibilidade (não é usado pra validar localmente)
-    role: currentRole,
-    pis: info.pis || "",
-    codigo: info.codigo || "",
-    nomeCompleto: info.nomeCompleto || info.nome || u,
-    cargo: info.cargo || "",
-    setor: info.setor || "",
-    localTrabalho: info.localTrabalho || info.local_trabalho || "",
-    escalaMensal: users[currentUser]?.escalaMensal || {},
-    escalaSemanal: info.escalaSemanal || {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"}
-  };
-
-  nomeUsuario.textContent = users[currentUser].nomeCompleto || currentUser;
-  setBadge_();
-
-  sessionStorage.setItem("auth_ok","1");
-  sessionStorage.setItem("auth_user",u);
-  sessionStorage.setItem("auth_pass",p);
-
-  if(currentRole === "admin"){
-    setTela_("admin");
-    recarregarFuncionarios();
-  }else{
-    setTela_("operacional");
-    mostrarDataHora();
-    mostrarRegistrosUsuario();
-  }
-}
-
 function logout(){
-  sessionStorage.clear();
+  sessionStorage.removeItem("auth_ok");
+  sessionStorage.removeItem("auth_user");
+  sessionStorage.removeItem("auth_pass");
   location.reload();
 }
 
+// Enter para logar
 document.addEventListener("keydown", (ev)=>{
-  if(!loginSection.classList.contains("hidden") && ev.key === "Enter"){
+  if(loginSection && !loginSection.classList.contains("hidden") && ev.key === "Enter"){
     ev.preventDefault();
     login();
   }
 });
 
-/** =========================================================
- *  ✅ ADMIN: carregar lista dinâmica da planilha
- *  ========================================================= */
-async function recarregarFuncionarios(){
-  const select = document.getElementById("funcionarioSelect");
-  select.innerHTML = "<option value=''>Carregando...</option>";
-
-  try{
-    const data = await apiPost_({ tipo:"listarFuncionarios" });
-
-    if(data.status !== "ok"){
-      select.innerHTML = "<option value=''>Erro ao carregar</option>";
-      alert("Erro ao carregar funcionários: " + (data.message || ""));
-      return;
-    }
-
-    const list = data.funcionarios || [];
-    select.innerHTML = "<option value=''>Selecionar Funcionário</option>";
-
-    // cache básico
-    list.forEach(f=>{
-      const login = (f.login || f.usuario_login || "").toString().trim();
-      if(!login) return;
-      users[login] = users[login] || {};
-      users[login].role = (f.role || "operacional").toLowerCase();
-      users[login].nomeCompleto = (f.nome || f.nomeCompleto || login);
-    });
-
-    list
-      .filter(f => ((f.role || "operacional").toLowerCase() === "operacional"))
-      .forEach(f=>{
-        const login = (f.login || f.usuario_login || "").toString().trim();
-        if(!login) return;
-        const opt = document.createElement("option");
-        opt.value = login;
-        opt.textContent = f.nome || f.nomeCompleto || login;
-        select.appendChild(opt);
-      });
-
-  }catch(e){
-    console.error(e);
-    select.innerHTML = "<option value=''>Erro ao carregar</option>";
-    alert("Falha ao carregar funcionários. Veja Console (F12).");
-  }
-}
+// inicia exigindo login (ou restaurando sessão da aba)
+restaurarSessaoSePossivel();
 
 /** =========================================================
- *  ✅ ADMIN: abrir/editar cadastro direto da planilha
- *  ========================================================= */
-function limparFormularioFuncionario_(){
-  novoCodigo.value = "";
-  novoNome.value   = "";
-  novoUser.value   = "";
-  novoPass.value   = "";
-  novoCargo.value  = "";
-  novoPis.value    = "";
-  novoSetor.value  = "";
-  novoLocal.value  = "";
-  novoRole.value   = "operacional";
-  escSeg.value = "08:00";
-  escTer.value = "08:00";
-  escQua.value = "08:00";
-  escQui.value = "08:00";
-  escSex.value = "08:00";
-  escSab.value = "04:00";
-  escDom.value = "FOLGA";
-}
-
-async function abrirCadastroFuncionario(){
-  msgFuncionario.textContent = "";
-  btnExcluirFunc.classList.add("hidden");
-
-  const uSel = funcionarioSelect.value;
-
-  modalFuncionario.classList.remove("hidden");
-
-  // NOVO
-  if(!uSel){
-    modoFuncionario.textContent = "NOVO";
-    limparFormularioFuncionario_();
-    return;
-  }
-
-  // EDIÇÃO
-  modoFuncionario.textContent = "EDITANDO";
-  btnExcluirFunc.classList.remove("hidden");
-  btnSalvarFunc.disabled = true;
-  btnSalvarFunc.textContent = "Carregando...";
-
-  try{
-    const data = await apiPost_({ tipo:"obterFuncionario", usuario: uSel });
-
-    if(data.status !== "ok"){
-      alert("Não consegui carregar o funcionário: " + (data.message || ""));
-      limparFormularioFuncionario_();
-      return;
-    }
-
-    const f = data.funcionario || {};
-    novoCodigo.value = (f.codigo || "");
-    novoNome.value   = (f.nome || f.nomeCompleto || uSel);
-    novoUser.value   = (f.usuario_login || uSel);
-    novoPass.value   = (f.senha_ponto || "");
-    novoCargo.value  = (f.cargo || "");
-    novoPis.value    = (f.pis || "");
-    novoSetor.value  = (f.setor || "");
-    novoLocal.value  = (f.local_trabalho || f.localTrabalho || "");
-    novoRole.value   = ((f.role || "operacional").toLowerCase());
-
-    escSeg.value = (f.escSeg || "08:00");
-    escTer.value = (f.escTer || "08:00");
-    escQua.value = (f.escQua || "08:00");
-    escQui.value = (f.escQui || "08:00");
-    escSex.value = (f.escSex || "08:00");
-    escSab.value = (f.escSab || "04:00");
-    escDom.value = (f.escDom || "FOLGA");
-
-  }catch(e){
-    console.error(e);
-    alert("Erro ao carregar funcionário. Veja Console (F12).");
-  }finally{
-    btnSalvarFunc.disabled = false;
-    btnSalvarFunc.textContent = "Salvar";
-  }
-}
-
-function fecharCadastroFuncionario(){
-  modalFuncionario.classList.add("hidden");
-}
-
-async function salvarFuncionario(){
-  msgFuncionario.textContent = "";
-
-  const codigo = novoCodigo.value.trim();
-  const nome   = novoNome.value.trim();
-  const u      = novoUser.value.trim();
-  const p      = novoPass.value.trim();
-  const cargo  = novoCargo.value.trim();
-  const pis    = novoPis.value.trim();
-  const setor  = novoSetor.value.trim();
-  const local  = novoLocal.value.trim();
-  const role   = (novoRole.value || "operacional").toLowerCase();
-
-  const eSeg = (escSeg.value || "").trim() || "08:00";
-  const eTer = (escTer.value || "").trim() || eSeg;
-  const eQua = (escQua.value || "").trim() || eSeg;
-  const eQui = (escQui.value || "").trim() || eSeg;
-  const eSex = (escSex.value || "").trim() || eSeg;
-  const eSab = (escSab.value || "").trim() || "04:00";
-  const eDom = (escDom.value || "").trim() || "FOLGA";
-
-  if(!u || !p || !nome){
-    msgFuncionario.textContent = "Preencha pelo menos: Nome, Usuário e Senha.";
-    return;
-  }
-
-  btnSalvarFunc.disabled = true;
-  btnSalvarFunc.textContent = "Salvando...";
-
-  try{
-    const data = await apiPost_({
-      tipo: "salvarFuncionario",
-      usuario: u,
-      senha: p,
-      codigo: codigo,
-      nome: nome,
-      pis: pis,
-      cargo: cargo,
-      setor: setor,
-      localTrabalho: local,
-      escSeg: eSeg,
-      escTer: eTer,
-      escQua: eQua,
-      escQui: eQui,
-      escSex: eSex,
-      escSab: eSab,
-      escDom: eDom,
-      role: role
-    });
-
-    if(data.status !== "ok"){
-      msgFuncionario.textContent = "Erro ao salvar na planilha: " + (data.message || "");
-      return;
-    }
-
-    // atualiza cache em memória
-    users[u] = users[u] || {};
-    users[u].nomeCompleto = nome || u;
-    users[u].role = role;
-    users[u].pis = pis;
-    users[u].codigo = codigo;
-    users[u].cargo = cargo;
-    users[u].setor = setor;
-    users[u].localTrabalho = local;
-    users[u].escalaSemanal = {1:eSeg,2:eTer,3:eQua,4:eQui,5:eSex,6:eSab,0:eDom};
-
-    msgFuncionario.textContent = "✅ Salvo na planilha.";
-    await recarregarFuncionarios();
-
-    if(currentUser && u.toLowerCase() === currentUser.toLowerCase()){
-      nomeUsuario.textContent = nome || currentUser;
-    }
-
-    setTimeout(()=>fecharCadastroFuncionario(), 350);
-
-  }catch(e){
-    console.error(e);
-    msgFuncionario.textContent = "Erro ao conectar no WebApp. Veja Console (F12).";
-  }finally{
-    btnSalvarFunc.disabled = false;
-    btnSalvarFunc.textContent = "Salvar";
-  }
-}
-
-async function excluirFuncionario(){
-  const u = novoUser.value.trim();
-  if(!u) return;
-
-  if(u.toLowerCase() === "admin"){
-    alert("Não é permitido excluir o admin.");
-    return;
-  }
-
-  if(!confirm("Tem certeza que deseja EXCLUIR o usuário '" + u + "'?")) return;
-
-  btnExcluirFunc.disabled = true;
-  btnExcluirFunc.textContent = "Excluindo...";
-
-  try{
-    const data = await apiPost_({ tipo:"excluirFuncionario", usuario:u });
-    if(data.status !== "ok"){
-      alert("Erro ao excluir: " + (data.message || ""));
-      return;
-    }
-    alert("✅ Usuário excluído.");
-    fecharCadastroFuncionario();
-    await recarregarFuncionarios();
-  }catch(e){
-    console.error(e);
-    alert("Erro ao conectar para excluir. Veja Console (F12).");
-  }finally{
-    btnExcluirFunc.disabled = false;
-    btnExcluirFunc.textContent = "Excluir";
-  }
-}
-
-/** =========================================================
- *  OPERACIONAL: registros (localStorage)
+ *  ====== OPERACIONAL ======
  *  ========================================================= */
 function registrar(tipo){
-  const agora = new Date();
-  const hora = agora.toLocaleTimeString().slice(0,5);
-  const data = agora.toLocaleDateString();
+  const agora=new Date();
+  const hora=agora.toLocaleTimeString().slice(0,5);
+  const data=agora.toLocaleDateString();
   navigator.geolocation.getCurrentPosition(
-    pos => salvarRegistro(tipo, hora, data, `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
-    ()  => salvarRegistro(tipo, hora, data, "Não registrada")
+    pos=> salvarRegistro(tipo,hora,data,`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
+    ()=> salvarRegistro(tipo,hora,data,"Não registrada")
   );
 }
-
-function salvarRegistro(tipo, hora, data, geo){
-  const d = JSON.parse(localStorage.getItem("registros") || "{}");
-  d[currentUser] ??= {};
-  d[currentUser][data] ??= {};
-  d[currentUser][data][tipo] = hora;
-  d[currentUser][data]["geo"+capitalize(tipo)] = geo;
-  localStorage.setItem("registros", JSON.stringify(d));
+function salvarRegistro(tipo,hora,data,geo){
+  const d=JSON.parse(localStorage.getItem("registros")||"{}");
+  d[currentUser]??={};
+  d[currentUser][data]??={};
+  d[currentUser][data][tipo]=hora;
+  d[currentUser][data]["geo"+capitalize(tipo)]=geo;
+  localStorage.setItem("registros",JSON.stringify(d));
   mostrarRegistrosUsuario();
 }
-
 function mostrarDataHora(){
   setInterval(()=>{
-    const a = new Date();
-    dataAtual.textContent = "Data: " + a.toLocaleDateString();
-    horaAtual.textContent = "Hora: " + a.toLocaleTimeString();
-  }, 1000);
+    const a=new Date();
+    dataAtual.textContent="Data: "+a.toLocaleDateString();
+    horaAtual.textContent="Hora: "+a.toLocaleTimeString();
+  },1000);
 }
-
 function mostrarRegistrosUsuario(){
-  const hoje = new Date().toLocaleDateString();
-  const d = JSON.parse(localStorage.getItem("registros") || "{}");
-  const r = d[currentUser]?.[hoje] || {};
-
-  registrosUsuario.innerHTML = "";
-  botoesRegistro.innerHTML = "";
-
+  const hoje=new Date().toLocaleDateString();
+  const d=JSON.parse(localStorage.getItem("registros")||"{}");
+  const r=d[currentUser]?.[hoje]||{};
+  registrosUsuario.innerHTML="";
+  botoesRegistro.innerHTML="";
   ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
     if(r[t]){
-      registrosUsuario.innerHTML += `<div><strong>${capitalize(t)}:</strong> ${r[t]}
-        <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button>
-      </div>`;
+      registrosUsuario.innerHTML+=`<div><strong>${capitalize(t)}:</strong> ${r[t]} <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button></div>`;
     }
   });
-
-  if(!r.entrada) botoesRegistro.innerHTML = `<button onclick="registrar('entrada')">Entrada</button>`;
-  else if(!r.saidaAlmoco) botoesRegistro.innerHTML = `<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
-  else if(!r.retornoAlmoco) botoesRegistro.innerHTML = `<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
-  else if(!r.saida) botoesRegistro.innerHTML = `<button onclick="registrar('saida')">Saída</button>`;
-  else botoesRegistro.innerHTML = "✅ Jornada finalizada";
+  if(!r.entrada) botoesRegistro.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
+  else if(!r.saidaAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
+  else if(!r.retornoAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
+  else if(!r.saida) botoesRegistro.innerHTML=`<button onclick="registrar('saida')">Saída</button>`;
+  else botoesRegistro.innerHTML="✅ Jornada finalizada";
 }
 
 /** ====== COMPROVANTE INDIVIDUAL ====== */
 function gerarComprovante(tipo){
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF();
-  const hoje = new Date().toLocaleDateString();
-  const d = JSON.parse(localStorage.getItem("registros") || "{}");
-  const r = d[currentUser]?.[hoje] || {};
-  const hora = r[tipo] || "";
-  const geo = r["geo"+capitalize(tipo)] || "";
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const hoje=new Date().toLocaleDateString();
+  const d=JSON.parse(localStorage.getItem("registros")||"{}");
+  const r=d[currentUser]?.[hoje]||{};
+  const hora=r[tipo]||"";
+  const geo=r["geo"+capitalize(tipo)]||"";
 
   doc.setFontSize(14);
   doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
   doc.setFontSize(11);
   doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
-  doc.text(`PIS: ${users[currentUser]?.pis || ""}`,14,36);
+  doc.text(`PIS: ${users[currentUser]?.pis||""}`,14,36);
   doc.text(`Data: ${hoje}`,14,42);
   doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
   doc.text(`Horário: ${hora}`,14,54);
@@ -724,7 +463,7 @@ function gerarComprovante(tipo){
 }
 
 /** =========================================================
- *  AJUSTE (igual ao seu)
+ *  ====== AJUSTE ======
  *  ========================================================= */
 function campo(valor, c, adminView = true){
   const vazio = !valor || valor === "-";
@@ -768,11 +507,9 @@ function abrirAjuste(u,d,c){
   popup.style.padding="20px";
   popup.style.border="1px solid #333";
   popup.style.zIndex=1000;
-  popup.style.borderRadius="12px";
-  popup.style.boxShadow="0 10px 30px rgba(0,0,0,.2)";
 
   popup.innerHTML=`
-    <h3 style="margin-top:0">Ajustar ${c}</h3>
+    <h3>Ajustar ${c}</h3>
     <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${atual[c]||""}"></label><br><br>
     <label>Justificar:
       <select id="selectJustificacao">
@@ -781,7 +518,7 @@ function abrirAjuste(u,d,c){
       </select>
     </label><br><br>
     <button id="okBtn">Ok</button>
-    <button id="cancelBtn" class="danger">Cancelar</button>
+    <button id="cancelBtn">Cancelar</button>
   `;
 
   document.body.appendChild(popup);
@@ -876,7 +613,8 @@ function abrirAjuste(u,d,c){
       atual[c+"_evento"]="";
       atual[c+"_editado"]=true;
       delete atual.atestadoHorasMin;
-    } else if(ev){
+    }
+    else if(ev){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
         atual[campoNome]="-";
         atual[campoNome+"_evento"]=ev;
@@ -893,57 +631,34 @@ function abrirAjuste(u,d,c){
   popup.querySelector("#cancelBtn").onclick=()=>{popup.remove();};
 }
 
-/** =========================================================
- *  RELATÓRIO (registros locais + escala da planilha via obterFuncionario)
- *  ========================================================= */
-async function garantirFuncionarioCarregado_(u){
-  if(users[u]?.escalaSemanal) return;
-
-  try{
-    const data = await apiPost_({ tipo:"obterFuncionario", usuario:u });
-    if(data.status !== "ok") return;
-
-    const f = data.funcionario || {};
-    users[u] = users[u] || {};
-    users[u].nomeCompleto = f.nome || f.nomeCompleto || u;
-    users[u].pis = f.pis || "";
-    users[u].codigo = f.codigo || "";
-    users[u].cargo = f.cargo || "";
-    users[u].setor = f.setor || "";
-    users[u].localTrabalho = f.local_trabalho || f.localTrabalho || "";
-    users[u].role = (f.role || "operacional").toLowerCase();
-    users[u].escalaSemanal = {
-      1: f.escSeg || "08:00",
-      2: f.escTer || "08:00",
-      3: f.escQua || "08:00",
-      4: f.escQui || "08:00",
-      5: f.escSex || "08:00",
-      6: f.escSab || "04:00",
-      0: f.escDom || "FOLGA"
-    };
-    users[u].escalaMensal = users[u].escalaMensal || {};
-  }catch(e){
-    console.error(e);
-  }
+/** ====== FUNÇÕES ADMIN ====== */
+function preencherFuncionarios(){
+  const select=document.getElementById("funcionarioSelect");
+  select.innerHTML="<option value=''>Selecionar Funcionário</option>";
+  Object.keys(users).forEach(u=>{
+    if(users[u].role==="operacional"){
+      const option=document.createElement("option");
+      option.value=u; option.textContent=users[u].nomeCompleto || u;
+      select.appendChild(option);
+    }
+  });
 }
 
-async function gerarRelatorioMensal(){
-  const u = document.getElementById("funcionarioSelect").value;
+/** ====== RELATÓRIO CARTÃO DE PONTO ====== */
+function gerarRelatorioMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
   if(!u || !dataInicio.value) return;
-
-  await garantirFuncionarioCarregado_(u);
-
-  const tipo = document.getElementById("tipoRelatorio").value;
-  const registros = JSON.parse(localStorage.getItem("registros")||"{}")[u] || {};
-  const escSem = users[u]?.escalaSemanal || {};
+  const tipo=document.getElementById("tipoRelatorio").value;
+  const registros=JSON.parse(localStorage.getItem("registros")||"{}")[u]||{};
+  const escSem = users[u].escalaSemanal || {};
 
   let totalPeriodo=0;
   let totalAtestadosMin = 0;
   let totalAfastamentosMin = 0;
   let totalAtrasosFaltasMin = 0;
 
-  let html=`<h3>Cartão de Ponto - ${users[u]?.nomeCompleto || u}</h3>`;
-  html+=`<p>Código: ${users[u]?.codigo || ""} | PIS: ${users[u]?.pis || ""} | Cargo: ${users[u]?.cargo || ""} | Setor: ${users[u]?.setor || ""} | Local: ${users[u]?.localTrabalho || ""}</p>`;
+  let html=`<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
+  html+=`<p>Código: ${users[u].codigo || ""} | PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
   html+=`<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
   html+=`<table id="tabelaRelatorio"><tr>
   <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
@@ -965,6 +680,7 @@ async function gerarRelatorioMensal(){
     dataAtualRel = d;
 
     const JORNADA_PADRAO = 480; // 8h
+
     const weekday = currentDate.getDay(); // 0=Dom ... 6=Sáb
     const escStr = escSem[weekday] || "";
     const jornadaEscala = cargaEscalaMin(escStr);
@@ -997,8 +713,12 @@ async function gerarRelatorioMensal(){
           (hm(dadosAtual.saidaAlmoco) - hm(dadosAtual.entrada)) +
           (hm(dadosAtual.saida) - hm(dadosAtual.retornoAlmoco));
       }
-      if(isFeriadoLista) min = 0;
-      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
+      if(isFeriadoLista){
+        min = 0;
+      }
+      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao){
+        min = 0;
+      }
     } else {
       switch(eventoDia){
         case "Falta Justificada":
@@ -1087,17 +807,15 @@ async function gerarRelatorioMensal(){
 
   html+=`<br><h4>Totais do Período</h4>`;
   html+=`<p><strong>Total trabalhado (registros + justificativas positivas/negativas):</strong> ${fmt(totalPeriodo)}</p>`;
-  html+=`<p><strong>Total de atestados</strong>: ${fmt(totalAtestadosMin)}</p>`;
-  html+=`<p><strong>Total de afastamentos</strong>: ${fmt(totalAfastamentosMin)}</p>`;
-  html+=`<p><strong>Total atrasos/faltas</strong>: ${fmt(totalAtrasosFaltasMin)}</p>`;
-  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+  html+=`<p><strong>Total de atestados</strong> (Atestado dias/horas, Falta Justificada, Falta Abonada, Licença INSS+15 D): ${fmt(totalAtestadosMin)}</p>`;
+  html+=`<p><strong>Total de afastamentos</strong> (Férias, Licença Maternidade, Licença Paternidade, Acidente de Trabalho): ${fmt(totalAfastamentosMin)}</p>`;
+  html+=`<p><strong>Total atrasos/faltas</strong> (Falta Injustificada): ${fmt(totalAtrasosFaltasMin)}</p>`;
 
-  document.getElementById("cartaoFuncionario").innerHTML = html;
+  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+  document.getElementById("cartaoFuncionario").innerHTML=html;
 }
 
-/** =========================================================
- *  EXCEL / PDF (mantidos do seu padrão)
- *  ========================================================= */
+/** ====== EXCEL ====== */
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
   if(!tabelaOriginal){
@@ -1106,6 +824,7 @@ function gerarExcel(){
   }
 
   const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+
   const tabela = tabelaOriginal.cloneNode(true);
 
   if(!opt){
@@ -1145,8 +864,12 @@ function gerarExcel(){
           const yyyy = parseInt(m[3],10);
           const serial = excelSerialFromDMY(dd, mm, yyyy);
           row.push(serial);
-        } else row.push(txt);
-      } else row.push(txt);
+        } else {
+          row.push(txt);
+        }
+      } else {
+        row.push(txt);
+      }
     });
 
     linhas.push(row);
@@ -1168,10 +891,11 @@ function gerarExcel(){
   XLSX.writeFile(wb, "cartao_ponto.xlsx");
 }
 
+/** ====== PDF ADMIN ====== */
 function gerarPDFAdmin(){
-  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF('p','mm','a4');
+  const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
 
   const func = funcionarioSelect.value;
   const dados = JSON.parse(localStorage.getItem("registros")||"{}")[func] || {};
@@ -1196,7 +920,10 @@ function gerarPDFAdmin(){
         regDia.saida_evento
       ].filter(Boolean);
 
-      if(eventosDia.includes("Falta Injustificada")) qtdFaltasInjustificadas++;
+      if(eventosDia.includes("Falta Injustificada")){
+        qtdFaltasInjustificadas++;
+      }
+
       currentDate.setDate(currentDate.getDate()+1);
     }
   }
@@ -1204,7 +931,10 @@ function gerarPDFAdmin(){
   doc.setFontSize(12);
   doc.text("RELATÓRIO MENSAL DE PONTO",105,10,{align:"center"});
   doc.setFontSize(9);
-  doc.text(`Faltas Injustificadas (desconto férias): ${qtdFaltasInjustificadas} dia(s)`, 200, 10, {align:"right"});
+  doc.text(
+    `Faltas Injustificadas (desconto férias): ${qtdFaltasInjustificadas} dia(s)`,
+    200, 10, {align:"right"}
+  );
 
   doc.setFontSize(10);
   const u = func;
@@ -1213,7 +943,7 @@ function gerarPDFAdmin(){
   doc.text(`PIS: ${users[u]?.pis || ""}`,14,30);
   doc.text(`Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}`,14,36);
 
-  const tabela = document.querySelector("#tabelaRelatorio").cloneNode(true);
+  const tabela=document.querySelector("#tabelaRelatorio").cloneNode(true);
   if(!opt){
     [...tabela.querySelectorAll("td")].forEach(td=>{
       if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")){
@@ -1222,50 +952,184 @@ function gerarPDFAdmin(){
     });
   } else {
     [...tabela.querySelectorAll("td")].forEach(td=>{
-      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
+      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
     });
   }
 
-  doc.autoTable({startY:42, html:tabela});
+  doc.autoTable({startY:42,html:tabela});
   doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
   doc.save("cartao_ponto.pdf");
 }
 
-/** =========================================================
- *  ESCALA MENSAL (local)
- *  ========================================================= */
+/** ====== CADASTRO FUNCIONÁRIO ====== */
+function abrirCadastroFuncionario(){
+  const select = document.getElementById("funcionarioSelect");
+  const u = select.value;
+
+  modalFuncionario.classList.remove("hidden");
+
+  if (!u || !users[u]) {
+    novoCodigo.value = "";
+    novoNome.value   = "";
+    novoUser.value   = "";
+    novoPass.value   = "";
+    novoCargo.value  = "";
+    novoPis.value    = "";
+    novoSetor.value  = "";
+    novoLocal.value  = "";
+
+    escSeg.value = "08:00";
+    escTer.value = "08:00";
+    escQua.value = "08:00";
+    escQui.value = "08:00";
+    escSex.value = "08:00";
+    escSab.value = "04:00";
+    escDom.value = "FOLGA";
+    return;
+  }
+
+  const f = users[u];
+
+  novoCodigo.value = f.codigo        || "";
+  novoNome.value   = f.nomeCompleto  || "";
+  novoUser.value   = u;
+  novoPass.value   = f.password      || "";
+  novoCargo.value  = f.cargo         || "";
+  novoPis.value    = f.pis           || "";
+  novoSetor.value  = f.setor         || "";
+  novoLocal.value  = f.localTrabalho || "";
+
+  const esc = f.escalaSemanal || {};
+  escSeg.value = esc[1] || "08:00";
+  escTer.value = esc[2] || escSeg.value;
+  escQua.value = esc[3] || escSeg.value;
+  escQui.value = esc[4] || escSeg.value;
+  escSex.value = esc[5] || escSeg.value;
+  escSab.value = esc[6] || "04:00";
+  escDom.value = esc[0] || "FOLGA";
+}
+
+function fecharCadastroFuncionario(){ modalFuncionario.classList.add("hidden"); }
+
+function salvarFuncionario(){
+  const codigo=novoCodigo.value.trim();
+  const nome=novoNome.value.trim();
+  const u=novoUser.value.trim();
+  const p=novoPass.value.trim();
+  const cargo=novoCargo.value.trim();
+  const pis=novoPis.value.trim();
+  const setor=novoSetor.value.trim();
+  const local=novoLocal.value.trim();
+
+  const eSeg = (escSeg.value || "").trim() || "08:00";
+  const eTer = (escTer.value || "").trim() || eSeg;
+  const eQua = (escQua.value || "").trim() || eSeg;
+  const eQui = (escQui.value || "").trim() || eSeg;
+  const eSex = (escSex.value || "").trim() || eSeg;
+  const eSab = (escSab.value || "").trim() || "04:00";
+  const eDom = (escDom.value || "").trim() || "FOLGA";
+
+  if(!u||!p||!pis||!nome){
+    alert("Preencha pelo menos: Nome, Usuário, Senha e PIS");
+    return;
+  }
+
+  users[u]={
+    password:p,
+    role:"operacional",
+    pis:pis,
+    codigo:codigo,
+    nomeCompleto:nome,
+    cargo:cargo,
+    setor:setor,
+    localTrabalho:local,
+    escalaMensal:{},
+    escalaSemanal:{ 1:eSeg,2:eTer,3:eQua,4:eQui,5:eSex,6:eSab,0:eDom }
+  };
+
+  salvarUsuarios();
+
+  // ✅ Envia para a planilha (Apps Script) com text/plain (evita CORS)
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    headers: {"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify({
+      tipo: "salvarFuncionario",
+      usuario: u,
+      senha: p,
+      codigo: codigo,
+      nome: nome,
+      pis: pis,
+      cargo: cargo,
+      setor: setor,
+      localTrabalho: local,
+      escSeg: eSeg,
+      escTer: eTer,
+      escQua: eQua,
+      escQui: eQui,
+      escSex: eSex,
+      escSab: eSab,
+      escDom: eDom,
+      role: "operacional"
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    console.log("RES salvarFuncionario:", data);
+    if(data.status !== "ok"){
+      alert("Cadastro salvo localmente, mas houve erro ao salvar na planilha: " + (data.message || ""));
+    }
+  })
+  .catch(err => {
+    console.error("Erro salvarFuncionario planilha:", err);
+    alert("Cadastro salvo localmente, mas houve erro ao enviar para a planilha.");
+  });
+
+  preencherFuncionarios();
+  fecharCadastroFuncionario();
+
+  novoCodigo.value="";
+  novoNome.value="";
+  novoUser.value="";
+  novoPass.value="";
+  novoCargo.value="";
+  novoPis.value="";
+  novoSetor.value="";
+  novoLocal.value="";
+  escSeg.value="08:00";
+  escTer.value="08:00";
+  escQua.value="08:00";
+  escQui.value="08:00";
+  escSex.value="08:00";
+  escSab.value="04:00";
+  escDom.value="FOLGA";
+
+  alert("Funcionário salvo com sucesso!");
+}
+
+/** ====== ESCALA MENSAL (MANUAL) ====== */
 function abrirEscalaMensal(){
-  const u = document.getElementById("funcionarioSelect").value;
+  const u=document.getElementById("funcionarioSelect").value;
   if(!u) return alert("Selecione um funcionário");
-
-  users[u] = users[u] || {};
-  users[u].escalaMensal = users[u].escalaMensal || {};
-
-  const conteudo = document.getElementById("conteudoEscala");
-  conteudo.innerHTML = "";
+  const conteudo=document.getElementById("conteudoEscala");
+  conteudo.innerHTML="";
   for(let i=1;i<=31;i++){
-    const val = users[u].escalaMensal[i] || "";
-    conteudo.innerHTML += `Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
+    const val = users[u].escalaMensal[i]||"";
+    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
   }
   modalEscala.classList.remove("hidden");
 }
 function fecharEscalaMensal(){ modalEscala.classList.add("hidden"); }
 function salvarEscalaMensal(){
-  const u = document.getElementById("funcionarioSelect").value;
+  const u=document.getElementById("funcionarioSelect").value;
   if(!u) return;
-  users[u] = users[u] || {};
-  users[u].escalaMensal = users[u].escalaMensal || {};
   for(let i=1;i<=31;i++){
-    users[u].escalaMensal[i] = document.getElementById(`escala${i}`).value.trim();
+    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
   }
+  salvarUsuarios();
   fecharEscalaMensal();
-  alert("Escala mensal manual salva (neste navegador).");
+  alert("Escala mensal manual salva!");
 }
-
-/** =========================================================
- *  Inicialização
- *  ========================================================= */
-restaurarSessaoSePossivel();
 </script>
 </body>
 </html>
