@@ -19,13 +19,11 @@ th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
 th{background:#f1f5f9}
 .verde{color:green;font-weight:bold;}
 .vermelho{color:red;font-weight:bold;}
-input,select{padding:4px 6px;margin:2px 0;}
+input,select{padding:6px 8px;border:1px solid #cbd5e1;border-radius:10px}
 </style>
 </head>
 <body>
-<header>
-  Bem-vindo, <span id="nomeUsuario"></span>
-</header>
+<header>Bem-vindo, <span id="nomeUsuario"></span></header>
 
 <!-- LOGIN -->
 <div id="loginSection" class="card" style="max-width:400px">
@@ -33,7 +31,7 @@ input,select{padding:4px 6px;margin:2px 0;}
   <input id="username" placeholder="Usuário" autocomplete="off"><br><br>
   <input id="password" type="password" placeholder="Senha" autocomplete="off"><br><br>
   <button id="btnLogin" onclick="login()">Entrar</button>
-  <div id="loginMsg" style="margin-top:10px;font-size:13px;color:#b91c1c;"></div>
+  <div id="loginMsg" style="margin-top:10px;color:#b91c1c;font-size:13px"></div>
 </div>
 
 <!-- OPERACIONAL -->
@@ -57,8 +55,9 @@ input,select{padding:4px 6px;margin:2px 0;}
   <div class="card" style="max-width:1200px">
     <h2>Relatório – Cartão de Ponto</h2>
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
-    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
-    <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
+    <br><br>
+
+    <select id="funcionarioSelect"></select>
     <input type="date" id="dataInicio">
     <input type="date" id="dataFim">
     <select id="tipoRelatorio">
@@ -69,6 +68,7 @@ input,select{padding:4px 6px;margin:2px 0;}
     <button onclick="gerarExcel()">Excel</button>
     <button onclick="gerarPDFAdmin()">PDF</button>
     <button onclick="logout()">Sair</button>
+
     <div id="cartaoFuncionario"></div>
   </div>
 </div>
@@ -77,344 +77,111 @@ input,select{padding:4px 6px;margin:2px 0;}
 <div id="modalFuncionario" class="card hidden" style="max-width:500px">
   <h3>Cadastro / Edição de Funcionário</h3>
 
-  <label>Código Funcionário:<br>
-    <input id="novoCodigo" placeholder="Código">
-  </label><br>
+  <label>Código Funcionário:</label><br>
+  <input id="novoCodigo" placeholder="Ex: 001"><br><br>
 
-  <label>Nome Funcionário:<br>
-    <input id="novoNome" placeholder="Nome completo">
-  </label><br>
+  <label>Nome Funcionário:</label><br>
+  <input id="novoNome" placeholder="Nome completo"><br><br>
 
-  <label>Usuário (login):<br>
-    <input id="novoUser" placeholder="Usuário">
-  </label><br>
+  <label>Usuário (login):</label><br>
+  <input id="novoUser" placeholder="Usuário (login)"><br><br>
 
-  <label>Senha:<br>
-    <input id="novoPass" type="password" placeholder="Senha">
-  </label><br>
+  <label>Senha:</label><br>
+  <input id="novoPass" type="password" placeholder="Senha"><br><br>
 
-  <label>Cargo:<br>
-    <input id="novoCargo" placeholder="Cargo/Função">
-  </label><br>
+  <label>Cargo:</label><br>
+  <input id="novoCargo" placeholder="Cargo"><br><br>
 
-  <label>PIS:<br>
-    <input id="novoPis" placeholder="PIS">
-  </label><br>
+  <label>PIS:</label><br>
+  <input id="novoPis" placeholder="PIS"><br><br>
 
-  <label>Depto/Setor:<br>
-    <input id="novoSetor" placeholder="Departamento / Setor">
-  </label><br>
+  <label>Depto / Setor:</label><br>
+  <input id="novoDepto" placeholder="Departamento / Setor"><br><br>
 
-  <label>Local de Trabalho:<br>
-    <input id="novoLocal" placeholder="Local de trabalho">
-  </label><br>
+  <label>Local de Trabalho:</label><br>
+  <input id="novoLocal" placeholder="Local de trabalho"><br><br>
 
-  <p><strong>Escala padrão semanal do funcionário</strong><br>
-    Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
+  <hr>
+  <h4>Escala Semanal (carga diária)</h4>
+  <p style="font-size:12px;margin-top:0">
+    Informe HH:MM ou FOLGA. Ex: Seg-Sex 08:00, Sáb 04:00, Dom FOLGA.
   </p>
 
-  <label>Segunda-feira:<br>
-    <input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Terça-feira:<br>
-    <input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Quarta-feira:<br>
-    <input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Quinta-feira:<br>
-    <input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Sexta-feira:<br>
-    <input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Sábado:<br>
-    <input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
-  </label><br>
-
-  <label>Domingo:<br>
-    <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
-  </label><br><br>
+  <label>Segunda:</label><br><input id="escalaSeg" placeholder="08:00"><br><br>
+  <label>Terça:</label><br><input id="escalaTer" placeholder="08:00"><br><br>
+  <label>Quarta:</label><br><input id="escalaQua" placeholder="08:00"><br><br>
+  <label>Quinta:</label><br><input id="escalaQui" placeholder="08:00"><br><br>
+  <label>Sexta:</label><br><input id="escalaSex" placeholder="08:00"><br><br>
+  <label>Sábado:</label><br><input id="escalaSab" placeholder="04:00 ou FOLGA"><br><br>
+  <label>Domingo:</label><br><input id="escalaDom" placeholder="FOLGA"><br><br>
 
   <button onclick="salvarFuncionario()">Salvar</button>
   <button onclick="fecharCadastroFuncionario()">Cancelar</button>
 </div>
 
-<!-- MODAL ESCALA MENSAL -->
-<div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
-  <h3>Editar Escala Mensal (manual)</h3>
-  <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
-  <div id="conteudoEscala"></div>
-  <button onclick="salvarEscalaMensal()">Salvar Escala</button>
-  <button onclick="fecharEscalaMensal()">Cancelar</button>
-</div>
-
 <script>
-/** =========================================================
- *  ✅ CONFIGURE AQUI A URL DO SEU WEB APP (Apps Script) /exec
- *  ========================================================= */
+/** ✅ COLE AQUI O LINK /exec DO SEU WEB APP */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwxBa-DDtruDJFQhBEPonsRnrv0jb2gB7etz9EsoEj9MGuXmDs0hJpab0Tv7zXoMgq/exec";
 
-/** =========================================================
- *  ====== DADOS (mantive seu padrão) ======
- *  Obs: defaultUsers só serve como fallback local; o login agora valida na planilha.
- *  ========================================================= */
-const defaultUsers = {
-  admin:{ password:"admin123", role:"admin" },
-  jaqueline:{
-    password:"123456", role:"operacional", pis:"370.394.838.82", codigo:"001", nomeCompleto:"Jaqueline",
-    cargo:"Colaboradora", setor:"Geral", localTrabalho:"Matriz",
-    escalaMensal:{}, escalaSemanal:{ 1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA" }
-  }
-};
+let currentUser = null;
+let currentUserInfo = null; // dados vindos da planilha
+let funcionariosCache = []; // lista para admin
 
-let users = {};
-let currentUser=null;
-let dadosAtual={}, dataAtualRel="";
-const feriados=["01/01","07/09","25/12"];
+const feriados = ["01/01","07/09","25/12"]; // mantenha e depois a gente amplia
 
-const justificativas = [
-  "Nenhum","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
-  "Atestado Médico Dias","Atestado Médico Horas","Licença Maternidade","Licença Paternidade",
-  "Licença INSS+15 D","Acidente de Trabalho","Feriado"
-];
-
-/** ====== PERSISTÊNCIA DE USUÁRIOS (LOCALSTORAGE) ======
- *  Mantido para o ADMIN ver lista / editar localmente,
- *  mas o LOGIN agora vem da planilha (Apps Script).
- */
-function carregarUsuarios(){
-  try{
-    const str = localStorage.getItem("usersPonto");
-    if(str){
-      const obj = JSON.parse(str);
-      if(obj && typeof obj === "object"){
-        users = obj;
-      }else{
-        users = {...defaultUsers};
-        salvarUsuarios();
-      }
-    }else{
-      users = {...defaultUsers};
-      salvarUsuarios();
-    }
-  }catch(e){
-    console.error("Erro ao carregar usuários do localStorage:", e);
-    users = {...defaultUsers};
-  }
-}
-function salvarUsuarios(){
-  try{ localStorage.setItem("usersPonto", JSON.stringify(users)); }
-  catch(e){ console.error("Erro ao salvar usuários no localStorage:", e); }
-}
-carregarUsuarios();
-
-/** =========================================================
- *  ✅ SESSÃO (não fica logado permanentemente)
- *  - Ao fechar a aba, some.
- *  - Ao recarregar, tenta restaurar usando usuario+senha guardados na sessão.
- *  ========================================================= */
-function mostrarSomenteLogin(){
-  loginSection.classList.remove("hidden");
-  operacionalSection.classList.add("hidden");
-  adminSection.classList.add("hidden");
-  nomeUsuario.textContent = "";
-}
-
-async function restaurarSessaoSePossivel(){
-  const ok = sessionStorage.getItem("auth_ok") === "1";
-  const u = sessionStorage.getItem("auth_user");
-  const p = sessionStorage.getItem("auth_pass"); // só na sessão da aba
-  if(!ok || !u || !p){
-    mostrarSomenteLogin();
-    return;
-  }
-
-  // tenta revalidar pela planilha (mais seguro)
-  try{
-    const data = await authPlanilha_(u,p);
-    if(data.status !== "ok"){
-      sessionStorage.removeItem("auth_ok");
-      sessionStorage.removeItem("auth_user");
-      sessionStorage.removeItem("auth_pass");
-      mostrarSomenteLogin();
-      return;
-    }
-    aplicarUsuarioLogado_(u,p,data.user);
-  }catch(e){
-    console.error("Falha ao restaurar sessão:", e);
-    mostrarSomenteLogin();
-  }
-}
-
-/** ====== FUNÇÕES GERAIS ====== */
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-function hm(h){
-  if(!h || typeof h!=="string" || !h.includes(":")) return 0;
-  const[x,y]=h.split(":").map(Number);
-  return x*60+y;
-}
-function fmt(m){
-  const sign = m<0 ? "-" : "";
-  const abs = Math.abs(m);
-  const h = String(Math.floor(abs/60)).padStart(2,"0");
-  const mm = String(abs%60).padStart(2,"0");
-  return sign + h + ":" + mm;
-}
-function cargaEscalaMin(escStr){
-  if(!escStr) return 0;
-  const s = escStr.toString().toUpperCase().trim();
-  if(s==="FOLGA") return 0;
-  if(/^\d{2}:\d{2}$/.test(s)) return hm(s);
-  if(s.includes("=")){
-    const partes = s.split("=");
-    const carga = partes[partes.length-1].trim();
-    if(/^\d{2}:\d{2}$/.test(carga)) return hm(carga);
-  }
-  return 0;
-}
+function hm(h){ if(!h||!String(h).includes(":"))return 0; const [a,b]=String(h).split(":").map(Number); return a*60+b; }
+function fmt(m){ const sign=m<0?"-":""; const abs=Math.abs(m); return sign+String(Math.floor(abs/60)).padStart(2,"0")+":"+String(abs%60).padStart(2,"0"); }
+function brDate(d){ return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear(); }
 
-/** =========================================================
- *  ✅ LOGIN (AGORA VIA PLANILHA / APPS SCRIPT)
- *  ========================================================= */
-async function authPlanilha_(usuario, senha){
-  const resp = await fetch(SCRIPT_URL, {
-    method: "POST",
-    headers: {"Content-Type":"text/plain;charset=utf-8"}, // evita CORS preflight
-    body: JSON.stringify({ tipo:"login", usuario, senha })
+async function post_(payload){
+  const r = await fetch(SCRIPT_URL, {
+    method:"POST",
+    headers: {"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify(payload)
   });
-
-  const text = await resp.text();
-  let data;
-  try { data = JSON.parse(text); }
-  catch { throw new Error("Resposta do WebApp não é JSON: " + text.slice(0,150)); }
-  return data;
+  const t = await r.text();
+  try { return JSON.parse(t); } catch { throw new Error("Resposta não-JSON: "+t.slice(0,200)); }
 }
 
-function aplicarUsuarioLogado_(u, p, info){
-  info = info || {};
-
-  // injeta/atualiza no objeto users para o sistema continuar funcionando
-  users[u] = {
-    password: p, // compatibilidade
-    role: info.role || users[u]?.role || "operacional",
-    pis: info.pis || users[u]?.pis || "",
-    codigo: info.codigo || users[u]?.codigo || "",
-    nomeCompleto: info.nomeCompleto || users[u]?.nomeCompleto || u,
-    cargo: info.cargo || users[u]?.cargo || "",
-    setor: info.setor || users[u]?.setor || "",
-    localTrabalho: info.localTrabalho || users[u]?.localTrabalho || "",
-    escalaMensal: users[u]?.escalaMensal || {},
-    escalaSemanal: info.escalaSemanal || users[u]?.escalaSemanal || {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"}
-  };
-
-  salvarUsuarios();
-
-  currentUser = u;
-  nomeUsuario.textContent = users[u].nomeCompleto || u;
-
-  loginSection.classList.add("hidden");
-  loginMsg.textContent = "";
-
-  if(users[u].role === "admin"){
-    adminSection.classList.remove("hidden");
-    operacionalSection.classList.add("hidden");
-    preencherFuncionarios();
-  }else{
-    operacionalSection.classList.remove("hidden");
-    adminSection.classList.add("hidden");
-    mostrarDataHora();
-    mostrarRegistrosUsuario();
-  }
-
-  // guarda sessão só na aba (some ao fechar)
-  sessionStorage.setItem("auth_ok","1");
-  sessionStorage.setItem("auth_user", u);
-  sessionStorage.setItem("auth_pass", p);
-
-  // limpa campos
-  username.value = "";
-  password.value = "";
-}
-
+/** ================= LOGIN ================= */
 async function login(){
   const u = username.value.trim();
   const p = password.value.trim();
-
   loginMsg.textContent = "";
+  if(!u||!p){ loginMsg.textContent="Preencha usuário e senha."; return; }
 
-  if(!u || !p){
-    loginMsg.textContent = "Preencha usuário e senha.";
-    return;
-  }
-
-  btnLogin.disabled = true;
-  btnLogin.textContent = "Validando...";
-
+  btnLogin.disabled = true; btnLogin.textContent = "Validando...";
   try{
-    const data = await authPlanilha_(u,p);
-
-    if(data.status !== "ok"){
-      loginMsg.textContent = data.message || "Login inválido";
+    const res = await post_({tipo:"login", usuario:u, senha:p});
+    if(res.status!=="ok"){
+      loginMsg.textContent = res.message || "Login inválido";
       password.value = "";
       return;
     }
+    currentUser = u;
+    currentUserInfo = res.user;
+    nomeUsuario.textContent = res.user.nomeCompleto || u;
 
-    aplicarUsuarioLogado_(u,p,data.user);
+    loginSection.classList.add("hidden");
 
+    if((res.user.role||"").toLowerCase()==="admin"){
+      adminSection.classList.remove("hidden");
+      await preencherFuncionariosPlanilha_();
+    } else {
+      operacionalSection.classList.remove("hidden");
+      mostrarDataHora();
+      await mostrarRegistrosUsuarioHoje_();
+    }
   }catch(e){
     console.error(e);
-    loginMsg.textContent = "Erro de conexão com o WebApp. (Veja F12 > Console)";
+    loginMsg.textContent = "Erro de conexão com o WebApp (F12 > Console).";
   }finally{
-    btnLogin.disabled = false;
-    btnLogin.textContent = "Entrar";
+    btnLogin.disabled=false; btnLogin.textContent="Entrar";
   }
 }
+function logout(){ location.reload(); }
 
-function logout(){
-  sessionStorage.removeItem("auth_ok");
-  sessionStorage.removeItem("auth_user");
-  sessionStorage.removeItem("auth_pass");
-  location.reload();
-}
-
-// Enter para logar
-document.addEventListener("keydown", (ev)=>{
-  if(loginSection && !loginSection.classList.contains("hidden") && ev.key === "Enter"){
-    ev.preventDefault();
-    login();
-  }
-});
-
-// inicia exigindo login (ou restaurando sessão da aba)
-restaurarSessaoSePossivel();
-
-/** =========================================================
- *  ====== OPERACIONAL ======
- *  ========================================================= */
-function registrar(tipo){
-  const agora=new Date();
-  const hora=agora.toLocaleTimeString().slice(0,5);
-  const data=agora.toLocaleDateString();
-  navigator.geolocation.getCurrentPosition(
-    pos=> salvarRegistro(tipo,hora,data,`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
-    ()=> salvarRegistro(tipo,hora,data,"Não registrada")
-  );
-}
-function salvarRegistro(tipo,hora,data,geo){
-  const d=JSON.parse(localStorage.getItem("registros")||"{}");
-  d[currentUser]??={};
-  d[currentUser][data]??={};
-  d[currentUser][data][tipo]=hora;
-  d[currentUser][data]["geo"+capitalize(tipo)]=geo;
-  localStorage.setItem("registros",JSON.stringify(d));
-  mostrarRegistrosUsuario();
-}
 function mostrarDataHora(){
   setInterval(()=>{
     const a=new Date();
@@ -422,83 +189,188 @@ function mostrarDataHora(){
     horaAtual.textContent="Hora: "+a.toLocaleTimeString();
   },1000);
 }
-function mostrarRegistrosUsuario(){
-  const hoje=new Date().toLocaleDateString();
-  const d=JSON.parse(localStorage.getItem("registros")||"{}");
-  const r=d[currentUser]?.[hoje]||{};
-  registrosUsuario.innerHTML="";
-  botoesRegistro.innerHTML="";
+
+/** ============ OPERACIONAL: registrar ponto na planilha ============ */
+async function registrar(tipo){
+  const agora=new Date();
+  const hora=agora.toLocaleTimeString().slice(0,5);
+  const dataBR=brDate(agora);
+
+  navigator.geolocation.getCurrentPosition(
+    async pos=>{
+      const geo = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      await salvarRegistroPlanilha_(tipo, hora, dataBR, geo);
+    },
+    async ()=>{
+      await salvarRegistroPlanilha_(tipo, hora, dataBR, "Não registrada");
+    }
+  );
+}
+
+async function salvarRegistroPlanilha_(tipo, hora, dataBR, geo){
+  const res = await post_({
+    tipo:"registrarPonto",
+    usuario: currentUser,
+    tipoMarcacao: tipo,
+    hora,
+    dataBR,
+    geo
+  });
+  if(res.status!=="ok") alert(res.message||"Falha ao registrar ponto na planilha.");
+  await mostrarRegistrosUsuarioHoje_();
+}
+
+async function mostrarRegistrosUsuarioHoje_(){
+  const hoje = new Date();
+  const di = hoje.toISOString().slice(0,10);
+  const df = di;
+
+  const res = await post_({ tipo:"getCartao", usuario: currentUser, dataInicio: di, dataFim: df });
+  const lista = (res.status==="ok") ? res.registros : [];
+  const row = lista.find(x=>x.dataBR===brDate(hoje)) || {};
+
+  registrosUsuario.innerHTML = "";
+  botoesRegistro.innerHTML = "";
+
   ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
-    if(r[t]){
-      registrosUsuario.innerHTML+=`<div><strong>${capitalize(t)}:</strong> ${r[t]} <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button></div>`;
+    if(row[t]){
+      registrosUsuario.innerHTML += `<div><strong>${capitalize(t)}:</strong> ${row[t]}</div>`;
     }
   });
-  if(!r.entrada) botoesRegistro.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
-  else if(!r.saidaAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
-  else if(!r.retornoAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
-  else if(!r.saida) botoesRegistro.innerHTML=`<button onclick="registrar('saida')">Saída</button>`;
-  else botoesRegistro.innerHTML="✅ Jornada finalizada";
+
+  if(!row.entrada) botoesRegistro.innerHTML = `<button onclick="registrar('entrada')">Entrada</button>`;
+  else if(!row.saidaAlmoco) botoesRegistro.innerHTML = `<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
+  else if(!row.retornoAlmoco) botoesRegistro.innerHTML = `<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
+  else if(!row.saida) botoesRegistro.innerHTML = `<button onclick="registrar('saida')">Saída</button>`;
+  else botoesRegistro.innerHTML = "✅ Jornada finalizada";
 }
 
-/** ====== COMPROVANTE INDIVIDUAL ====== */
-function gerarComprovante(tipo){
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF();
-  const hoje=new Date().toLocaleDateString();
-  const d=JSON.parse(localStorage.getItem("registros")||"{}");
-  const r=d[currentUser]?.[hoje]||{};
-  const hora=r[tipo]||"";
-  const geo=r["geo"+capitalize(tipo)]||"";
+/** ============ ADMIN: listar funcionários via planilha ============ */
+async function preencherFuncionariosPlanilha_(){
+  const res = await post_({tipo:"listarFuncionarios"});
+  if(res.status!=="ok"){ alert(res.message||"Erro ao listar funcionários"); return; }
 
-  doc.setFontSize(14);
-  doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
-  doc.setFontSize(11);
-  doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
-  doc.text(`PIS: ${users[currentUser]?.pis||""}`,14,36);
-  doc.text(`Data: ${hoje}`,14,42);
-  doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
-  doc.text(`Horário: ${hora}`,14,54);
-  doc.text(`Geolocalização: ${geo}`,14,60);
-  doc.save(`comprovante_${tipo}_${hoje}.pdf`);
+  funcionariosCache = res.funcionarios || [];
+
+  funcionarioSelect.innerHTML = "<option value=''>Selecionar Funcionário</option>";
+  funcionariosCache.forEach(f=>{
+    const opt = document.createElement("option");
+    opt.value = f.usuario;
+    opt.textContent = f.nomeCompleto || f.usuario;
+    funcionarioSelect.appendChild(opt);
+  });
 }
 
-/** =========================================================
- *  ====== AJUSTE ======
- *  ========================================================= */
-function campo(valor, c, adminView = true){
-  const vazio = !valor || valor === "-";
-  const evento = dadosAtual[c+"_evento"];
+/** ============ ADMIN: relatório lê da planilha ============ */
+function feriadoNome_(ddmm){ return feriados.includes(ddmm); }
 
-  if(!vazio && !evento){
-    if(adminView){
-      return valor + (dadosAtual[c+"_editado"]
-        ? ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
-        : "");
+function cargaEscalaMin(escStr){
+  if(!escStr) return 0;
+  const t = String(escStr).trim().toUpperCase();
+  if(t==="FOLGA") return 0;
+  return hm(escStr);
+}
+
+function campoVisivel_(row, campo){
+  // mostra hora se existir; se tiver evento mostra evento; se vazio, retorna botão Ajustar
+  const valor = row[campo] || "";
+  const evento = row[campo+"_evento"] || "";
+  if(valor && !evento) return valor;
+  if(evento) return evento + ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${row.dataBR}','${campo}')">Editar</button>`;
+  return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${row.dataBR}','${campo}')">➕ Ajustar</button>`;
+}
+
+async function gerarRelatorioMensal(){
+  const u = funcionarioSelect.value;
+  if(!u || !dataInicio.value){ alert("Selecione funcionário e data início."); return; }
+
+  const tipo = tipoRelatorio.value;
+  const f = funcionariosCache.find(x=>x.usuario===u) || {};
+
+  const res = await post_({ tipo:"getCartao", usuario:u, dataInicio:dataInicio.value, dataFim:(dataFim.value||dataInicio.value) });
+  if(res.status!=="ok"){ alert(res.message||"Erro ao buscar cartão."); return; }
+
+  // monta map por dataBR
+  const map = {};
+  (res.registros||[]).forEach(r=>{ map[r.dataBR]=r; });
+
+  const ini = new Date(dataInicio.value+"T00:00:00");
+  const fim = new Date((dataFim.value||dataInicio.value)+"T00:00:00");
+
+  let html = `<h3>Cartão de Ponto - ${f.nomeCompleto || u}</h3>`;
+  html += `<p>Código: ${f.codigo||""} | PIS: ${f.pis||""} | Cargo: ${f.cargo||""} | Depto: ${f.depto||""} | Local: ${f.localTrabalho||""}</p>`;
+  html += `<p>Período: ${dataInicio.value} até ${dataFim.value||dataInicio.value}</p>`;
+
+  html += `<table id="tabelaRelatorio"><tr>
+    <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
+  if(tipo==="comGeo") html += `<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
+  html += `</tr>`;
+
+  let totalTrabalhado = 0;
+
+  const escalaSem = f.escalaSemanal || {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"};
+
+  for(let d = new Date(ini); d <= fim; d.setDate(d.getDate()+1)){
+    const dataBR = brDate(d);
+    const ddmm = dataBR.slice(0,5);
+    const weekday = d.getDay();
+    const nomeDia = feriadoNome_(ddmm) ? "Feriado" : ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+
+    const row = map[dataBR] || { dataBR };
+
+    // escala do dia
+    const escStr = escalaSem[weekday] || "";
+    const jornadaEscala = cargaEscalaMin(escStr);
+
+    // horas trabalhadas reais
+    let trabMin = 0;
+    if(row.entrada && row.saidaAlmoco && row.retornoAlmoco && row.saida){
+      trabMin = (hm(row.saidaAlmoco)-hm(row.entrada)) + (hm(row.saida)-hm(row.retornoAlmoco));
+      if(trabMin < 0) trabMin = 0;
     }
-    return valor;
-  }
 
-  if(evento){
-    if(adminView){
-      return evento +
-        ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`;
+    // crédito simples: trabalhado - escala (feriado se trabalhou = crédito = trabalhado)
+    let credito = 0;
+    if(feriadoNome_(ddmm)){
+      credito = trabMin ? trabMin : 0;
+    } else {
+      credito = trabMin - jornadaEscala;
     }
-    return evento;
+
+    totalTrabalhado += trabMin;
+
+    html += `<tr>
+      <td>${dataBR}</td>
+      <td>${nomeDia}</td>
+      <td>${campoVisivel_(row,"entrada")}</td>
+      <td>${campoVisivel_(row,"saidaAlmoco")}</td>
+      <td>${campoVisivel_(row,"retornoAlmoco")}</td>
+      <td>${campoVisivel_(row,"saida")}</td>
+      <td class="${trabMin>=0?'verde':'vermelho'}">${trabMin?fmt(trabMin):""}</td>
+      <td class="${credito>=0?'verde':'vermelho'}">${credito?fmt(credito):""}</td>`;
+
+    if(tipo==="comGeo"){
+      html += `<td>${row.geoEntrada||""}</td><td>${row.geoSaidaAlmoco||""}</td><td>${row.geoRetornoAlmoco||""}</td><td>${row.geoSaida||""}</td>`;
+    }
+
+    html += `</tr>`;
   }
 
-  if(adminView){
-    return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
-  }
-  return "";
+  html += `<tr><th colspan="6">TOTAL HORAS TRABALHADAS</th><th class="verde">${fmt(totalTrabalhado)}</th><th></th></tr>`;
+  html += `</table><p>Assinatura do Funcionário: _____________________</p>`;
+
+  cartaoFuncionario.innerHTML = html;
 }
 
-function abrirAjuste(u,d,c){
-  const dados = JSON.parse(localStorage.getItem("registros")||"{}");
-  dados[u]??={};
-  dados[u][d]??={};
-  const atual = dados[u][d];
+/** ============ AJUSTE (admin) -> salva na planilha ============ */
+const justificativas = [
+  "Nenhum","FOLGA","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
+  "Atestado Médico Dias","Atestado Médico Horas","Licença Maternidade","Licença Paternidade",
+  "Licença INSS+15 D","Acidente de Trabalho","Feriado"
+];
 
-  let popup = document.createElement("div");
+function abrirAjuste(usuario, dataBR, campo){
+  const popup = document.createElement("div");
   popup.style.position="fixed";
   popup.style.top="50%";
   popup.style.left="50%";
@@ -508,13 +380,13 @@ function abrirAjuste(u,d,c){
   popup.style.border="1px solid #333";
   popup.style.zIndex=1000;
 
-  popup.innerHTML=`
-    <h3>Ajustar ${c}</h3>
-    <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${atual[c]||""}"></label><br><br>
-    <label>Justificar:
-      <select id="selectJustificacao">
+  popup.innerHTML = `
+    <h3>Ajustar ${campo} (${dataBR})</h3>
+    <label>Horas (HH:MM):<br><input id="ajHoras" placeholder="HH:MM"></label><br><br>
+    <label>Justificativa:<br>
+      <select id="ajEvento">
         <option value="">--Escolha--</option>
-        ${justificativas.map(j=>`<option value="${j}" ${atual[c+"_evento"]===j?'selected':''}>${j}</option>`).join("")}
+        ${justificativas.map(j=>`<option value="${j}">${j}</option>`).join("")}
       </select>
     </label><br><br>
     <button id="okBtn">Ok</button>
@@ -523,612 +395,87 @@ function abrirAjuste(u,d,c){
 
   document.body.appendChild(popup);
 
-  popup.querySelector("#okBtn").onclick=()=>{
-    const h = popup.querySelector("#inputHoras").value.trim();
-    const ev = popup.querySelector("#selectJustificacao").value;
+  popup.querySelector("#cancelBtn").onclick = ()=>popup.remove();
+  popup.querySelector("#okBtn").onclick = async ()=>{
+    const horas = popup.querySelector("#ajHoras").value.trim();
+    const evento = popup.querySelector("#ajEvento").value.trim();
 
-    if(ev === "Nenhum"){
-      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-        delete atual[campoNome+"_evento"];
-        delete atual[campoNome+"_editado"];
-        if(atual[campoNome] === "-" || atual[campoNome] === "" || atual[campoNome] == null){
-          delete atual[campoNome];
-        }
-      });
-      delete atual.atestadoHorasMin;
-      localStorage.setItem("registros",JSON.stringify(dados));
+    try{
+      const res = await post_({ tipo:"salvarAjuste", usuario, dataBR, campo, horas, evento });
+      if(res.status!=="ok") alert(res.message||"Falha ao salvar ajuste.");
       popup.remove();
-      gerarRelatorioMensal();
-      return;
+      await gerarRelatorioMensal();
+    }catch(e){
+      console.error(e);
+      alert("Erro ao salvar ajuste (F12 > Console).");
     }
-
-    if(ev === "Atestado Médico Dias"){
-      const intervalo = prompt("Informe o intervalo do atestado (formato: dd/mm/aaaa - dd/mm/aaaa):", d+" - "+d);
-      if(intervalo){
-        const partes = intervalo.split("-");
-        if(partes.length===2){
-          const iniStr = partes[0].trim();
-          const fimStr = partes[1].trim();
-          const [di,mi,ai] = iniStr.split("/").map(Number);
-          const [df,mf,af] = fimStr.split("/").map(Number);
-          if(di&&mi&&ai&&df&&mf&&af){
-            let dataIni = new Date(ai,mi-1,di);
-            let dataFim = new Date(af,mf-1,df);
-            if(dataIni > dataFim){
-              const tmp = dataIni; dataIni = dataFim; dataFim = tmp;
-            }
-            let cursor = new Date(dataIni);
-            while(cursor <= dataFim){
-              const cdia = String(cursor.getDate()).padStart(2,"0");
-              const cmes = String(cursor.getMonth()+1).padStart(2,"0");
-              const cano = cursor.getFullYear();
-              const chave = `${cdia}/${cmes}/${cano}`;
-              dados[u]??={};
-              dados[u][chave]??={};
-              const reg = dados[u][chave];
-              ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-                reg[campoNome]="-";
-                reg[campoNome+"_evento"]=ev;
-                reg[campoNome+"_editado"]=true;
-              });
-              delete reg.atestadoHorasMin;
-              cursor.setDate(cursor.getDate()+1);
-            }
-            localStorage.setItem("registros",JSON.stringify(dados));
-            popup.remove();
-            gerarRelatorioMensal();
-            return;
-          }
-        }
-      }
-    }
-
-    if(ev === "Atestado Médico Horas"){
-      const dataAtestadoStr = prompt("Data do atestado (dd/mm/aaaa):", d);
-      if(!dataAtestadoStr){ popup.remove(); return; }
-      const [ddia,dmes,dano] = dataAtestadoStr.split("/").map(Number);
-      if(!ddia||!dmes||!dano){ popup.remove(); return; }
-      const dataAtestadoKey = `${String(ddia).padStart(2,"0")}/${String(dmes).padStart(2,"0")}/${dano}`;
-      const hIni = prompt("Hora INÍCIO do atestado (HH:MM):","08:00");
-      const hFim = prompt("Hora FIM do atestado (HH:MM):","10:00");
-      if(!hIni || !hFim){ popup.remove(); return; }
-      const minutosAtestado = Math.max(0, hm(hFim) - hm(hIni));
-      dados[u]??={};
-      dados[u][dataAtestadoKey]??={};
-      const regA = dados[u][dataAtestadoKey];
-      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-        regA[campoNome]="-";
-        regA[campoNome+"_evento"]=ev;
-        regA[campoNome+"_editado"]=true;
-      });
-      regA.atestadoHorasMin = minutosAtestado;
-      localStorage.setItem("registros",JSON.stringify(dados));
-      popup.remove();
-      gerarRelatorioMensal();
-      return;
-    }
-
-    if(h){
-      atual[c]=h;
-      atual[c+"_evento"]="";
-      atual[c+"_editado"]=true;
-      delete atual.atestadoHorasMin;
-    }
-    else if(ev){
-      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-        atual[campoNome]="-";
-        atual[campoNome+"_evento"]=ev;
-        atual[campoNome+"_editado"]=true;
-      });
-      delete atual.atestadoHorasMin;
-    }
-
-    localStorage.setItem("registros",JSON.stringify(dados));
-    popup.remove();
-    gerarRelatorioMensal();
   };
-
-  popup.querySelector("#cancelBtn").onclick=()=>{popup.remove();};
 }
 
-/** ====== FUNÇÕES ADMIN ====== */
-function preencherFuncionarios(){
-  const select=document.getElementById("funcionarioSelect");
-  select.innerHTML="<option value=''>Selecionar Funcionário</option>";
-  Object.keys(users).forEach(u=>{
-    if(users[u].role==="operacional"){
-      const option=document.createElement("option");
-      option.value=u; option.textContent=users[u].nomeCompleto || u;
-      select.appendChild(option);
-    }
-  });
-}
-
-/** ====== RELATÓRIO CARTÃO DE PONTO ====== */
-function gerarRelatorioMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
-  if(!u || !dataInicio.value) return;
-  const tipo=document.getElementById("tipoRelatorio").value;
-  const registros=JSON.parse(localStorage.getItem("registros")||"{}")[u]||{};
-  const escSem = users[u].escalaSemanal || {};
-
-  let totalPeriodo=0;
-  let totalAtestadosMin = 0;
-  let totalAfastamentosMin = 0;
-  let totalAtrasosFaltasMin = 0;
-
-  let html=`<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
-  html+=`<p>Código: ${users[u].codigo || ""} | PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
-  html+=`<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
-  html+=`<table id="tabelaRelatorio"><tr>
-  <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
-  if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
-  html+="</tr>";
-
-  const inicio = new Date(dataInicio.value);
-  const fim = dataFim.value ? new Date(dataFim.value) : inicio;
-  let currentDate = new Date(inicio);
-
-  while(currentDate <= fim){
-    const dia = String(currentDate.getDate()).padStart(2,"0");
-    const mes = String(currentDate.getMonth()+1).padStart(2,"0");
-    const ano = currentDate.getFullYear();
-    const d = `${dia}/${mes}/${ano}`;
-    const ddmm = `${dia}/${mes}`;
-
-    dadosAtual = registros[d] || {};
-    dataAtualRel = d;
-
-    const JORNADA_PADRAO = 480; // 8h
-
-    const weekday = currentDate.getDay(); // 0=Dom ... 6=Sáb
-    const escStr = escSem[weekday] || "";
-    const jornadaEscala = cargaEscalaMin(escStr);
-    const isFeriadoLista = feriados.includes(ddmm);
-
-    let min = 0;
-
-    const eventos = [
-      dadosAtual.entrada_evento,
-      dadosAtual.saidaAlmoco_evento,
-      dadosAtual.retornoAlmoco_evento,
-      dadosAtual.saida_evento
-    ].filter(Boolean);
-    const eventoDia = eventos[0] || "";
-
-    const temTodasMarcacoes =
-      dadosAtual.entrada &&
-      dadosAtual.saidaAlmoco &&
-      dadosAtual.retornoAlmoco &&
-      dadosAtual.saida;
-
-    const temAlgumaMarcacao =
-      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
-
-    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
-
-    if(!eventoDia){
-      if(temTodasMarcacoes){
-        min =
-          (hm(dadosAtual.saidaAlmoco) - hm(dadosAtual.entrada)) +
-          (hm(dadosAtual.saida) - hm(dadosAtual.retornoAlmoco));
-      }
-      if(isFeriadoLista){
-        min = 0;
-      }
-      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao){
-        min = 0;
-      }
-    } else {
-      switch(eventoDia){
-        case "Falta Justificada":
-          min = -JORNADA_PADRAO;
-          totalAtestadosMin += -min;
-          break;
-        case "Atestado Médico Dias":
-          min = -JORNADA_PADRAO;
-          totalAtestadosMin += -min;
-          break;
-        case "Atestado Médico Horas": {
-          const minutosAtestado = dadosAtual.atestadoHorasMin || JORNADA_PADRAO;
-          min = -minutosAtestado;
-          totalAtestadosMin += minutosAtestado;
-          break;
-        }
-        case "Falta Injustificada":
-          min = -JORNADA_PADRAO;
-          totalAtrasosFaltasMin += min;
-          break;
-        case "Falta Abonada":
-          min = JORNADA_PADRAO;
-          totalAtestadosMin += min;
-          break;
-        case "Férias":
-        case "Licença Maternidade":
-        case "Licença Paternidade":
-        case "Licença INSS+15 D":
-        case "Acidente de Trabalho":
-          min = JORNADA_PADRAO;
-          totalAfastamentosMin += min;
-          break;
-        case "Feriado":
-          min = 0;
-          break;
-      }
-    }
-
-    totalPeriodo += min;
-
-    let creditoMin = min - jornadaEscala;
-    if(isFeriadoLista && temAlgumaMarcacao){
-      creditoMin = 16 * 60;
-    }
-
-    let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-    if(isFeriadoLista) nomeDia="Feriado";
-
-    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
-
-    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
-      conteudoEntrada = "FOLGA";
-      conteudoSaidaAlm = "FOLGA";
-      conteudoRetorno  = "FOLGA";
-      conteudoSaida    = "FOLGA";
-    } else {
-      conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
-      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
-      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
-      conteudoSaida     = campo(dadosAtual.saida,"saida");
-    }
-
-    html+=`<tr>
-      <td>${d}</td>
-      <td>${nomeDia}</td>
-      <td>${conteudoEntrada}</td>
-      <td>${conteudoSaidaAlm}</td>
-      <td>${conteudoRetorno}</td>
-      <td>${conteudoSaida}</td>
-      <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
-      <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>`;
-    if(tipo==="comGeo"){
-      html+=`<td>${dadosAtual.geoEntrada||""}</td>
-             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
-             <td>${dadosAtual.geoRetorno||""}</td>
-             <td>${dadosAtual.geoSaida||""}</td>`;
-    }
-    html+="</tr>";
-    currentDate.setDate(currentDate.getDate()+1);
-  }
-
-  html+=`<tr><th colspan="6">TOTAL</th>
-           <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
-           <th></th>
-         </tr></table>`;
-
-  html+=`<br><h4>Totais do Período</h4>`;
-  html+=`<p><strong>Total trabalhado (registros + justificativas positivas/negativas):</strong> ${fmt(totalPeriodo)}</p>`;
-  html+=`<p><strong>Total de atestados</strong> (Atestado dias/horas, Falta Justificada, Falta Abonada, Licença INSS+15 D): ${fmt(totalAtestadosMin)}</p>`;
-  html+=`<p><strong>Total de afastamentos</strong> (Férias, Licença Maternidade, Licença Paternidade, Acidente de Trabalho): ${fmt(totalAfastamentosMin)}</p>`;
-  html+=`<p><strong>Total atrasos/faltas</strong> (Falta Injustificada): ${fmt(totalAtrasosFaltasMin)}</p>`;
-
-  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
-  document.getElementById("cartaoFuncionario").innerHTML=html;
-}
-
-/** ====== EXCEL ====== */
+/** ============ Exportações (usam a tabela renderizada) ============ */
 function gerarExcel(){
-  const tabelaOriginal = document.querySelector("#tabelaRelatorio");
-  if(!tabelaOriginal){
-    alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
-    return;
-  }
-
-  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-
-  const tabela = tabelaOriginal.cloneNode(true);
-
-  if(!opt){
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")){
-        td.innerHTML = "";
-      }
-    });
-  } else {
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
-    });
-  }
-
-  const wb = XLSX.utils.book_new();
-  const linhas = [];
-  const trs = tabela.querySelectorAll("tr");
-
-  function excelSerialFromDMY(dd, mm, yyyy){
-    const excelEpoch = Date.UTC(1899, 11, 30);
-    const dtUTC = Date.UTC(yyyy, mm - 1, dd);
-    return (dtUTC - excelEpoch) / 86400000;
-  }
-
-  trs.forEach((tr, rowIndex) => {
-    const row = [];
-    const cells = tr.querySelectorAll("th,td");
-
-    cells.forEach((cell, colIndex) => {
-      let txt = (cell.innerText || cell.textContent || "").trim();
-
-      if(rowIndex > 0 && colIndex === 0){
-        const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        if(m){
-          const dd = parseInt(m[1],10);
-          const mm = parseInt(m[2],10);
-          const yyyy = parseInt(m[3],10);
-          const serial = excelSerialFromDMY(dd, mm, yyyy);
-          row.push(serial);
-        } else {
-          row.push(txt);
-        }
-      } else {
-        row.push(txt);
-      }
-    });
-
-    linhas.push(row);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(linhas);
-
-  const range = XLSX.utils.decode_range(ws["!ref"]);
-  for(let r = 1; r <= range.e.r; r++){
-    const addr = XLSX.utils.encode_cell({ c: 0, r: r });
-    const cell = ws[addr];
-    if(cell && typeof cell.v === "number"){
-      cell.t = "n";
-      cell.z = "dd/mm/yyyy";
-    }
-  }
-
+  const tabela = document.querySelector("#tabelaRelatorio");
+  if(!tabela){ alert("Gere o relatório antes."); return; }
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.table_to_sheet(tabela);
   XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
   XLSX.writeFile(wb, "cartao_ponto.xlsx");
 }
 
-/** ====== PDF ADMIN ====== */
 function gerarPDFAdmin(){
-  const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const tabela = document.querySelector("#tabelaRelatorio");
+  if(!tabela){ alert("Gere o relatório antes."); return; }
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF('p','mm','a4');
-
-  const func = funcionarioSelect.value;
-  const dados = JSON.parse(localStorage.getItem("registros")||"{}")[func] || {};
-
-  let qtdFaltasInjustificadas = 0;
-  if(dataInicio.value){
-    const inicio = new Date(dataInicio.value);
-    const fim = dataFim.value ? new Date(dataFim.value) : inicio;
-    let currentDate = new Date(inicio);
-
-    while(currentDate <= fim){
-      const dia = String(currentDate.getDate()).padStart(2,"0");
-      const mes = String(currentDate.getMonth()+1).padStart(2,"0");
-      const ano = currentDate.getFullYear();
-      const d = `${dia}/${mes}/${ano}`;
-
-      const regDia = dados[d] || {};
-      const eventosDia = [
-        regDia.entrada_evento,
-        regDia.saidaAlmoco_evento,
-        regDia.retornoAlmoco_evento,
-        regDia.saida_evento
-      ].filter(Boolean);
-
-      if(eventosDia.includes("Falta Injustificada")){
-        qtdFaltasInjustificadas++;
-      }
-
-      currentDate.setDate(currentDate.getDate()+1);
-    }
-  }
-
   doc.setFontSize(12);
   doc.text("RELATÓRIO MENSAL DE PONTO",105,10,{align:"center"});
-  doc.setFontSize(9);
-  doc.text(
-    `Faltas Injustificadas (desconto férias): ${qtdFaltasInjustificadas} dia(s)`,
-    200, 10, {align:"right"}
-  );
-
-  doc.setFontSize(10);
-  const u = func;
-  doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
-  doc.text(`Código: ${users[u]?.codigo || ""}`,14,24);
-  doc.text(`PIS: ${users[u]?.pis || ""}`,14,30);
-  doc.text(`Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}`,14,36);
-
-  const tabela=document.querySelector("#tabelaRelatorio").cloneNode(true);
-  if(!opt){
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")){
-        td.innerHTML="";
-      }
-    });
-  } else {
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
-    });
-  }
-
-  doc.autoTable({startY:42,html:tabela});
-  doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
+  doc.autoTable({startY:18, html:tabela});
   doc.save("cartao_ponto.pdf");
 }
 
-/** ====== CADASTRO FUNCIONÁRIO ====== */
+/** ============ Cadastro funcionário (admin) ============ */
 function abrirCadastroFuncionario(){
-  const select = document.getElementById("funcionarioSelect");
-  const u = select.value;
-
   modalFuncionario.classList.remove("hidden");
-
-  if (!u || !users[u]) {
-    novoCodigo.value = "";
-    novoNome.value   = "";
-    novoUser.value   = "";
-    novoPass.value   = "";
-    novoCargo.value  = "";
-    novoPis.value    = "";
-    novoSetor.value  = "";
-    novoLocal.value  = "";
-
-    escSeg.value = "08:00";
-    escTer.value = "08:00";
-    escQua.value = "08:00";
-    escQui.value = "08:00";
-    escSex.value = "08:00";
-    escSab.value = "04:00";
-    escDom.value = "FOLGA";
-    return;
-  }
-
-  const f = users[u];
-
-  novoCodigo.value = f.codigo        || "";
-  novoNome.value   = f.nomeCompleto  || "";
-  novoUser.value   = u;
-  novoPass.value   = f.password      || "";
-  novoCargo.value  = f.cargo         || "";
-  novoPis.value    = f.pis           || "";
-  novoSetor.value  = f.setor         || "";
-  novoLocal.value  = f.localTrabalho || "";
-
-  const esc = f.escalaSemanal || {};
-  escSeg.value = esc[1] || "08:00";
-  escTer.value = esc[2] || escSeg.value;
-  escQua.value = esc[3] || escSeg.value;
-  escQui.value = esc[4] || escSeg.value;
-  escSex.value = esc[5] || escSeg.value;
-  escSab.value = esc[6] || "04:00";
-  escDom.value = esc[0] || "FOLGA";
+  // limpa
+  novoCodigo.value=""; novoNome.value=""; novoUser.value=""; novoPass.value="";
+  novoCargo.value=""; novoPis.value=""; novoDepto.value=""; novoLocal.value="";
+  escalaSeg.value="08:00"; escalaTer.value="08:00"; escalaQua.value="08:00";
+  escalaQui.value="08:00"; escalaSex.value="08:00"; escalaSab.value="04:00"; escalaDom.value="FOLGA";
 }
-
 function fecharCadastroFuncionario(){ modalFuncionario.classList.add("hidden"); }
 
-function salvarFuncionario(){
-  const codigo=novoCodigo.value.trim();
-  const nome=novoNome.value.trim();
-  const u=novoUser.value.trim();
-  const p=novoPass.value.trim();
-  const cargo=novoCargo.value.trim();
-  const pis=novoPis.value.trim();
-  const setor=novoSetor.value.trim();
-  const local=novoLocal.value.trim();
+async function salvarFuncionario(){
+  const payload = {
+    tipo:"salvarFuncionario",
+    codigo: novoCodigo.value.trim(),
+    nome: novoNome.value.trim(),
+    usuario: novoUser.value.trim(),
+    senha: novoPass.value.trim(),
+    cargo: novoCargo.value.trim(),
+    pis: novoPis.value.trim(),
+    depto: novoDepto.value.trim(),
+    localTrabalho: novoLocal.value.trim(),
+    role: "operacional",
+    escSeg: (escalaSeg.value.trim()||"08:00"),
+    escTer: (escalaTer.value.trim()||"08:00"),
+    escQua: (escalaQua.value.trim()||"08:00"),
+    escQui: (escalaQui.value.trim()||"08:00"),
+    escSex: (escalaSex.value.trim()||"08:00"),
+    escSab: (escalaSab.value.trim()||"04:00"),
+    escDom: (escalaDom.value.trim()||"FOLGA")
+  };
 
-  const eSeg = (escSeg.value || "").trim() || "08:00";
-  const eTer = (escTer.value || "").trim() || eSeg;
-  const eQua = (escQua.value || "").trim() || eSeg;
-  const eQui = (escQui.value || "").trim() || eSeg;
-  const eSex = (escSex.value || "").trim() || eSeg;
-  const eSab = (escSab.value || "").trim() || "04:00";
-  const eDom = (escDom.value || "").trim() || "FOLGA";
-
-  if(!u||!p||!pis||!nome){
-    alert("Preencha pelo menos: Nome, Usuário, Senha e PIS");
+  if(!payload.usuario || !payload.senha || !payload.nome || !payload.pis){
+    alert("Obrigatório: Nome, Usuário, Senha, PIS");
     return;
   }
 
-  users[u]={
-    password:p,
-    role:"operacional",
-    pis:pis,
-    codigo:codigo,
-    nomeCompleto:nome,
-    cargo:cargo,
-    setor:setor,
-    localTrabalho:local,
-    escalaMensal:{},
-    escalaSemanal:{ 1:eSeg,2:eTer,3:eQua,4:eQui,5:eSex,6:eSab,0:eDom }
-  };
+  const res = await post_(payload);
+  if(res.status!=="ok"){ alert(res.message||"Erro ao salvar funcionário."); return; }
 
-  salvarUsuarios();
-
-  // ✅ Envia para a planilha (Apps Script) com text/plain (evita CORS)
-  fetch(SCRIPT_URL, {
-    method: "POST",
-    headers: {"Content-Type":"text/plain;charset=utf-8"},
-    body: JSON.stringify({
-      tipo: "salvarFuncionario",
-      usuario: u,
-      senha: p,
-      codigo: codigo,
-      nome: nome,
-      pis: pis,
-      cargo: cargo,
-      setor: setor,
-      localTrabalho: local,
-      escSeg: eSeg,
-      escTer: eTer,
-      escQua: eQua,
-      escQui: eQui,
-      escSex: eSex,
-      escSab: eSab,
-      escDom: eDom,
-      role: "operacional"
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    console.log("RES salvarFuncionario:", data);
-    if(data.status !== "ok"){
-      alert("Cadastro salvo localmente, mas houve erro ao salvar na planilha: " + (data.message || ""));
-    }
-  })
-  .catch(err => {
-    console.error("Erro salvarFuncionario planilha:", err);
-    alert("Cadastro salvo localmente, mas houve erro ao enviar para a planilha.");
-  });
-
-  preencherFuncionarios();
+  alert(res.message||"Salvo!");
   fecharCadastroFuncionario();
-
-  novoCodigo.value="";
-  novoNome.value="";
-  novoUser.value="";
-  novoPass.value="";
-  novoCargo.value="";
-  novoPis.value="";
-  novoSetor.value="";
-  novoLocal.value="";
-  escSeg.value="08:00";
-  escTer.value="08:00";
-  escQua.value="08:00";
-  escQui.value="08:00";
-  escSex.value="08:00";
-  escSab.value="04:00";
-  escDom.value="FOLGA";
-
-  alert("Funcionário salvo com sucesso!");
-}
-
-/** ====== ESCALA MENSAL (MANUAL) ====== */
-function abrirEscalaMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
-  if(!u) return alert("Selecione um funcionário");
-  const conteudo=document.getElementById("conteudoEscala");
-  conteudo.innerHTML="";
-  for(let i=1;i<=31;i++){
-    const val = users[u].escalaMensal[i]||"";
-    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
-  }
-  modalEscala.classList.remove("hidden");
-}
-function fecharEscalaMensal(){ modalEscala.classList.add("hidden"); }
-function salvarEscalaMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
-  if(!u) return;
-  for(let i=1;i<=31;i++){
-    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
-  }
-  salvarUsuarios();
-  fecharEscalaMensal();
-  alert("Escala mensal manual salva!");
+  await preencherFuncionariosPlanilha_();
 }
 </script>
 </body>
