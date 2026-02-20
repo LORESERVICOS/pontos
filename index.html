@@ -210,7 +210,7 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-/************* CARREGAR USUÁRIOS *************/
+/************* CARREGAR USUÁRIOS (PLANILHA FUNCIONÁRIOS) *************/
 async function carregarUsuarios(){
   const res = await apiPost({tipo:"listarUsuarios"});
   if(res.status !== "ok") throw new Error(res.message || "Erro ao listar usuários");
@@ -242,31 +242,56 @@ async function carregarUsuarios(){
   users = map;
 }
 
-/************* LOGIN *************/
+/************* LOGIN – VALIDA NA ABA FUNCIONÁRIOS *************/
 async function login(){
   const u = username.value.trim();
   const p = password.value.trim();
+
   if(!u || !p){
     alert("Preencha usuário e senha.");
     return;
   }
 
-  const res = await apiPost({tipo:"login", usuario:u, senha:p});
-  if(res.status !== "ok"){
-    alert(res.message || "Login inválido");
+  try{
+    // Carrega TODOS os usuários da aba FUNCIONÁRIOS (incluindo admin)
+    await carregarUsuarios();
+  }catch(err){
+    console.error(err);
+    alert("Erro ao carregar usuários da planilha. Verifique o Apps Script (tipo 'listarUsuarios').");
     return;
   }
 
-  // carrega base de usuários (para admin/relatórios)
-  await carregarUsuarios();
+  const loginDigitado = u.toLowerCase();
+  let encontrado = null;
 
-  currentUser = u;
-  currentUserObj = users[u] || res.user || {usuario_login:u};
+  // Procura na lista vinda da planilha:
+  Object.keys(users).forEach(chave=>{
+    const obj = users[chave];
+    const loginPlan = String(obj.usuario_login || chave || "").trim().toLowerCase();
+    const senhaPlan = String(obj.senha || "").trim();
 
-  nomeUsuario.textContent = currentUserObj.nomeCompleto || u;
+    if(!encontrado && loginPlan === loginDigitado && senhaPlan === p){
+      encontrado = obj;
+    }
+  });
+
+  if(!encontrado){
+    alert("Login inválido. Confira usuário e senha cadastrados na aba FUNCIONÁRIOS.");
+    return;
+  }
+
+  currentUser = String(encontrado.usuario_login || u).trim();
+  currentUserObj = encontrado;
+
+  nomeUsuario.textContent = currentUserObj.nomeCompleto || currentUser;
   loginSection.classList.add("hidden");
 
-  const role = String(currentUserObj.role || res.user?.role || "").trim();
+  // Define papel: admin ou operacional.
+  // Se não tiver 'role' na planilha, trata login 'admin' como administrador.
+  let role = String(currentUserObj.role || "").trim().toLowerCase();
+  if(!role && currentUser.toLowerCase()==="admin") role = "admin";
+  if(!role) role = "operacional";
+
   if(role === "admin"){
     adminSection.classList.remove("hidden");
     preencherFuncionarios();
@@ -929,4 +954,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
