@@ -156,6 +156,7 @@ input,select{padding:4px 6px;margin:2px 0;}
 
 <script>
 /************* CONFIG *************/
+// ATUALIZE ESTA URL DO APPS SCRIPT SE VOCÊ REIMPLANTAR O WEB APP
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
 
 /************* API *************/
@@ -170,7 +171,7 @@ async function apiPost(payload){
 }
 
 /************* DADOS (vem da planilha) *************/
-let users = {};             // map por usuario_login
+let users = {};             // mapa por usuario_login
 let currentUser = null;
 let currentUserObj = null;
 
@@ -210,39 +211,7 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-/************* CARREGAR USUÁRIOS (PLANILHA FUNCIONÁRIOS) *************/
-async function carregarUsuarios(){
-  const res = await apiPost({tipo:"listarUsuarios"});
-  if(res.status !== "ok") throw new Error(res.message || "Erro ao listar usuários");
-
-  const map = {};
-  (res.users || []).forEach(u=>{
-    const key = (u.usuario_login || "").trim();
-    if(!key) return;
-
-    const esc = {
-      1: (u.escSeg || "08:00"),
-      2: (u.escTer || "08:00"),
-      3: (u.escQua || "08:00"),
-      4: (u.escQui || "08:00"),
-      5: (u.escSex || "08:00"),
-      6: (u.escSab || "04:00"),
-      0: (u.escDom || "FOLGA")
-    };
-
-    map[key] = {
-      ...u,
-      nomeCompleto: u.nomeCompleto || u.nome || key,
-      localTrabalho: u.localTrabalho || u.local_trabalho || "",
-      escalaMensal: {},
-      escalaSemanal: esc
-    };
-  });
-
-  users = map;
-}
-
-/************* LOGIN – VALIDA NA PLANILHA + ADMIN MASTER *************/
+/************* LOGIN (via Apps Script) *************/
 async function login(){
   const u = username.value.trim();
   const p = password.value.trim();
@@ -252,67 +221,80 @@ async function login(){
     return;
   }
 
-  // 1) tenta carregar usuários da planilha
+  let res;
   try{
-    await carregarUsuarios();
+    res = await apiPost({tipo:"login", usuario:u, senha:p});
   }catch(err){
     console.error(err);
-    alert("Erro ao carregar usuários da planilha. Verifique o Apps Script (tipo 'listarUsuarios').");
+    alert("Erro de comunicação com o servidor de ponto.");
     return;
   }
 
-  const loginDigitado = u.toLowerCase();
-  let encontrado = null;
+  if(res.status !== "ok"){
+    alert(res.message || "Login inválido.");
+    return;
+  }
 
-  // 2) procura o usuário digitado na planilha FUNCIONARIOS
-  Object.keys(users).forEach(chave=>{
-    const obj = users[chave];
-    const loginPlan = String(obj.usuario_login || chave || "").trim().toLowerCase();
-    const senhaPlan = String(obj.senha || "").trim();
+  // usuário logado
+  currentUserObj = res.user || {};
+  currentUser = (currentUserObj.usuario_login || u).trim();
 
-    if(!encontrado && loginPlan === loginDigitado && senhaPlan === p){
-      encontrado = obj;
-    }
-  });
+  // montar mapa de usuários
+  users = {};
 
-  // 3) se NÃO encontrou na planilha
-  if(!encontrado){
-    // Se for admin master (login 'admin' e senha 'admin123') entra como ADMIN
-    if(loginDigitado === "admin" && p === "admin123"){
-      currentUser = "admin";
-      currentUserObj = {
-        usuario_login: "admin",
-        nomeCompleto: "Administrador",
-        role: "admin"
+  if(Array.isArray(res.users)){
+    res.users.forEach(function(uobj){
+      const key = (uobj.usuario_login || "").trim();
+      if(!key) return;
+
+      const esc = {
+        1: (uobj.escSeg || "08:00"),
+        2: (uobj.escTer || "08:00"),
+        3: (uobj.escQua || "08:00"),
+        4: (uobj.escQui || "08:00"),
+        5: (uobj.escSex || "08:00"),
+        6: (uobj.escSab || "04:00"),
+        0: (uobj.escDom || "FOLGA")
       };
 
-      nomeUsuario.textContent = currentUserObj.nomeCompleto;
-      loginSection.classList.add("hidden");
-
-      // mostra tela ADMIN com botão de Cadastro
-      adminSection.classList.remove("hidden");
-      // tenta preencher lista de funcionários (se houver algum)
-      preencherFuncionarios();
-
-      alert("Admin master logado.\nUse o botão 'Cadastro / Edição de Funcionário' para cadastrar novos usuários.");
-      return;
-    }
-
-    // qualquer outro login que não esteja na planilha e não seja admin master
-    alert("Login inválido. Confira usuário e senha cadastrados na aba FUNCIONÁRIOS.");
-    return;
+      users[key] = {
+        ...uobj,
+        nomeCompleto: uobj.nomeCompleto || uobj.nome || key,
+        localTrabalho: uobj.localTrabalho || uobj.local_trabalho || "",
+        escalaMensal: {},
+        escalaSemanal: esc
+      };
+    });
   }
 
-  // 4) se encontrou usuário na planilha
-  currentUser = String(encontrado.usuario_login || u).trim();
-  currentUserObj = encontrado;
+  // garante que o user logado está no mapa mesmo se vier sem lista
+  if(!users[currentUser]){
+    const esc = {
+      1: (currentUserObj.escSeg || "08:00"),
+      2: (currentUserObj.escTer || "08:00"),
+      3: (currentUserObj.escQua || "08:00"),
+      4: (currentUserObj.escQui || "08:00"),
+      5: (currentUserObj.escSex || "08:00"),
+      6: (currentUserObj.escSab || "04:00"),
+      0: (currentUserObj.escDom || "FOLGA")
+    };
+    users[currentUser] = {
+      ...currentUserObj,
+      nomeCompleto: currentUserObj.nomeCompleto || currentUserObj.nome || currentUser,
+      localTrabalho: currentUserObj.localTrabalho || currentUserObj.local_trabalho || "",
+      escalaMensal: {},
+      escalaSemanal: esc
+    };
+  }
 
-  nomeUsuario.textContent = currentUserObj.nomeCompleto || currentUser;
+  nomeUsuario.textContent = users[currentUser].nomeCompleto || currentUser;
   loginSection.classList.add("hidden");
 
   let role = String(currentUserObj.role || "").trim().toLowerCase();
-  // se não vier role, assume operacional; admin da planilha continua admin
-  if(!role) role = (currentUser.toLowerCase()==="admin" ? "admin" : "operacional");
+  if(!role){
+    if(currentUser.toLowerCase()==="admin") role="admin";
+    else role="operacional";
+  }
 
   if(role === "admin"){
     adminSection.classList.remove("hidden");
@@ -598,7 +580,7 @@ function preencherFuncionarios(){
   const select=document.getElementById("funcionarioSelect");
   select.innerHTML="<option value=''>Selecionar Funcionário</option>";
   Object.keys(users).forEach(u=>{
-    if(String(users[u].role||"").trim()==="operacional"){
+    if(String(users[u].role||"").trim().toLowerCase()==="operacional"){
       const option=document.createElement("option");
       option.value=u; option.textContent=users[u].nomeCompleto || u;
       select.appendChild(option);
@@ -918,8 +900,7 @@ async function salvarFuncionario(){
     return;
   }
 
-  // OBS: envia SOMENTE campos que existem no cabeçalho da aba FUNCIONARIOS
-  const res = await apiPost({
+  const payload = {
     tipo:"salvarUsuario",
     usuario_login: u,
     senha: p,
@@ -930,14 +911,35 @@ async function salvarFuncionario(){
     setor: setor,
     local_trabalho: local,
     escSeg: eSeg, escTer: eTer, escQua: eQua, escQui: eQui, escSex: eSex, escSab: eSab, escDom: eDom
-  });
+  };
+
+  const res = await apiPost(payload);
 
   if(res.status !== "ok"){
     alert(res.message || "Erro ao salvar usuário na planilha");
     return;
   }
 
-  await carregarUsuarios();
+  // Atualiza mapa local de usuários (sem depender de listarUsuarios)
+  const esc = {
+    1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom
+  };
+
+  users[u] = {
+    usuario_login: u,
+    senha: p,
+    role: "operacional",
+    nomeCompleto: nome,
+    nome: nome,
+    pis: pis,
+    cargo: cargo,
+    setor: setor,
+    localTrabalho: local,
+    local_trabalho: local,
+    escalaMensal: {},
+    escalaSemanal: esc
+  };
+
   preencherFuncionarios();
   fecharCadastroFuncionario();
 
@@ -976,4 +978,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
