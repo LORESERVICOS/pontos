@@ -27,7 +27,7 @@ input,select{padding:4px 6px;margin:2px 0;}
   Bem-vindo, <span id="nomeUsuario"></span>
 </header>
 
-<!-- LOGIN -->
+<!-- LOGIN (APENAS HTML, SEM PLANILHA) -->
 <div id="loginSection" class="card" style="max-width:400px">
   <h2>Login</h2>
   <input id="username" placeholder="Usuário"><br><br>
@@ -156,8 +156,41 @@ input,select{padding:4px 6px;margin:2px 0;}
 
 <script>
 /************* CONFIG *************/
-// TROCAR pela URL do seu Web App (/exec)
+// MANTÉM A SUA URL DO WEBAPP AQUI (para registros, relatórios etc.)
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
+
+/************* LOGIN LOCAL – USUÁRIOS FIXOS NO HTML *************/
+/*
+  Aqui você controla quem pode logar.
+  Para adicionar novos, é só copiar um bloco e trocar dados.
+*/
+let users = {
+  admin: {
+    password: "admin123",
+    role: "admin",
+    nomeCompleto: "Administrador",
+    pis: "",
+    cargo: "",
+    setor: "",
+    localTrabalho: "",
+    escalaMensal: {},
+    escalaSemanal: {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"}
+  },
+  jaqueline: {
+    password: "123456",
+    role: "operacional",
+    nomeCompleto: "Jaqueline",
+    pis: "",
+    cargo: "",
+    setor: "",
+    localTrabalho: "",
+    escalaMensal: {},
+    escalaSemanal: {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"}
+  }
+};
+
+let currentUser = null;
+let currentUserObj = null;
 
 /************* API *************/
 async function apiPost(payload){
@@ -170,11 +203,7 @@ async function apiPost(payload){
   return data;
 }
 
-/************* DADOS (vem da planilha) *************/
-let users = {};             // mapa por usuario_login
-let currentUser = null;
-let currentUserObj = null;
-
+/************* HELPERS *************/
 let dadosAtual = {}, dataAtualRel = "";
 const feriados=["01/01","07/09","25/12"];
 
@@ -184,7 +213,6 @@ const justificativas = [
   "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado"
 ];
 
-/************* HELPERS *************/
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function hm(h){
   if(!h || typeof h!=="string" || !h.includes(":")) return 0;
@@ -211,98 +239,39 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-/************* LOGIN (via Apps Script) *************/
-async function login(){
-  const u = username.value.trim();
-  const p = password.value.trim();
+/************* LOGIN (APENAS HTML) *************/
+function login(){
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
 
   if(!u || !p){
     alert("Preencha usuário e senha.");
     return;
   }
 
-  let res;
-  try{
-    res = await apiPost({tipo:"login", usuario:u, senha:p});
-  }catch(err){
-    console.error(err);
-    alert("Erro de comunicação com o servidor de ponto.");
+  const user = users[u];
+  if(!user || user.password !== p){
+    alert("Usuário ou senha inválidos.");
     return;
   }
 
-  if(res.status !== "ok"){
-    alert(res.message || "Login inválido.");
-    return;
-  }
+  currentUser = u;
+  currentUserObj = user;
 
-  // usuário logado
-  currentUserObj = res.user || {};
-  currentUser = (currentUserObj.usuario_login || u).trim();
+  const spanNome = document.getElementById("nomeUsuario");
+  if(spanNome) spanNome.textContent = user.nomeCompleto || u;
 
-  // montar mapa de usuários (para admin)
-  users = {};
+  document.getElementById("loginSection").classList.add("hidden");
 
-  if(Array.isArray(res.users)){
-    res.users.forEach(function(uobj){
-      const key = (uobj.usuario_login || "").trim();
-      if(!key) return;
-
-      const esc = {
-        1: (uobj.escSeg || "08:00"),
-        2: (uobj.escTer || "08:00"),
-        3: (uobj.escQua || "08:00"),
-        4: (uobj.escQui || "08:00"),
-        5: (uobj.escSex || "08:00"),
-        6: (uobj.escSab || "04:00"),
-        0: (uobj.escDom || "FOLGA")
-      };
-
-      users[key] = {
-        ...uobj,
-        nomeCompleto: uobj.nomeCompleto || uobj.nome || key,
-        localTrabalho: uobj.localTrabalho || uobj.local_trabalho || "",
-        escalaMensal: {},
-        escalaSemanal: esc
-      };
-    });
-  }
-
-  // garante que o user logado está no mapa
-  if(!users[currentUser]){
-    const esc = {
-      1: (currentUserObj.escSeg || "08:00"),
-      2: (currentUserObj.escTer || "08:00"),
-      3: (currentUserObj.escQua || "08:00"),
-      4: (currentUserObj.escQui || "08:00"),
-      5: (currentUserObj.escSex || "08:00"),
-      6: (currentUserObj.escSab || "04:00"),
-      0: (currentUserObj.escDom || "FOLGA")
-    };
-    users[currentUser] = {
-      ...currentUserObj,
-      nomeCompleto: currentUserObj.nomeCompleto || currentUserObj.nome || currentUser,
-      localTrabalho: currentUserObj.localTrabalho || currentUserObj.local_trabalho || "",
-      escalaMensal: {},
-      escalaSemanal: esc
-    };
-  }
-
-  nomeUsuario.textContent = users[currentUser].nomeCompleto || currentUser;
-  loginSection.classList.add("hidden");
-
-  let role = String(currentUserObj.role || "").trim().toLowerCase();
-  if(!role){
-    if(currentUser.toLowerCase()==="admin") role="admin";
-    else role="operacional";
-  }
+  const role = String(user.role || "").toLowerCase();
 
   if(role === "admin"){
-    adminSection.classList.remove("hidden");
+    document.getElementById("adminSection").classList.remove("hidden");
     preencherFuncionarios();
   }else{
-    operacionalSection.classList.remove("hidden");
+    document.getElementById("operacionalSection").classList.remove("hidden");
     mostrarDataHora();
-    await mostrarRegistrosUsuario();
+    mostrarRegistrosUsuario();
   }
 }
 
@@ -869,7 +838,7 @@ async function gerarPDFAdmin(){
   doc.save("cartao_ponto.pdf");
 }
 
-/************* CADASTRO FUNCIONÁRIO (salva no Sheets) *************/
+/************* CADASTRO FUNCIONÁRIO (salva na planilha e no HTML) *************/
 function abrirCadastroFuncionario(){
   modalFuncionario.classList.remove("hidden");
   escSeg.value = "08:00"; escTer.value="08:00"; escQua.value="08:00";
@@ -920,14 +889,12 @@ async function salvarFuncionario(){
     return;
   }
 
-  // Atualiza mapa local de usuários
   const esc = {
     1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom
   };
 
   users[u] = {
-    usuario_login: u,
-    senha: p,
+    password: p,
     role: "operacional",
     nomeCompleto: nome,
     nome: nome,
@@ -948,7 +915,7 @@ async function salvarFuncionario(){
   escSeg.value="08:00"; escTer.value="08:00"; escQua.value="08:00";
   escQui.value="08:00"; escSex.value="08:00"; escSab.value="04:00"; escDom.value="FOLGA";
 
-  alert("Funcionário salvo com sucesso na planilha!");
+  alert("Funcionário salvo com sucesso na planilha e no sistema!");
 }
 
 /************* ESCALA MENSAL (mantida no HTML) *************/
@@ -973,7 +940,7 @@ function salvarEscalaMensal(){
     users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
   }
   fecharEscalaMensal();
-  alert("Escala mensal salva no HTML (se quiser, posso criar uma aba no Sheets para salvar também).");
+  alert("Escala mensal salva no HTML (se quiser depois, dá pra mandar pra planilha também).");
 }
 </script>
 </body>
