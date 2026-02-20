@@ -156,7 +156,7 @@ input,select{padding:4px 6px;margin:2px 0;}
 
 <script>
 /************* CONFIG *************/
-// ATUALIZE ESTA URL DO APPS SCRIPT SE VOCÊ REIMPLANTAR O WEB APP
+// TROCAR pela URL do seu Web App (/exec)
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
 
 /************* API *************/
@@ -239,7 +239,7 @@ async function login(){
   currentUserObj = res.user || {};
   currentUser = (currentUserObj.usuario_login || u).trim();
 
-  // montar mapa de usuários
+  // montar mapa de usuários (para admin)
   users = {};
 
   if(Array.isArray(res.users)){
@@ -267,7 +267,7 @@ async function login(){
     });
   }
 
-  // garante que o user logado está no mapa mesmo se vier sem lista
+  // garante que o user logado está no mapa
   if(!users[currentUser]){
     const esc = {
       1: (currentUserObj.escSeg || "08:00"),
@@ -920,7 +920,7 @@ async function salvarFuncionario(){
     return;
   }
 
-  // Atualiza mapa local de usuários (sem depender de listarUsuarios)
+  // Atualiza mapa local de usuários
   const esc = {
     1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom
   };
