@@ -242,7 +242,7 @@ async function carregarUsuarios(){
   users = map;
 }
 
-/************* LOGIN – VALIDA NA ABA FUNCIONÁRIOS *************/
+/************* LOGIN – VALIDA NA PLANILHA + ADMIN MASTER *************/
 async function login(){
   const u = username.value.trim();
   const p = password.value.trim();
@@ -252,8 +252,8 @@ async function login(){
     return;
   }
 
+  // 1) tenta carregar usuários da planilha
   try{
-    // Carrega TODOS os usuários da aba FUNCIONÁRIOS (incluindo admin)
     await carregarUsuarios();
   }catch(err){
     console.error(err);
@@ -264,7 +264,7 @@ async function login(){
   const loginDigitado = u.toLowerCase();
   let encontrado = null;
 
-  // Procura na lista vinda da planilha:
+  // 2) procura o usuário digitado na planilha FUNCIONARIOS
   Object.keys(users).forEach(chave=>{
     const obj = users[chave];
     const loginPlan = String(obj.usuario_login || chave || "").trim().toLowerCase();
@@ -275,22 +275,44 @@ async function login(){
     }
   });
 
+  // 3) se NÃO encontrou na planilha
   if(!encontrado){
+    // Se for admin master (login 'admin' e senha 'admin123') entra como ADMIN
+    if(loginDigitado === "admin" && p === "admin123"){
+      currentUser = "admin";
+      currentUserObj = {
+        usuario_login: "admin",
+        nomeCompleto: "Administrador",
+        role: "admin"
+      };
+
+      nomeUsuario.textContent = currentUserObj.nomeCompleto;
+      loginSection.classList.add("hidden");
+
+      // mostra tela ADMIN com botão de Cadastro
+      adminSection.classList.remove("hidden");
+      // tenta preencher lista de funcionários (se houver algum)
+      preencherFuncionarios();
+
+      alert("Admin master logado.\nUse o botão 'Cadastro / Edição de Funcionário' para cadastrar novos usuários.");
+      return;
+    }
+
+    // qualquer outro login que não esteja na planilha e não seja admin master
     alert("Login inválido. Confira usuário e senha cadastrados na aba FUNCIONÁRIOS.");
     return;
   }
 
+  // 4) se encontrou usuário na planilha
   currentUser = String(encontrado.usuario_login || u).trim();
   currentUserObj = encontrado;
 
   nomeUsuario.textContent = currentUserObj.nomeCompleto || currentUser;
   loginSection.classList.add("hidden");
 
-  // Define papel: admin ou operacional.
-  // Se não tiver 'role' na planilha, trata login 'admin' como administrador.
   let role = String(currentUserObj.role || "").trim().toLowerCase();
-  if(!role && currentUser.toLowerCase()==="admin") role = "admin";
-  if(!role) role = "operacional";
+  // se não vier role, assume operacional; admin da planilha continua admin
+  if(!role) role = (currentUser.toLowerCase()==="admin" ? "admin" : "operacional");
 
   if(role === "admin"){
     adminSection.classList.remove("hidden");
