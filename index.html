@@ -315,28 +315,56 @@ function mostrarDataHora(){
   },1000);
 }
 
+/************* NOVA VERSÃO: MOSTRAR REGISTROS + BOTÕES *************/
 async function mostrarRegistrosUsuario(){
-  const hoje=new Date().toLocaleDateString();
-  const res = await apiPost({tipo:"getDia", usuario_login: currentUser, data: hoje});
-  if(res.status !== "ok"){
-    registrosUsuario.innerHTML = "Erro ao carregar dia: " + (res.message||"");
-    return;
-  }
-  const r = res.dia || {};
+  const hoje = new Date().toLocaleDateString(); // dd/mm/aaaa
+  let r = {};
 
-  registrosUsuario.innerHTML="";
-  botoesRegistro.innerHTML="";
+  registrosUsuario.innerHTML = "Carregando marcações...";
+  botoesRegistro.innerHTML = "";
+
+  try{
+    const res = await apiPost({tipo:"getDia", usuario_login: currentUser, data: hoje});
+
+    // Se o Apps Script já estiver preparado para "getDia"
+    if(res && res.status === "ok" && res.dia){
+      r = res.dia;
+    }else if(res && res.status === "erro"){
+      // Mostra o erro, mas NÃO some com os botões
+      registrosUsuario.innerHTML = "Erro ao carregar dia: " + (res.message || "");
+    }else{
+      // Sem erro explícito, mas sem dados -> considera dia sem marcação
+      registrosUsuario.innerHTML = "";
+    }
+  }catch(e){
+    console.error("Erro em mostrarRegistrosUsuario:", e);
+    registrosUsuario.innerHTML = "Erro ao conectar com o servidor.";
+  }
+
+  registrosUsuario.innerHTML = "";
+  // Mostra as marcações existentes + botão PDF individual
   ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
     if(r[t]){
-      registrosUsuario.innerHTML+=`<div><strong>${capitalize(t)}:</strong> ${r[t]} <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button></div>`;
+      registrosUsuario.innerHTML+=`
+        <div>
+          <strong>${capitalize(t)}:</strong> ${r[t]}
+          <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button>
+        </div>`;
     }
   });
 
-  if(!r.entrada) botoesRegistro.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
-  else if(!r.saidaAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
-  else if(!r.retornoAlmoco) botoesRegistro.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
-  else if(!r.saida) botoesRegistro.innerHTML=`<button onclick="registrar('saida')">Saída</button>`;
-  else botoesRegistro.innerHTML="✅ Jornada finalizada";
+  // Lógica dos botões de registro – SEMPRE exibida
+  if(!r.entrada){
+    botoesRegistro.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
+  } else if(!r.saidaAlmoco){
+    botoesRegistro.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
+  } else if(!r.retornoAlmoco){
+    botoesRegistro.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
+  } else if(!r.saida){
+    botoesRegistro.innerHTML=`<button onclick="registrar('saida')">Saída</button>`;
+  } else {
+    botoesRegistro.innerHTML="✅ Jornada finalizada";
+  }
 }
 
 /************* COMPROVANTE INDIVIDUAL *************/
