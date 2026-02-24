@@ -616,38 +616,24 @@ function preencherFuncionarios(){
 
 /************* RELATÓRIO MENSAL *************/
 async function gerarRelatorioMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
+  const u = document.getElementById("funcionarioSelect").value;
   if(!u || !dataInicio.value) return;
 
-  const tipo=document.getElementById("tipoRelatorio").value;
-
-  const res = await apiPost({
-    tipo:"getPeriodo",
-    usuario_login: u,
-    dataInicio: dataInicio.value,
-    dataFim: dataFim.value || dataInicio.value
-  });
-
-  if(res.status !== "ok"){
-    alert(res.message || "Erro ao carregar período");
-    return;
-  }
-
-  const registros = res.registros || {};
+  const tipo = document.getElementById("tipoRelatorio").value;
   const escSem = users[u].escalaSemanal || {};
 
-  let totalPeriodo=0;
+  let totalPeriodo = 0;
   let totalAtestadosMin = 0;
   let totalAfastamentosMin = 0;
   let totalAtrasosFaltasMin = 0;
 
-  let html=`<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
-  html+=`<p>PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
-  html+=`<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
-  html+=`<table id="tabelaRelatorio"><tr>
+  let html = `<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
+  html += `<p>PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
+  html += `<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
+  html += `<table id="tabelaRelatorio"><tr>
     <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
   if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
-  html+="</tr>";
+  html += "</tr>";
 
   const inicio = new Date(dataInicio.value);
   const fim = dataFim.value ? new Date(dataFim.value) : inicio;
@@ -657,14 +643,20 @@ async function gerarRelatorioMensal(){
     const dia = String(currentDate.getDate()).padStart(2,"0");
     const mes = String(currentDate.getMonth()+1).padStart(2,"0");
     const ano = currentDate.getFullYear();
-    const d = `${dia}/${mes}/${ano}`;
-    const ddmm = `${dia}/${mes}`;
+    const d = `${dia}/${mes}/${ano}`;     // dd/mm/aaaa
+    const ddmm = `${dia}/${mes}`;         // dd/mm
 
-    dadosAtual = registros[d] || {};
+    // 👉 BUSCA AS MARCAÇÕES NA PLANILHA PARA ESTE DIA
+    let resDia;
+    try{
+      resDia = await apiPost({tipo:"getDia", usuario_login: u, data: d});
+    }catch(e){
+      resDia = {status:"erro"};
+    }
+    dadosAtual = (resDia && resDia.status === "ok" && resDia.dia) ? resDia.dia : {};
     dataAtualRel = d;
 
-    const JORNADA_PADRAO = 480;
-
+    const JORNADA_PADRAO = 480; // 8h padrão
     const weekday = currentDate.getDay();
     const escStr = escSem[weekday] || "";
     const jornadaEscala = cargaEscalaMin(escStr);
@@ -706,29 +698,24 @@ async function gerarRelatorioMensal(){
           min = -JORNADA_PADRAO;
           totalAtestadosMin += -min;
           break;
-
         case "Atestado Médico Dias":
           min = -JORNADA_PADRAO;
           totalAtestadosMin += -min;
           break;
-
         case "Atestado Médico Horas": {
           const minutosAtestado = Number(dadosAtual.atestadoHorasMin || JORNADA_PADRAO);
           min = -minutosAtestado;
           totalAtestadosMin += minutosAtestado;
           break;
         }
-
         case "Falta Injustificada":
           min = -JORNADA_PADRAO;
           totalAtrasosFaltasMin += min;
           break;
-
         case "Falta Abonada":
           min = JORNADA_PADRAO;
           totalAtestadosMin += min;
           break;
-
         case "Férias":
         case "Licença Maternidade":
         case "Licença Paternidade":
@@ -737,7 +724,6 @@ async function gerarRelatorioMensal(){
           min = JORNADA_PADRAO;
           totalAfastamentosMin += min;
           break;
-
         case "Feriado":
           min = 0;
           break;
@@ -782,7 +768,7 @@ async function gerarRelatorioMensal(){
              <td>${dadosAtual.geoRetornoAlmoco||""}</td>
              <td>${dadosAtual.geoSaida||""}</td>`;
     }
-    html+="</tr>";
+    html += "</tr>";
 
     currentDate.setDate(currentDate.getDate()+1);
   }
@@ -799,9 +785,8 @@ async function gerarRelatorioMensal(){
   html+=`<p><strong>Total atrasos/faltas:</strong> ${fmt(totalAtrasosFaltasMin)}</p>`;
   html+=`<p>Assinatura do Funcionário: _____________________</p>`;
 
-  document.getElementById("cartaoFuncionario").innerHTML=html;
+  document.getElementById("cartaoFuncionario").innerHTML = html;
 }
-
 /************* EXPORTAÇÕES *************/
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
@@ -1003,4 +988,5 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
