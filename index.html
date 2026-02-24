@@ -27,7 +27,7 @@ input,select{padding:4px 6px;margin:2px 0;}
   Bem-vindo, <span id="nomeUsuario"></span>
 </header>
 
-<!-- LOGIN (APENAS HTML, SEM PLANILHA) -->
+<!-- LOGIN -->
 <div id="loginSection" class="card" style="max-width:400px">
   <h2>Login</h2>
   <input id="username" placeholder="Usuário"><br><br>
@@ -156,39 +156,10 @@ input,select{padding:4px 6px;margin:2px 0;}
 
 <script>
 /************* CONFIG *************/
-// MANTÉM A SUA URL DO WEBAPP AQUI (para registros, relatórios etc.)
+// COLE AQUI A URL DO SEU WEB APP (terminando em /exec)
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
 
-/************* LOGIN LOCAL – USUÁRIOS FIXOS NO HTML *************/
-/*
-  Aqui você controla quem pode logar.
-  Para adicionar novos, é só copiar um bloco e trocar dados.
-*/
-let users = {
-  admin: {
-    password: "admin123",
-    role: "admin",
-    nomeCompleto: "Administrador",
-    pis: "",
-    cargo: "",
-    setor: "",
-    localTrabalho: "",
-    escalaMensal: {},
-    escalaSemanal: {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"}
-  },
-  jaqueline: {
-    password: "123456",
-    role: "operacional",
-    nomeCompleto: "Jaqueline",
-    pis: "",
-    cargo: "",
-    setor: "",
-    localTrabalho: "",
-    escalaMensal: {},
-    escalaSemanal: {1:"08:00",2:"08:00",3:"08:00",4:"08:00",5:"08:00",6:"04:00",0:"FOLGA"}
-  }
-};
-
+let users = {};        // cache de usuários (carregado do Apps Script)
 let currentUser = null;
 let currentUserObj = null;
 
@@ -199,8 +170,7 @@ async function apiPost(payload){
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
   });
-  const data = await r.json();
-  return data;
+  return await r.json();
 }
 
 /************* HELPERS *************/
@@ -239,8 +209,8 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-/************* LOGIN (APENAS HTML) *************/
-function login(){
+/************* LOGIN VIA APPS SCRIPT *************/
+async function login(){
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
 
@@ -249,26 +219,57 @@ function login(){
     return;
   }
 
-  const user = users[u];
-  if(!user || user.password !== p){
-    alert("Usuário ou senha inválidos.");
+  let res;
+  try {
+    res = await apiPost({ tipo:"login", usuario:u, senha:p });
+  } catch(e){
+    alert("Erro ao conectar com o servidor: " + e);
     return;
   }
 
-  currentUser = u;
+  if(!res || res.status !== "ok"){
+    alert(res && res.message ? res.message : "Usuário ou senha inválidos.");
+    return;
+  }
+
+  const user = res.user || {};
+  const loginKey = (user.usuario_login || u).toString().trim();
+
+  currentUser = loginKey;
   currentUserObj = user;
 
+  const esc = {
+    1: user.escSeg || "08:00",
+    2: user.escTer || user.escSeg || "08:00",
+    3: user.escQua || user.escSeg || "08:00",
+    4: user.escQui || user.escSeg || "08:00",
+    5: user.escSex || user.escSeg || "08:00",
+    6: user.escSab || "04:00",
+    0: user.escDom || "FOLGA"
+  };
+
+  users[loginKey] = {
+    role: (user.role || "operacional").toLowerCase(),
+    nomeCompleto: user.nomeCompleto || loginKey,
+    pis: user.pis || "",
+    cargo: user.cargo || "",
+    setor: user.setor || "",
+    localTrabalho: user.local_trabalho || "",
+    escalaMensal: {},
+    escalaSemanal: esc
+  };
+
   const spanNome = document.getElementById("nomeUsuario");
-  if(spanNome) spanNome.textContent = user.nomeCompleto || u;
+  if(spanNome) spanNome.textContent = users[loginKey].nomeCompleto;
 
   document.getElementById("loginSection").classList.add("hidden");
 
-  const role = String(user.role || "").toLowerCase();
-
+  const role = users[loginKey].role;
   if(role === "admin"){
     document.getElementById("adminSection").classList.remove("hidden");
+    await carregarUsuariosAdmin();
     preencherFuncionarios();
-  }else{
+  } else {
     document.getElementById("operacionalSection").classList.remove("hidden");
     mostrarDataHora();
     mostrarRegistrosUsuario();
@@ -276,6 +277,40 @@ function login(){
 }
 
 function logout(){ location.reload(); }
+
+/************* CARREGAR USUÁRIOS (ADMIN) *************/
+async function carregarUsuariosAdmin(){
+  try{
+    const res = await apiPost({ tipo:"listarUsuarios" });
+    if(res.status !== "ok") return;
+    const lista = res.usuarios || [];
+    lista.forEach(u=>{
+      const loginKey = (u.usuario_login || "").toString().trim();
+      if(!loginKey) return;
+      const esc = {
+        1: u.escSeg || "08:00",
+        2: u.escTer || u.escSeg || "08:00",
+        3: u.escQua || u.escSeg || "08:00",
+        4: u.escQui || u.escSeg || "08:00",
+        5: u.escSex || u.escSeg || "08:00",
+        6: u.escSab || "04:00",
+        0: u.escDom || "FOLGA"
+      };
+      users[loginKey] = {
+        role: (u.role || "operacional").toLowerCase(),
+        nomeCompleto: u.nomeCompleto || loginKey,
+        pis: u.pis || "",
+        cargo: u.cargo || "",
+        setor: u.setor || "",
+        localTrabalho: u.local_trabalho || "",
+        escalaMensal: {},
+        escalaSemanal: esc
+      };
+    });
+  }catch(e){
+    console.error("Erro ao listar usuários:", e);
+  }
+}
 
 /************* OPERACIONAL *************/
 function registrar(tipo){
@@ -315,7 +350,6 @@ function mostrarDataHora(){
   },1000);
 }
 
-/************* NOVA VERSÃO: MOSTRAR REGISTROS + BOTÕES *************/
 async function mostrarRegistrosUsuario(){
   const hoje = new Date().toLocaleDateString(); // dd/mm/aaaa
   let r = {};
@@ -325,15 +359,11 @@ async function mostrarRegistrosUsuario(){
 
   try{
     const res = await apiPost({tipo:"getDia", usuario_login: currentUser, data: hoje});
-
-    // Se o Apps Script já estiver preparado para "getDia"
     if(res && res.status === "ok" && res.dia){
       r = res.dia;
     }else if(res && res.status === "erro"){
-      // Mostra o erro, mas NÃO some com os botões
       registrosUsuario.innerHTML = "Erro ao carregar dia: " + (res.message || "");
     }else{
-      // Sem erro explícito, mas sem dados -> considera dia sem marcação
       registrosUsuario.innerHTML = "";
     }
   }catch(e){
@@ -342,7 +372,6 @@ async function mostrarRegistrosUsuario(){
   }
 
   registrosUsuario.innerHTML = "";
-  // Mostra as marcações existentes + botão PDF individual
   ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
     if(r[t]){
       registrosUsuario.innerHTML+=`
@@ -353,7 +382,6 @@ async function mostrarRegistrosUsuario(){
     }
   });
 
-  // Lógica dos botões de registro – SEMPRE exibida
   if(!r.entrada){
     botoesRegistro.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
   } else if(!r.saidaAlmoco){
@@ -398,7 +426,7 @@ async function gerarComprovante(tipo){
   doc.save(`comprovante_${tipo}_${hoje}.pdf`);
 }
 
-/************* AJUSTE (salva no Sheets) *************/
+/************* AJUSTES (ADMIN) *************/
 function campo(valor, c, adminView = true){
   const vazio = !valor || valor === "-";
   const evento = dadosAtual[c+"_evento"];
@@ -572,20 +600,21 @@ async function abrirAjuste(u,d,c){
   popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
 }
 
-/************* ADMIN *************/
+/************* ADMIN – CARREGAR FUNCIONÁRIOS *************/
 function preencherFuncionarios(){
   const select=document.getElementById("funcionarioSelect");
   select.innerHTML="<option value=''>Selecionar Funcionário</option>";
   Object.keys(users).forEach(u=>{
-    if(String(users[u].role||"").trim().toLowerCase()==="operacional"){
+    if(users[u].role==="operacional"){
       const option=document.createElement("option");
-      option.value=u; option.textContent=users[u].nomeCompleto || u;
+      option.value=u;
+      option.textContent=users[u].nomeCompleto || u;
       select.appendChild(option);
     }
   });
 }
 
-/************* RELATÓRIO (lê do Sheets) *************/
+/************* RELATÓRIO MENSAL *************/
 async function gerarRelatorioMensal(){
   const u=document.getElementById("funcionarioSelect").value;
   if(!u || !dataInicio.value) return;
@@ -846,27 +875,31 @@ async function gerarPDFAdmin(){
 
   doc.setFontSize(10);
   const u = funcionarioSelect.value;
+  if(!u){ alert("Selecione o funcionário"); return; }
   doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
   doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
   doc.text(`Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}`,14,30);
 
-  const tabela=document.querySelector("#tabelaRelatorio").cloneNode(true);
+  const tabela=document.querySelector("#tabelaRelatorio");
+  if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
+  const clone = tabela.cloneNode(true);
+
   if(!opt){
-    [...tabela.querySelectorAll("td")].forEach(td=>{
+    [...clone.querySelectorAll("td")].forEach(td=>{
       if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML="";
     });
   } else {
-    [...tabela.querySelectorAll("td")].forEach(td=>{
+    [...clone.querySelectorAll("td")].forEach(td=>{
       td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
     });
   }
 
-  doc.autoTable({startY:36,html:tabela});
+  doc.autoTable({startY:36,html:clone});
   doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
   doc.save("cartao_ponto.pdf");
 }
 
-/************* CADASTRO FUNCIONÁRIO (salva na planilha e no HTML) *************/
+/************* CADASTRO FUNCIONÁRIO *************/
 function abrirCadastroFuncionario(){
   modalFuncionario.classList.remove("hidden");
   escSeg.value = "08:00"; escTer.value="08:00"; escQua.value="08:00";
@@ -877,7 +910,7 @@ function fecharCadastroFuncionario(){ modalFuncionario.classList.add("hidden"); 
 async function salvarFuncionario(){
   const codigo=novoCodigo.value.trim();
   const nome=novoNome.value.trim();
-  const u=novoUser.value.trim();
+  const u=novoUser.value.trim().toLowerCase();
   const p=novoPass.value.trim();
   const cargo=novoCargo.value.trim();
   const pis=novoPis.value.trim();
@@ -922,15 +955,12 @@ async function salvarFuncionario(){
   };
 
   users[u] = {
-    password: p,
     role: "operacional",
     nomeCompleto: nome,
-    nome: nome,
     pis: pis,
     cargo: cargo,
     setor: setor,
     localTrabalho: local,
-    local_trabalho: local,
     escalaMensal: {},
     escalaSemanal: esc
   };
@@ -946,7 +976,7 @@ async function salvarFuncionario(){
   alert("Funcionário salvo com sucesso na planilha e no sistema!");
 }
 
-/************* ESCALA MENSAL (mantida no HTML) *************/
+/************* ESCALA MENSAL (apenas em memória) *************/
 function abrirEscalaMensal(){
   const u=document.getElementById("funcionarioSelect").value;
   if(!u) return alert("Selecione um funcionário");
@@ -968,9 +998,8 @@ function salvarEscalaMensal(){
     users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
   }
   fecharEscalaMensal();
-  alert("Escala mensal salva no HTML (se quiser depois, dá pra mandar pra planilha também).");
+  alert("Escala mensal salva (em memória – se quiser, depois mandamos pra planilha).");
 }
 </script>
 </body>
 </html>
-
