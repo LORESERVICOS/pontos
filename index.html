@@ -625,46 +625,25 @@ async function gerarRelatorioMensal(){
   if(!u || !dataInicio.value) return;
 
   const tipo = document.getElementById("tipoRelatorio").value;
+const res = await apiPost({
+  tipo:"getPeriodo",
+  usuario_login: u,
+  dataInicio: dataInicio.value,
+  dataFim: dataFim.value || dataInicio.value
+});
 
-  const res = await apiPost({
-    tipo:"getPeriodo",
-    usuario_login: u,
-    dataInicio: dataInicio.value,
-    dataFim: dataFim.value || dataInicio.value
-  });
+const registros = res.registros || {};
+...
+const inicio = parseInputDateLocal(dataInicio.value);
+const fim    = dataFim.value ? parseInputDateLocal(dataFim.value) : inicio;
+let currentDate = new Date(inicio);
 
-  if(res.status !== "ok"){
-    alert(res.message || "Erro ao carregar período");
-    return;
-  }
-
-  const registros = res.registros || {};          // <-- vem do Apps Script
-  const escSem = users[u].escalaSemanal || {};
-
-  let totalPeriodo=0;
-  let totalAtestadosMin = 0;
-  let totalAfastamentosMin = 0;
-  let totalAtrasosFaltasMin = 0;
-
-  let html=`<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
-  html+=`<p>PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
-  html+=`<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
-  html+=`<table id="tabelaRelatorio"><tr>
-    <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
-  if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
-  html+="</tr>";
-
-    const inicio = new Date(dataInicio.value);
-  const fim = dataFim.value ? new Date(dataFim.value) : inicio;
-  let currentDate = new Date(inicio);
-
-  while(currentDate <= fim){
-    // Gera a data EXATAMENTE no formato "dd/mm/aaaa"
-    const d = currentDate.toLocaleDateString("pt-BR"); // ex: 24/02/2026
-    const [diaStr, mesStr] = d.split("/");
-    const ddmm = `${diaStr}/${mesStr}`; // para checar feriado
-
-    dadosAtual = registros[d] || {};
+while(currentDate <= fim){
+  const d = currentDate.toLocaleDateString("pt-BR"); // "dd/mm/aaaa"
+  ...
+  dadosAtual = registros[d] || {};
+  ...
+}
     dataAtualRel = d;
 
     const JORNADA_PADRAO = 480;
@@ -999,6 +978,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
