@@ -621,159 +621,81 @@ function parseInputDateLocal(str){
 }
 /************* RELATÓRIO MENSAL *************/
 async function gerarRelatorioMensal(){
+
   const u = document.getElementById("funcionarioSelect").value;
-  if(!u || !dataInicio.value) return;
+  const dataIni = document.getElementById("dataInicio").value;
+  const dataFimVal = document.getElementById("dataFim").value;
 
-  const tipo = document.getElementById("tipoRelatorio").value;
-const res = await apiPost({
-  tipo:"getPeriodo",
-  usuario_login: u,
-  dataInicio: dataInicio.value,
-  dataFim: dataFim.value || dataInicio.value
-});
+  if(!u || !dataIni){
+    alert("Selecione funcionário e data inicial.");
+    return;
+  }
 
-const registros = res.registros || {};
-...
-const inicio = parseInputDateLocal(dataInicio.value);
-const fim    = dataFim.value ? parseInputDateLocal(dataFim.value) : inicio;
-let currentDate = new Date(inicio);
+  const res = await apiPost({
+    tipo:"getPeriodo",
+    usuario_login: u,
+    dataInicio: dataIni,
+    dataFim: dataFimVal || dataIni
+  });
 
-while(currentDate <= fim){
-  const d = currentDate.toLocaleDateString("pt-BR"); // "dd/mm/aaaa"
-  ...
-  dadosAtual = registros[d] || {};
-  ...
-}
-    dataAtualRel = d;
+  if(res.status !== "ok"){
+    alert(res.message || "Erro ao buscar período.");
+    return;
+  }
 
-    const JORNADA_PADRAO = 480;
+  const registros = res.registros || {};
+
+  const inicio = parseInputDateLocal(dataIni);
+  const fim = dataFimVal ? parseInputDateLocal(dataFimVal) : inicio;
+
+  let currentDate = new Date(inicio);
+  let html = `<table id="tabelaRelatorio">
+    <tr>
+      <th>Data</th>
+      <th>Dia</th>
+      <th>Entrada</th>
+      <th>Saída Almoço</th>
+      <th>Retorno</th>
+      <th>Saída</th>
+      <th>Total</th>
+    </tr>`;
+
+  while(currentDate <= fim){
+
+    const d = currentDate.toLocaleDateString("pt-BR");
     const weekday = currentDate.getDay();
-    const escStr  = escSem[weekday] || "";
-    const jornadaEscala = cargaEscalaMin(escStr);
-    const isFeriadoLista = feriados.includes(ddmm);
+    const nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
 
-    let min = 0;
+    const diaReg = registros[d] || {};
 
-    const eventos = [
-      dadosAtual.entrada_evento,
-      dadosAtual.saidaAlmoco_evento,
-      dadosAtual.retornoAlmoco_evento,
-      dadosAtual.saida_evento
-    ].filter(Boolean);
-    const eventoDia = eventos[0] || "";
+    const entrada = diaReg.entrada || "";
+    const saidaAlmoco = diaReg.saidaAlmoco || "";
+    const retorno = diaReg.retornoAlmoco || "";
+    const saida = diaReg.saida || "";
 
-    const temTodasMarcacoes =
-      dadosAtual.entrada &&
-      dadosAtual.saidaAlmoco &&
-      dadosAtual.retornoAlmoco &&
-      dadosAtual.saida;
+    let totalMin = 0;
 
-    const temAlgumaMarcacao =
-      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
-
-    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
-
-    if(!eventoDia){
-      if(temTodasMarcacoes){
-        min =
-          (hm(dadosAtual.saidaAlmoco) - hm(dadosAtual.entrada)) +
-          (hm(dadosAtual.saida) - hm(dadosAtual.retornoAlmoco));
-      }
-      if(isFeriadoLista) min = 0;
-      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
-
-    } else {
-      switch(eventoDia){
-        case "Falta Justificada":
-          min = -JORNADA_PADRAO;
-          totalAtestadosMin += -min;
-          break;
-        case "Atestado Médico Dias":
-          min = -JORNADA_PADRAO;
-          totalAtestadosMin += -min;
-          break;
-        case "Atestado Médico Horas": {
-          const minutosAtestado = Number(dadosAtual.atestadoHorasMin || JORNADA_PADRAO);
-          min = -minutosAtestado;
-          totalAtestadosMin += minutosAtestado;
-          break;
-        }
-        case "Falta Injustificada":
-          min = -JORNADA_PADRAO;
-          totalAtrasosFaltasMin += min;
-          break;
-        case "Falta Abonada":
-          min = JORNADA_PADRAO;
-          totalAtestadosMin += min;
-          break;
-        case "Férias":
-        case "Licença Maternidade":
-        case "Licença Paternidade":
-        case "Licença INSS+15 D":
-        case "Acidente de Trabalho":
-          min = JORNADA_PADRAO;
-          totalAfastamentosMin += min;
-          break;
-        case "Feriado":
-          min = 0;
-          break;
-      }
+    if(entrada && saidaAlmoco && retorno && saida){
+      totalMin =
+        (hm(saidaAlmoco) - hm(entrada)) +
+        (hm(saida) - hm(retorno));
     }
 
-    totalPeriodo += min;
-
-    let creditoMin = min - jornadaEscala;
-    if(isFeriadoLista && temAlgumaMarcacao) creditoMin = 16 * 60;
-
-    let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-    if(isFeriadoLista) nomeDia="Feriado";
-
-    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
-
-    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
-      conteudoEntrada = "FOLGA";
-      conteudoSaidaAlm = "FOLGA";
-      conteudoRetorno  = "FOLGA";
-      conteudoSaida    = "FOLGA";
-    } else {
-      conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
-      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
-      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
-      conteudoSaida     = campo(dadosAtual.saida,"saida");
-    }
-
-    html+=`<tr>
-      <td>${d}</td>
-      <td>${nomeDia}</td>
-      <td>${conteudoEntrada}</td>
-      <td>${conteudoSaidaAlm}</td>
-      <td>${conteudoRetorno}</td>
-      <td>${conteudoSaida}</td>
-      <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
-      <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>`;
-
-    if(tipo==="comGeo"){
-      html+=`<td>${dadosAtual.geoEntrada||""}</td>
-             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
-             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
-             <td>${dadosAtual.geoSaida||""}</td>`;
-    }
-    html+="</tr>";
+    html += `
+      <tr>
+        <td>${d}</td>
+        <td>${nomeDia}</td>
+        <td>${entrada}</td>
+        <td>${saidaAlmoco}</td>
+        <td>${retorno}</td>
+        <td>${saida}</td>
+        <td>${fmt(totalMin)}</td>
+      </tr>`;
 
     currentDate.setDate(currentDate.getDate()+1);
   }
 
-  html+=`<tr><th colspan="6">TOTAL</th>
-           <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
-           <th></th>
-         </tr></table>`;
-
-  html+=`<br><h4>Totais do Período</h4>`;
-  html+=`<p><strong>Total trabalhado:</strong> ${fmt(totalPeriodo)}</p>`;
-  html+=`<p><strong>Total de atestados:</strong> ${fmt(totalAtestadosMin)}</p>`;
-  html+=`<p><strong>Total de afastamentos:</strong> ${fmt(totalAfastamentosMin)}</p>`;
-  html+=`<p><strong>Total atrasos/faltas:</strong> ${fmt(totalAtrasosFaltasMin)}</p>`;
-  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+  html += "</table>";
 
   document.getElementById("cartaoFuncionario").innerHTML = html;
 }
@@ -978,6 +900,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
