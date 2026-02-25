@@ -613,7 +613,12 @@ function preencherFuncionarios(){
     }
   });
 }
-
+// Converte "yyyy-mm-dd" (input type="date") para Date local, sem problema de fuso
+function parseInputDateLocal(str){
+  if(!str) return null;
+  const [ano, mes, dia] = str.split("-").map(Number);
+  return new Date(ano, mes - 1, dia); // mês começa em 0
+}
 /************* RELATÓRIO MENSAL *************/
 async function gerarRelatorioMensal(){
   const u = document.getElementById("funcionarioSelect").value;
@@ -649,10 +654,16 @@ async function gerarRelatorioMensal(){
   if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
   html+="</tr>";
 
-  const inicio = new Date(dataInicio.value);
-  const fim = dataFim.value ? new Date(dataFim.value) : inicio;
-  let currentDate = new Date(inicio);
+  const inicio = parseInputDateLocal(dataInicio.value);
+const fim    = dataFim.value ? parseInputDateLocal(dataFim.value) : inicio;
 
+if(!inicio || !fim){
+  alert("Datas inválidas.");
+  return;
+}
+
+// cópia para não alterar 'inicio'
+let currentDate = new Date(inicio.getTime());
   while(currentDate <= fim){
     const dia = String(currentDate.getDate()).padStart(2,"0");
     const mes = String(currentDate.getMonth()+1).padStart(2,"0");
@@ -996,6 +1007,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
