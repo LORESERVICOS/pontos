@@ -654,24 +654,16 @@ async function gerarRelatorioMensal(){
   if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
   html+="</tr>";
 
-  const inicio = parseInputDateLocal(dataInicio.value);
-const fim    = dataFim.value ? parseInputDateLocal(dataFim.value) : inicio;
+    const inicio = new Date(dataInicio.value);
+  const fim = dataFim.value ? new Date(dataFim.value) : inicio;
+  let currentDate = new Date(inicio);
 
-if(!inicio || !fim){
-  alert("Datas inválidas.");
-  return;
-}
-
-// cópia para não alterar 'inicio'
-let currentDate = new Date(inicio.getTime());
   while(currentDate <= fim){
-    const dia = String(currentDate.getDate()).padStart(2,"0");
-    const mes = String(currentDate.getMonth()+1).padStart(2,"0");
-    const ano = currentDate.getFullYear();
-    const d = `${dia}/${mes}/${ano}`;     // dd/mm/aaaa
-    const ddmm = `${dia}/${mes}`;         // dd/mm
+    // Gera a data EXATAMENTE no formato "dd/mm/aaaa"
+    const d = currentDate.toLocaleDateString("pt-BR"); // ex: 24/02/2026
+    const [diaStr, mesStr] = d.split("/");
+    const ddmm = `${diaStr}/${mesStr}`; // para checar feriado
 
-    // 👉 AGORA PEGA DIRETO DOS "registros" QUE VIERAM DO Apps Script
     dadosAtual = registros[d] || {};
     dataAtualRel = d;
 
@@ -1007,6 +999,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
