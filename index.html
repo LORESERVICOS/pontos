@@ -620,20 +620,34 @@ async function gerarRelatorioMensal(){
   if(!u || !dataInicio.value) return;
 
   const tipo = document.getElementById("tipoRelatorio").value;
+
+  const res = await apiPost({
+    tipo:"getPeriodo",
+    usuario_login: u,
+    dataInicio: dataInicio.value,
+    dataFim: dataFim.value || dataInicio.value
+  });
+
+  if(res.status !== "ok"){
+    alert(res.message || "Erro ao carregar período");
+    return;
+  }
+
+  const registros = res.registros || {};          // <-- vem do Apps Script
   const escSem = users[u].escalaSemanal || {};
 
-  let totalPeriodo = 0;
+  let totalPeriodo=0;
   let totalAtestadosMin = 0;
   let totalAfastamentosMin = 0;
   let totalAtrasosFaltasMin = 0;
 
-  let html = `<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
-  html += `<p>PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
-  html += `<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
-  html += `<table id="tabelaRelatorio"><tr>
+  let html=`<h3>Cartão de Ponto - ${users[u].nomeCompleto || u}</h3>`;
+  html+=`<p>PIS: ${users[u].pis || ""} | Cargo: ${users[u].cargo || ""} | Setor: ${users[u].setor || ""} | Local: ${users[u].localTrabalho || ""}</p>`;
+  html+=`<p>Período: ${dataInicio.value} até ${dataFim.value || dataInicio.value}</p>`;
+  html+=`<table id="tabelaRelatorio"><tr>
     <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>`;
   if(tipo==="comGeo") html+=`<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`;
-  html += "</tr>";
+  html+="</tr>";
 
   const inicio = new Date(dataInicio.value);
   const fim = dataFim.value ? new Date(dataFim.value) : inicio;
@@ -646,19 +660,13 @@ async function gerarRelatorioMensal(){
     const d = `${dia}/${mes}/${ano}`;     // dd/mm/aaaa
     const ddmm = `${dia}/${mes}`;         // dd/mm
 
-    // 👉 BUSCA AS MARCAÇÕES NA PLANILHA PARA ESTE DIA
-    let resDia;
-    try{
-      resDia = await apiPost({tipo:"getDia", usuario_login: u, data: d});
-    }catch(e){
-      resDia = {status:"erro"};
-    }
-    dadosAtual = (resDia && resDia.status === "ok" && resDia.dia) ? resDia.dia : {};
+    // 👉 AGORA PEGA DIRETO DOS "registros" QUE VIERAM DO Apps Script
+    dadosAtual = registros[d] || {};
     dataAtualRel = d;
 
-    const JORNADA_PADRAO = 480; // 8h padrão
+    const JORNADA_PADRAO = 480;
     const weekday = currentDate.getDay();
-    const escStr = escSem[weekday] || "";
+    const escStr  = escSem[weekday] || "";
     const jornadaEscala = cargaEscalaMin(escStr);
     const isFeriadoLista = feriados.includes(ddmm);
 
@@ -768,7 +776,7 @@ async function gerarRelatorioMensal(){
              <td>${dadosAtual.geoRetornoAlmoco||""}</td>
              <td>${dadosAtual.geoSaida||""}</td>`;
     }
-    html += "</tr>";
+    html+="</tr>";
 
     currentDate.setDate(currentDate.getDate()+1);
   }
@@ -988,6 +996,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
