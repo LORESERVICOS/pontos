@@ -227,24 +227,20 @@ function cargaEscalaMin(escStr){
 function formataHoraCelula(valor){
   if (!valor) return "";
 
-  // Se já é Date (objeto)
   if (valor instanceof Date) {
     const hh = String(valor.getHours()).padStart(2,"0");
     const mm = String(valor.getMinutes()).padStart(2,"0");
     return `${hh}:${mm}`;
   }
 
-  // Garante que estamos lidando com string
   const s = String(valor).trim();
   if (!s) return "";
 
-  // Caso simples: já está "HH:MM" ou "H:MM"
   if (/^\d{1,2}:\d{2}$/.test(s)) {
     const [h, m] = s.split(":");
     return `${h.padStart(2,"0")}:${m}`;
   }
 
-  // Caso geral: procura a primeira ocorrência de algo tipo 18:02, 8:05, 20:48 etc
   const m = s.match(/(\d{1,2}):(\d{2})/);
   if (m) {
     const h  = m[1].padStart(2,"0");
@@ -252,7 +248,6 @@ function formataHoraCelula(valor){
     return `${h}:${mm}`;
   }
 
-  // Se não achou nada de hora, devolve como veio (ex: FOLGA, Férias...)
   return s;
 }
 
@@ -486,7 +481,7 @@ async function gerarComprovante(tipo){
 
 /************* AJUSTES (ADMIN) *************/
 function campo(valor, c, adminView = true){
-  const valorFmt = formataHoraCelula(valor); // FORMATA AQUI
+  const valorFmt = formataHoraCelula(valor);
   const vazio = !valorFmt || valorFmt === "-";
   const evento = dadosAtual[c+"_evento"];
 
@@ -756,28 +751,39 @@ async function gerarRelatorioMensal(){
     ].filter(Boolean);
     const eventoDia = eventos[0] || "";
 
-    const temTodasMarcacoes =
-      dadosAtual.entrada &&
-      dadosAtual.saidaAlmoco &&
-      dadosAtual.retornoAlmoco &&
-      dadosAtual.saida;
-
     const temAlgumaMarcacao =
       dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
 
     const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
 
     if(!eventoDia){
-      if(temTodasMarcacoes){
-        const ent = formataHoraCelula(dadosAtual.entrada);
-        const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
-        const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
-        const sai = formataHoraCelula(dadosAtual.saida);
+      // NOVA REGRA DE CÁLCULO DO TOTAL
+      const ent = formataHoraCelula(dadosAtual.entrada);
+      const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
+      const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
+      const sai = formataHoraCelula(dadosAtual.saida);
 
-        min =
-          (hm(sAl) - hm(ent)) +
-          (hm(sai) - hm(ret));
+      const temEnt = !!ent;
+      const temSAl = !!sAl;
+      const temRet = !!ret;
+      const temSai = !!sai;
+
+      if(temEnt && temSAl && temRet && temSai){
+        // 4 batidas (entrada, saída almoço, retorno, saída)
+        min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
+      } else if(temEnt && temSai && !temSAl && !temRet){
+        // Só entrada e saída: considera direto
+        min = hm(sai) - hm(ent);
+      } else if(temEnt && temSAl && !temRet && !temSai){
+        // Só entrada e saída almoço
+        min = hm(sAl) - hm(ent);
+      } else if(temEnt && temRet && !temSAl && !temSai){
+        // Só entrada e retorno (caso raro)
+        min = hm(ret) - hm(ent);
+      } else {
+        min = 0;
       }
+
       if(isFeriadoLista) min = 0;
       if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
     } else {
