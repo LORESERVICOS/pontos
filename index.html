@@ -224,6 +224,7 @@ function cargaEscalaMin(escStr){
 }
 
 // Normaliza valor vindo da planilha (Date, string ISO, string longa) para "HH:MM"
+// Normaliza valor vindo da planilha (Date, string ISO, string longa) para "HH:MM"
 function formataHoraCelula(valor){
   if (!valor) return "";
 
@@ -244,18 +245,18 @@ function formataHoraCelula(valor){
     return `${h.padStart(2,"0")}:${m}`;
   }
 
-  // Caso geral: procura a primeira ocorrência de algo tipo 18:02, 8:05 etc
+  // Caso geral: procura a primeira ocorrência de algo tipo 18:02, 8:05, 20:48 etc
   const m = s.match(/(\d{1,2}):(\d{2})/);
   if (m) {
-    const h = m[1].padStart(2,"0");
+    const h  = m[1].padStart(2,"0");
     const mm = m[2];
     return `${h}:${mm}`;
   }
 
-  // Se não achou nada de hora, devolve como veio (caso seja texto de justificativa, por exemplo)
+  // Se não achou nada de hora, devolve como veio
+  // (por exemplo, textos de justificativa "FOLGA", "Férias", etc.)
   return s;
 }
-
 /************* LOGIN VIA APPS SCRIPT *************/
 async function login(){
   const u = document.getElementById("username").value.trim();
@@ -1081,5 +1082,6 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
