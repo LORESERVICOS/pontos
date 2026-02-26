@@ -159,7 +159,7 @@ input,select{padding:4px 6px;margin:2px 0;}
 // COLE AQUI A URL DO SEU WEB APP (terminando em /exec)
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
 
-let users = {};        // cache de usuários (carregado do Apps Script)
+let users = {};        // cache de usuários
 let currentUser = null;
 let currentUserObj = null;
 
@@ -207,6 +207,32 @@ function cargaEscalaMin(escStr){
     if(/^\d{2}:\d{2}$/.test(carga)) return hm(carga);
   }
   return 0;
+}
+
+// Normaliza qualquer valor de hora pra "HH:MM"
+function formataHoraCelula(valor){
+  if (!valor) return "";
+
+  if (typeof valor === "string") {
+    const s = valor.trim();
+
+    // Já HH:MM
+    if (/^\d{2}:\d{2}$/.test(s)) return s;
+
+    // ISO: 1899-12-30T21:08:28.000Z
+    const mIso = s.match(/T(\d{2}):(\d{2}):/);
+    if (mIso) {
+      return `${mIso[1]}:${mIso[2]}`;
+    }
+
+    return s;
+  }
+
+  if (valor instanceof Date) {
+    return valor.toTimeString().slice(0,5);
+  }
+
+  return String(valor);
 }
 
 /************* LOGIN VIA APPS SCRIPT *************/
@@ -428,16 +454,17 @@ async function gerarComprovante(tipo){
 
 /************* AJUSTES (ADMIN) *************/
 function campo(valor, c, adminView = true){
-  const vazio = !valor || valor === "-";
+  const valorFmt = formataHoraCelula(valor);
+  const vazio = !valorFmt || valorFmt === "-";
   const evento = dadosAtual[c+"_evento"];
 
   if(!vazio && !evento){
     if(adminView){
-      return valor + (dadosAtual[c+"_editado"]
+      return valorFmt + (dadosAtual[c+"_editado"]
         ? ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
         : "");
     }
-    return valor;
+    return valorFmt;
   }
 
   if(evento){
@@ -613,103 +640,97 @@ function preencherFuncionarios(){
     }
   });
 }
-// Converte "yyyy-mm-dd" (input type="date") para Date local, sem problema de fuso
+
+// Converte "yyyy-mm-dd" (input type="date") para Date local
 function parseInputDateLocal(str){
   if(!str) return null;
   const [ano, mes, dia] = str.split("-").map(Number);
-  return new Date(ano, mes - 1, dia); // mês começa em 0
+  return new Date(ano, mes - 1, dia);
 }
-/************* RELATÓRIO MENSAL *************/
+
 /************* RELATÓRIO MENSAL *************/
 async function gerarRelatorioMensal(){
   const u = document.getElementById("funcionarioSelect").value;
-  const dataInicioEl = document.getElementById("dataInicio");
-  const dataFimEl    = document.getElementById("dataFim");
+  const di = document.getElementById("dataInicio").value;
+  const df = document.getElementById("dataFim").value;
 
-  if (!u || !dataInicioEl.value){
-    alert("Selecione o funcionário e a data inicial.");
-    return;
-  }
+  if(!u || !di) return;
 
   const tipo = document.getElementById("tipoRelatorio").value;
 
-  // 1) Buscar registros na API (getPeriodo)
-  let res;
-  try {
-    res = await apiPost({
-      tipo: "getPeriodo",
-      usuario_login: u,
-      dataInicio: dataInicioEl.value,
-      dataFim: dataFimEl.value || dataInicioEl.value
-    });
-  } catch (e) {
-    console.error("Erro em getPeriodo:", e);
-    alert("Erro ao buscar registros na planilha.");
+  const res = await apiPost({
+    tipo:"getPeriodo",
+    usuario_login: u,
+    dataInicio: di,
+    dataFim: df || di
+  });
+
+  if(res.status !== "ok"){
+    alert(res.message || "Erro ao buscar período na planilha");
     return;
   }
 
-  const registros = (res && res.registros) ? res.registros : {};
+  const registros = res.registros || {};
+  const func = users[u];
+  if(!func){
+    alert("Funcionário não encontrado em memória.");
+    return;
+  }
 
-  // 2) Montar intervalo de datas no navegador
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  const fim    = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
+  const escSem = func.escalaSemanal || {};
+  const inicio = parseInputDateLocal(di);
+  const fim    = df ? parseInputDateLocal(df) : inicio;
 
-  if (!inicio || !fim){
+  if(!inicio || !fim){
     alert("Datas inválidas.");
     return;
   }
 
-  const escSem = (users[u] && users[u].escalaSemanal) || {};
-  let currentDate = new Date(inicio);
-
   let html = "";
-  let totalPeriodo          = 0;
-  let totalAtestadosMin     = 0;
-  let totalAfastamentosMin  = 0;
+  let totalPeriodo = 0;
+  let totalAtestadosMin = 0;
+  let totalAfastamentosMin = 0;
   let totalAtrasosFaltasMin = 0;
 
-  // 3) Cabeçalho do relatório (nome, PIS, período)
-  const userObj = users[u] || {};
-  html += `<h3>Cartão de Ponto – ${userObj.nomeCompleto || u}</h3>`;
-  html += `<p><strong>PIS:</strong> ${userObj.pis || ""}</p>`;
-  html += `<p><strong>Período:</strong> ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}</p>`;
+  html += `<h3>Cartão de Ponto – ${func.nomeCompleto || u}</h3>`;
+  html += `<p><strong>PIS:</strong> ${func.pis || ""}</p>`;
+  html += `<p><strong>Período:</strong> ${di} até ${df || di}</p>`;
 
-  // 4) Início da tabela
-  html += `<table id="tabelaRelatorio">
-    <tr>
-      <th>Data</th>
-      <th>Dia</th>
-      <th>Entrada</th>
-      <th>Saída Almoço</th>
-      <th>Retorno</th>
-      <th>Saída</th>
-      <th>Total</th>
-      <th>Crédito</th>`;
+  html += `<table id="tabelaRelatorio"><tr>
+    <th>Data</th>
+    <th>Dia</th>
+    <th>Entrada</th>
+    <th>Saída Almoço</th>
+    <th>Retorno</th>
+    <th>Saída</th>
+    <th>Total</th>
+    <th>Crédito</th>`;
 
-  if (tipo === "comGeo"){
-    html += `
-      <th>Geo Entrada</th>
-      <th>Geo Saída Almoço</th>
-      <th>Geo Retorno</th>
-      <th>Geo Saída</th>`;
+  if(tipo==="comGeo"){
+    html += `<th>Geo Entrada</th>
+             <th>Geo Saída Almoço</th>
+             <th>Geo Retorno</th>
+             <th>Geo Saída</th>`;
   }
   html += `</tr>`;
 
-  // 5) Loop dia a dia
-  while (currentDate <= fim){
-    const d   = currentDate.toLocaleDateString("pt-BR"); // dd/mm/aaaa
-    const [dd,mm] = d.split("/");
-    const ddmm = `${dd}/${mm}`;
+  let currentDate = new Date(inicio);
 
-    dadosAtual  = registros[d] || {}; // <- vindo da planilha
+  while(currentDate <= fim){
+    const d = currentDate.toLocaleDateString("pt-BR"); // dd/mm/aaaa
+    const dia = currentDate.getDate();
+    const mes = currentDate.getMonth() + 1;
+    const ddmm = `${String(dia).padStart(2,"0")}/${String(mes).padStart(2,"0")}`;
+
+    dadosAtual = registros[d] || {};
     dataAtualRel = d;
 
-    const JORNADA_PADRAO = 480; // 8h em minutos
-    const weekday        = currentDate.getDay(); // 0=Dom,1=Seg...
-    const escStr         = escSem[weekday] || "";
-    const jornadaEscala  = cargaEscalaMin(escStr);
+    const weekday = currentDate.getDay();
+    const escStr  = escSem[weekday] || "";
+    const jornadaEscala = cargaEscalaMin(escStr);
     const isFeriadoLista = feriados.includes(ddmm);
 
+    const JORNADA_PADRAO = 480;
     let min = 0;
 
     const eventos = [
@@ -729,18 +750,21 @@ async function gerarRelatorioMensal(){
     const temAlgumaMarcacao =
       dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
 
-    const folgaProgramada =
-      escStr && escStr.toString().trim().toUpperCase() === "FOLGA";
+    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
 
-    // 5.1 Cálculo do total de minutos do dia (min)
-    if (!eventoDia){
-      if (temTodasMarcacoes){
+    if(!eventoDia){
+      if(temTodasMarcacoes){
+        const ent = formataHoraCelula(dadosAtual.entrada);
+        const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
+        const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
+        const sai = formataHoraCelula(dadosAtual.saida);
+
         min =
-          (hm(dadosAtual.saidaAlmoco) - hm(dadosAtual.entrada)) +
-          (hm(dadosAtual.saida)      - hm(dadosAtual.retornoAlmoco));
+          (hm(sAl) - hm(ent)) +
+          (hm(sai) - hm(ret));
       }
-      if (isFeriadoLista) min = 0;
-      if (!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
+      if(isFeriadoLista) min = 0;
+      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
 
     } else {
       switch(eventoDia){
@@ -782,20 +806,16 @@ async function gerarRelatorioMensal(){
 
     totalPeriodo += min;
 
-    // Crédito = trabalhado - escala do dia
     let creditoMin = min - jornadaEscala;
-    // Regra especial: feriado com marcação -> 16:00 de crédito
-    if (isFeriadoLista && temAlgumaMarcacao) creditoMin = 16 * 60;
+    if(isFeriadoLista && temAlgumaMarcacao) creditoMin = 16 * 60;
 
-    // Nome do dia
-    let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-    if (isFeriadoLista) nomeDia = "Feriado";
+    let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+    if(isFeriadoLista) nomeDia="Feriado";
 
-    // 5.2 Conteúdo das colunas de marcações (com botão Ajustar/Editar)
     let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
 
-    if (!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
-      conteudoEntrada  = "FOLGA";
+    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
+      conteudoEntrada = "FOLGA";
       conteudoSaidaAlm = "FOLGA";
       conteudoRetorno  = "FOLGA";
       conteudoSaida    = "FOLGA";
@@ -806,51 +826,47 @@ async function gerarRelatorioMensal(){
       conteudoSaida     = campo(dadosAtual.saida,"saida");
     }
 
-    // 5.3 Linha da tabela
-    html += `<tr>
+    html+=`<tr>
       <td>${d}</td>
       <td>${nomeDia}</td>
-      <td>${conteudoEntrada || ""}</td>
-      <td>${conteudoSaidaAlm || ""}</td>
-      <td>${conteudoRetorno || ""}</td>
-      <td>${conteudoSaida || ""}</td>
+      <td>${conteudoEntrada}</td>
+      <td>${conteudoSaidaAlm}</td>
+      <td>${conteudoRetorno}</td>
+      <td>${conteudoSaida}</td>
       <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
       <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>`;
 
-    if (tipo === "comGeo"){
-      html += `
-        <td>${dadosAtual.geoEntrada       || ""}</td>
-        <td>${dadosAtual.geoSaidaAlmoco   || ""}</td>
-        <td>${dadosAtual.geoRetornoAlmoco || ""}</td>
-        <td>${dadosAtual.geoSaida         || ""}</td>`;
+    if(tipo==="comGeo"){
+      html+=`<td>${dadosAtual.geoEntrada||""}</td>
+             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
+             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
+             <td>${dadosAtual.geoSaida||""}</td>`;
     }
+    html+="</tr>";
 
-    html += `</tr>`;
-
-    // Próximo dia
     currentDate.setDate(currentDate.getDate()+1);
   }
 
-  // 6) Rodapé de totais na tabela
-  html += `
-    <tr>
-      <th colspan="6">TOTAL</th>
-      <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
-      <th></th>
-    </tr>
-  </table>`;
+  html+=`<tr><th colspan="6">TOTAL</th>
+           <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
+           <th></th>`;
 
-  // 7) Totais do período (abaixo da tabela)
-  html += `<br><h4>Totais do Período</h4>`;
-  html += `<p><strong>Total trabalhado:</strong> ${fmt(totalPeriodo)}</p>`;
-  html += `<p><strong>Total de atestados:</strong> ${fmt(totalAtestadosMin)}</p>`;
-  html += `<p><strong>Total de afastamentos:</strong> ${fmt(totalAfastamentosMin)}</p>`;
-  html += `<p><strong>Total atrasos/faltas:</strong> ${fmt(totalAtrasosFaltasMin)}</p>`;
-  html += `<p>Assinatura do Funcionário: _____________________</p>`;
+  if(tipo==="comGeo"){
+    html+=`<th colspan="4"></th>`;
+  }
 
-  // 8) Joga tudo na tela
+  html+=`</tr></table>`;
+
+  html+=`<br><h4>Totais do Período</h4>`;
+  html+=`<p><strong>Total trabalhado:</strong> ${fmt(totalPeriodo)}</p>`;
+  html+=`<p><strong>Total de atestados:</strong> ${fmt(totalAtestadosMin)}</p>`;
+  html+=`<p><strong>Total de afastamentos:</strong> ${fmt(totalAfastamentosMin)}</p>`;
+  html+=`<p><strong>Total atrasos/faltas:</strong> ${fmt(totalAtrasosFaltasMin)}</p>`;
+  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+
   document.getElementById("cartaoFuncionario").innerHTML = html;
 }
+
 /************* EXPORTAÇÕES *************/
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
@@ -1052,28 +1068,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
