@@ -554,7 +554,6 @@ async function abrirAjuste(u,d,c){
       });
       delete atual.atestadoHorasMin;
 
-      // >>> garante que a data também vai na estrutura do dia
       atual.data = d;
 
       const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
@@ -595,7 +594,6 @@ async function abrirAjuste(u,d,c){
               });
               delete reg.atestadoHorasMin;
 
-              // >>> garante que a data também vai gravada neste dia
               reg.data = chave;
 
               await apiPost({tipo:"salvarDia", usuario_login:u, data:chave, dia: reg});
@@ -630,7 +628,6 @@ async function abrirAjuste(u,d,c){
       });
       regA.atestadoHorasMin = minutosAtestado;
 
-      // >>> garante que a data também vai gravada neste dia
       regA.data = dataAtestadoKey;
 
       const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:dataAtestadoKey, dia: regA});
@@ -654,7 +651,6 @@ async function abrirAjuste(u,d,c){
       delete atual.atestadoHorasMin;
     }
 
-    // >>> em qualquer outro ajuste simples, também garantimos a data
     atual.data = d;
 
     const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
@@ -692,13 +688,26 @@ async function gerarRelatorioMensal(){
 
   const tipo = tipoEl.value;
 
+  // Datas reais usadas no laço
+  const inicio = parseInputDateLocal(dataInicioEl.value);
+  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
+
+  if(!inicio || !fim){
+    alert("Preencha corretamente as datas.");
+    return;
+  }
+
+  // Textos bonitos para o cabeçalho (dd/mm/aaaa)
+  const periodoInicioStr = inicio.toLocaleDateString("pt-BR");
+  const periodoFimStr = fim.toLocaleDateString("pt-BR");
+
   const escSem = (users[u] && users[u].escalaSemanal) || {};
   const escMensal = (users[u] && users[u].escalaMensal) || {};
 
   let html = "";
   html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
   html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
-  html += `<p>Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}</p>`;
+  html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
 
   html += `<table id="tabelaRelatorio"><tr>
     <th>Data</th>
@@ -723,8 +732,6 @@ async function gerarRelatorioMensal(){
   let totalAfastamentosMin = 0;
   let totalAtrasosFaltasMin = 0;
 
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
@@ -733,7 +740,6 @@ async function gerarRelatorioMensal(){
     const yyyy = currentDate.getFullYear();
     const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
 
-    // BUSCA O DIA DIRETO NO APPS SCRIPT
     let resDia;
     try{
       resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
@@ -769,7 +775,6 @@ async function gerarRelatorioMensal(){
     const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
 
     if(!eventoDia){
-      // NOVA REGRA DE CÁLCULO DO TOTAL
       const ent = formataHoraCelula(dadosAtual.entrada);
       const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
       const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
@@ -975,7 +980,11 @@ async function gerarPDFAdmin(){
   doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
   const dataInicioEl = document.getElementById("dataInicio");
   const dataFimEl = document.getElementById("dataFim");
-  doc.text(`Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}`,14,30);
+  const inicio = parseInputDateLocal(dataInicioEl.value);
+  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
+  const periodoInicioStr = inicio ? inicio.toLocaleDateString("pt-BR") : dataInicioEl.value;
+  const periodoFimStr = fim ? fim.toLocaleDateString("pt-BR") : (dataFimEl.value || dataInicioEl.value);
+  doc.text(`Período: ${periodoInicioStr} até ${periodoFimStr}`,14,30);
 
   const tabela=document.querySelector("#tabelaRelatorio");
   if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
