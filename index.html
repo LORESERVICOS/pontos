@@ -224,7 +224,6 @@ function cargaEscalaMin(escStr){
 }
 
 // Normaliza valor vindo da planilha (Date, string ISO, string longa) para "HH:MM"
-// Normaliza valor vindo da planilha (Date, string ISO, string longa) para "HH:MM"
 function formataHoraCelula(valor){
   if (!valor) return "";
 
@@ -257,6 +256,14 @@ function formataHoraCelula(valor){
   // (por exemplo, textos de justificativa "FOLGA", "Férias", etc.)
   return s;
 }
+
+// Converte "yyyy-mm-dd" do <input type="date"> em Date local
+function parseInputDateLocal(str){
+  if(!str) return null;
+  const [ano, mes, dia] = str.split("-").map(Number);
+  return new Date(ano, mes - 1, dia);
+}
+
 /************* LOGIN VIA APPS SCRIPT *************/
 async function login(){
   const u = document.getElementById("username").value.trim();
@@ -480,7 +487,7 @@ async function gerarComprovante(tipo){
 
 /************* AJUSTES (ADMIN) *************/
 function campo(valor, c, adminView = true){
-  const valorFmt = formataHoraCelula(valor); // <<< FORMATA AQUI
+  const valorFmt = formataHoraCelula(valor); // FORMATA AQUI
   const vazio = !valorFmt || valorFmt === "-";
   const evento = dadosAtual[c+"_evento"];
 
@@ -1082,6 +1089,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
-
-
