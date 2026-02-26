@@ -252,8 +252,7 @@ function formataHoraCelula(valor){
     return `${h}:${mm}`;
   }
 
-  // Se não achou nada de hora, devolve como veio
-  // (por exemplo, textos de justificativa "FOLGA", "Férias", etc.)
+  // Se não achou nada de hora, devolve como veio (ex: FOLGA, Férias...)
   return s;
 }
 
@@ -686,19 +685,6 @@ async function gerarRelatorioMensal(){
 
   const tipo = tipoEl.value;
 
-  const res = await apiPost({
-    tipo:"getPeriodo",
-    usuario_login: u,
-    dataInicio: dataInicioEl.value,
-    dataFim: dataFimEl.value || dataInicioEl.value
-  });
-
-  if(res.status!=="ok"){
-    alert(res.message || "Erro ao buscar período na planilha.");
-    return;
-  }
-
-  const registros = res.registros || {};
   const escSem = (users[u] && users[u].escalaSemanal) || {};
   const escMensal = (users[u] && users[u].escalaMensal) || {};
 
@@ -735,17 +721,28 @@ async function gerarRelatorioMensal(){
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
-    const d = currentDate.toLocaleDateString("pt-BR"); // dd/mm/aaaa
-    const diaNum = currentDate.getDate();
-    dadosAtual = registros[d] || {};
-    dataAtualRel = d;
+    const dd = String(currentDate.getDate()).padStart(2,"0");
+    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
+    const yyyy = currentDate.getFullYear();
+    const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
 
+    // BUSCA O DIA DIRETO NO APPS SCRIPT
+    let resDia;
+    try{
+      resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
+    }catch(e){
+      resDia = {status:"erro"};
+    }
+
+    dadosAtual = (resDia && resDia.status==="ok" && resDia.dia) ? resDia.dia : {};
+    dataAtualRel = dBR;
+
+    const diaNum = currentDate.getDate();
     const weekday = currentDate.getDay(); // 0=Dom..6=Sab
+
     let escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
     const jornadaEscala = cargaEscalaMin(escStr);
 
-    const dd = String(currentDate.getDate()).padStart(2,"0");
-    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
     const ddmm = `${dd}/${mm}`;
     const isFeriadoLista = feriados.includes(ddmm);
 
@@ -845,7 +842,7 @@ async function gerarRelatorioMensal(){
     }
 
     html+=`<tr>
-      <td>${d}</td>
+      <td>${dBR}</td>
       <td>${nomeDia}</td>
       <td>${conteudoEntrada}</td>
       <td>${conteudoSaidaAlm}</td>
@@ -1089,4 +1086,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
