@@ -223,39 +223,37 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-// Normaliza valor vindo da planilha (Date ou string ISO) para "HH:MM"
+// Normaliza valor vindo da planilha (Date, string ISO, string longa) para "HH:MM"
 function formataHoraCelula(valor){
   if (!valor) return "";
 
-  // Se já é string
-  if (typeof valor === "string") {
-    const s = valor.trim();
-
-    // Já está no formato HH:MM
-    if (/^\d{2}:\d{2}$/.test(s)) return s;
-
-    // Formato ISO: 1899-12-30T21:08:28.000Z
-    const mIso = s.match(/T(\d{2}):(\d{2}):/);
-    if (mIso) {
-      return `${mIso[1]}:${mIso[2]}`;
-    }
-
-    return s;
-  }
-
-  // Se veio como Date
+  // Se já é Date (objeto)
   if (valor instanceof Date) {
-    return valor.toTimeString().slice(0,5); // HH:MM
+    const hh = String(valor.getHours()).padStart(2,"0");
+    const mm = String(valor.getMinutes()).padStart(2,"0");
+    return `${hh}:${mm}`;
   }
 
-  return String(valor);
-}
+  // Garante que estamos lidando com string
+  const s = String(valor).trim();
+  if (!s) return "";
 
-// Converte "yyyy-mm-dd" de <input type="date"> em Date local
-function parseInputDateLocal(str){
-  if(!str) return null;
-  const [ano, mes, dia] = str.split("-").map(Number);
-  return new Date(ano, mes - 1, dia);
+  // Caso simples: já está "HH:MM" ou "H:MM"
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const [h, m] = s.split(":");
+    return `${h.padStart(2,"0")}:${m}`;
+  }
+
+  // Caso geral: procura a primeira ocorrência de algo tipo 18:02, 8:05 etc
+  const m = s.match(/(\d{1,2}):(\d{2})/);
+  if (m) {
+    const h = m[1].padStart(2,"0");
+    const mm = m[2];
+    return `${h}:${mm}`;
+  }
+
+  // Se não achou nada de hora, devolve como veio (caso seja texto de justificativa, por exemplo)
+  return s;
 }
 
 /************* LOGIN VIA APPS SCRIPT *************/
@@ -1083,4 +1081,5 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
