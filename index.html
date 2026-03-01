@@ -975,7 +975,22 @@ function gerarExcel(){
   XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
   XLSX.writeFile(wb, "cartao_ponto.xlsx");
 }
+let destaqueCredito = false;
 
+// FERIADO com marcação → dobra
+if(isFeriadoLista && temAlgumaMarcacao){
+  destaqueCredito = true;
+}
+
+// FOLGA trabalhada
+if(folgaProgramada && temAlgumaMarcacao){
+  destaqueCredito = true;
+}
+
+// Excedente da escala
+if(!isFeriadoLista && !folgaProgramada && min > jornadaEscala){
+  destaqueCredito = true;
+}
 async function gerarPDFAdmin(){
   const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
   const {jsPDF}=window.jspdf;
@@ -1120,4 +1135,5 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
