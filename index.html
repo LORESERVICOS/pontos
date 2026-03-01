@@ -848,7 +848,26 @@ async function gerarRelatorioMensal(){
           break;
       }
     }
+// Total trabalhado
+const totalMin = calcularTotalDia(dia);
+const totalFmt = minParaHora(totalMin);
 
+// Escala do dia
+const diaSemana = dataObj.getDay(); // 0 = dom, 6 = sáb
+const escDia = escMensal[dataStr] || escSem[diaSemana] || "FOLGA";
+const cargaMin = cargaEscalaMin(escDia);
+
+// Regras
+const ehFolga = escDia === "FOLGA" || cargaMin === 0;
+const ehFeriado = feriados.includes(dataStr.slice(0,5));
+
+// 🔹 AQUI USA O CÁLCULO QUE JÁ EXISTE
+const resCredito = calcularCredito({
+  totalTrabalhadoMin: totalMin,
+  cargaEscalaMin: cargaMin,
+  ehFolga,
+  ehFeriado
+});
     totalPeriodo += min;
 
     let creditoMin = min - jornadaEscala;
@@ -1135,5 +1154,6 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
