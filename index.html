@@ -745,20 +745,16 @@ async function gerarRelatorioMensal(){
 
   let currentDate = new Date(inicio);
 
-  while(currentDate <= fim){
-    const dd = String(currentDate.getDate()).padStart(2,"0");
-    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
-    const yyyy = currentDate.getFullYear();
-    const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
+  while(currentDate <= fim){const resPeriodo = await apiPost({
+  tipo: "getPeriodo",
+  usuario_login: u,
+  dataInicio: periodoInicioStr,
+  dataFim: periodoFimStr
+});
 
-    let resDia;
-    try{
-      resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
-    }catch(e){
-      resDia = {status:"erro"};
-    }
+const periodo = resPeriodo.periodo || {};
 
-    dadosAtual = (resDia && resDia.status==="ok" && resDia.dia) ? resDia.dia : {};
+    dadosAtual = periodo[dBR] || {};
     dataAtualRel = dBR;
 
     const diaNum = currentDate.getDate();
@@ -1154,6 +1150,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
