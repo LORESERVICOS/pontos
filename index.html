@@ -554,6 +554,7 @@ async function abrirAjuste(u,d,c){
       });
       delete atual.atestadoHorasMin;
 
+      // >>> garante que a data também vai na estrutura do dia
       atual.data = d;
 
       const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
@@ -594,6 +595,7 @@ async function abrirAjuste(u,d,c){
               });
               delete reg.atestadoHorasMin;
 
+              // >>> garante que a data também vai gravada neste dia
               reg.data = chave;
 
               await apiPost({tipo:"salvarDia", usuario_login:u, data:chave, dia: reg});
@@ -628,6 +630,7 @@ async function abrirAjuste(u,d,c){
       });
       regA.atestadoHorasMin = minutosAtestado;
 
+      // >>> garante que a data também vai gravada neste dia
       regA.data = dataAtestadoKey;
 
       const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:dataAtestadoKey, dia: regA});
@@ -651,6 +654,7 @@ async function abrirAjuste(u,d,c){
       delete atual.atestadoHorasMin;
     }
 
+    // >>> em qualquer outro ajuste simples, também garantimos a data
     atual.data = d;
 
     const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
@@ -688,25 +692,13 @@ async function gerarRelatorioMensal(){
 
   const tipo = tipoEl.value;
 
-  // Datas reais usadas no laço
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
-
-  if(!inicio || !fim){
-    alert("Preencha corretamente as datas.");
-    return;
-  }
-
-  // Textos bonitos para o cabeçalho (dd/mm/aaaa)
-  const periodoInicioStr = inicio.toLocaleDateString("pt-BR");
-  const periodoFimStr = fim.toLocaleDateString("pt-BR");
-const escSem = await buscarEscalaPlanilha(u);
+  const escSem = (users[u] && users[u].escalaSemanal) || {};
   const escMensal = (users[u] && users[u].escalaMensal) || {};
 
   let html = "";
   html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
   html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
-  html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
+  html += `<p>Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}</p>`;
 
   html += `<table id="tabelaRelatorio"><tr>
     <th>Data</th>
@@ -731,6 +723,8 @@ const escSem = await buscarEscalaPlanilha(u);
   let totalAfastamentosMin = 0;
   let totalAtrasosFaltasMin = 0;
 
+  const inicio = parseInputDateLocal(dataInicioEl.value);
+  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
@@ -739,6 +733,7 @@ const escSem = await buscarEscalaPlanilha(u);
     const yyyy = currentDate.getFullYear();
     const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
 
+    // BUSCA O DIA DIRETO NO APPS SCRIPT
     let resDia;
     try{
       resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
@@ -774,6 +769,7 @@ const escSem = await buscarEscalaPlanilha(u);
     const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
 
     if(!eventoDia){
+      // NOVA REGRA DE CÁLCULO DO TOTAL
       const ent = formataHoraCelula(dadosAtual.entrada);
       const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
       const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
@@ -785,12 +781,16 @@ const escSem = await buscarEscalaPlanilha(u);
       const temSai = !!sai;
 
       if(temEnt && temSAl && temRet && temSai){
+        // 4 batidas (entrada, saída almoço, retorno, saída)
         min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
       } else if(temEnt && temSai && !temSAl && !temRet){
+        // Só entrada e saída: considera direto
         min = hm(sai) - hm(ent);
       } else if(temEnt && temSAl && !temRet && !temSai){
+        // Só entrada e saída almoço
         min = hm(sAl) - hm(ent);
       } else if(temEnt && temRet && !temSAl && !temSai){
+        // Só entrada e retorno (caso raro)
         min = hm(ret) - hm(ent);
       } else {
         min = 0;
@@ -979,11 +979,7 @@ async function gerarPDFAdmin(){
   doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
   const dataInicioEl = document.getElementById("dataInicio");
   const dataFimEl = document.getElementById("dataFim");
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
-  const periodoInicioStr = inicio ? inicio.toLocaleDateString("pt-BR") : dataInicioEl.value;
-  const periodoFimStr = fim ? fim.toLocaleDateString("pt-BR") : (dataFimEl.value || dataInicioEl.value);
-  doc.text(`Período: ${periodoInicioStr} até ${periodoFimStr}`,14,30);
+  doc.text(`Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}`,14,30);
 
   const tabela=document.querySelector("#tabelaRelatorio");
   if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
@@ -1105,19 +1101,6 @@ function salvarEscalaMensal(){
   fecharEscalaMensal();
   alert("Escala mensal salva (em memória – se quiser, depois mandamos pra planilha).");
 }
-  async function buscarEscalaPlanilha(usuario){
-  const res = await apiPost({
-    tipo:"getEscalaFuncionario",
-    usuario_login: usuario
-  });
-
-  if(res.status === "ok"){
-    return res.escala;
-  }
-
-  return {};
-}
 </script>
 </body>
 </html>
-
