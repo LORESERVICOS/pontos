@@ -20,17 +20,6 @@
   .verde{color:green;font-weight:bold;}
   .vermelho{color:red;font-weight:bold;}
   input,select{padding:4px 6px;margin:2px 0;}
-  .verde{color:green;font-weight:bold;}
-  .vermelho{color:red;font-weight:bold;}
-
-  /* NOVO – crédito especial */
-  .credito-excedente{
-    background:#0f5132;
-    color:#ffffff;
-    font-weight:600;
-  }
-</style>
-  
 </style>
 </head>
 <body>
@@ -687,57 +676,226 @@ function preencherFuncionarios(){
   });
 }
 
-/******** RELATÓRIO (CORRIGIDO) ********/
+/************* RELATÓRIO MENSAL *************/
 async function gerarRelatorioMensal(){
-  const u=funcionarioSelect.value;
-  if(!u||!dataInicio.value)return;
+  const funcSelect = document.getElementById("funcionarioSelect");
+  const dataInicioEl = document.getElementById("dataInicio");
+  const dataFimEl = document.getElementById("dataFim");
+  const tipoEl = document.getElementById("tipoRelatorio");
 
-  const ini=new Date(dataInicio.value);
-  const fim=dataFim.value?new Date(dataFim.value):ini;
+  const u = funcSelect.value;
+  if(!u || !dataInicioEl.value) return;
 
-  const iniBR=ini.toLocaleDateString("pt-BR");
-  const fimBR=fim.toLocaleDateString("pt-BR");
+  const tipo = tipoEl.value;
 
-  // 🔥 UMA ÚNICA CHAMADA
-  const res=await apiPost({
-    tipo:"getPeriodo",
-    usuario_login:u,
-    dataInicio:iniBR,
-    dataFim:fimBR
-  });
+  // Datas reais usadas no laço
+  const inicio = parseInputDateLocal(dataInicioEl.value);
+  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
 
-  const periodo=res.periodo||{};
-  let totalPeriodo=0;
+  if(!inicio || !fim){
+    alert("Preencha corretamente as datas.");
+    return;
+  }
 
-  let html=`<h3>Cartão de Ponto</h3>
-  <table id="tabelaRelatorio">
-  <tr><th>Data</th><th>Total</th><th>Crédito</th></tr>`;
+  // Textos bonitos para o cabeçalho (dd/mm/aaaa)
+  const periodoInicioStr = inicio.toLocaleDateString("pt-BR");
+  const periodoFimStr = fim.toLocaleDateString("pt-BR");
+const escSem = await buscarEscalaPlanilha(u);
+  const escMensal = (users[u] && users[u].escalaMensal) || {};
 
-  for(let d=new Date(ini);d<=fim;d.setDate(d.getDate()+1)){
-    const dBR=d.toLocaleDateString("pt-BR");
-    const dia=periodo[dBR]||{};
-    let min=0;
+  let html = "";
+  html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
+  html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
+  html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
 
-    if(dia.entrada&&dia.saida){
-      min=hm(dia.saida)-hm(dia.entrada);
+  html += `<table id="tabelaRelatorio"><tr>
+    <th>Data</th>
+    <th>Dia</th>
+    <th>Entrada</th>
+    <th>Saída Almoço</th>
+    <th>Retorno</th>
+    <th>Saída</th>
+    <th>Total</th>
+    <th>Crédito</th>`;
+
+  if(tipo==="comGeo"){
+    html += `<th>Geo Entrada</th>
+             <th>Geo Saída Almoço</th>
+             <th>Geo Retorno</th>
+             <th>Geo Saída</th>`;
+  }
+  html += `</tr>`;
+
+  let totalPeriodo = 0;
+  let totalAtestadosMin = 0;
+  let totalAfastamentosMin = 0;
+  let totalAtrasosFaltasMin = 0;
+
+  let currentDate = new Date(inicio);
+
+  while(currentDate <= fim){
+    const dd = String(currentDate.getDate()).padStart(2,"0");
+    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
+    const yyyy = currentDate.getFullYear();
+    const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
+
+    let resDia;
+    try{
+      resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
+    }catch(e){
+      resDia = {status:"erro"};
     }
 
-    totalPeriodo+=min;
+    dadosAtual = (resDia && resDia.status==="ok" && resDia.dia) ? resDia.dia : {};
+    dataAtualRel = dBR;
+
+    const diaNum = currentDate.getDate();
+    const weekday = currentDate.getDay(); // 0=Dom..6=Sab
+
+    let escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
+    const jornadaEscala = cargaEscalaMin(escStr);
+
+    const ddmm = `${dd}/${mm}`;
+    const isFeriadoLista = feriados.includes(ddmm);
+
+    let min = 0;
+
+    const eventos = [
+      dadosAtual.entrada_evento,
+      dadosAtual.saidaAlmoco_evento,
+      dadosAtual.retornoAlmoco_evento,
+      dadosAtual.saida_evento
+    ].filter(Boolean);
+    const eventoDia = eventos[0] || "";
+
+    const temAlgumaMarcacao =
+      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
+
+    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
+
+    if(!eventoDia){
+      const ent = formataHoraCelula(dadosAtual.entrada);
+      const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
+      const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
+      const sai = formataHoraCelula(dadosAtual.saida);
+
+      const temEnt = !!ent;
+      const temSAl = !!sAl;
+      const temRet = !!ret;
+      const temSai = !!sai;
+
+      if(temEnt && temSAl && temRet && temSai){
+        min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
+      } else if(temEnt && temSai && !temSAl && !temRet){
+        min = hm(sai) - hm(ent);
+      } else if(temEnt && temSAl && !temRet && !temSai){
+        min = hm(sAl) - hm(ent);
+      } else if(temEnt && temRet && !temSAl && !temSai){
+        min = hm(ret) - hm(ent);
+      } else {
+        min = 0;
+      }
+
+      if(isFeriadoLista) min = 0;
+      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
+    } else {
+      const JORNADA_PADRAO = 480; // 8h
+      switch(eventoDia){
+        case "Falta Justificada":
+          min = -JORNADA_PADRAO;
+          totalAtestadosMin += -min;
+          break;
+        case "Atestado Médico Dias":
+          min = -JORNADA_PADRAO;
+          totalAtestadosMin += -min;
+          break;
+        case "Atestado Médico Horas": {
+          const minutosAtestado = Number(dadosAtual.atestadoHorasMin || JORNADA_PADRAO);
+          min = -minutosAtestado;
+          totalAtestadosMin += minutosAtestado;
+          break;
+        }
+        case "Falta Injustificada":
+          min = -JORNADA_PADRAO;
+          totalAtrasosFaltasMin += min;
+          break;
+        case "Falta Abonada":
+          min = JORNADA_PADRAO;
+          totalAtestadosMin += min;
+          break;
+        case "Férias":
+        case "Licença Maternidade":
+        case "Licença Paternidade":
+        case "Licença INSS+15 D":
+        case "Acidente de Trabalho":
+          min = JORNADA_PADRAO;
+          totalAfastamentosMin += min;
+          break;
+        case "Feriado":
+          min = 0;
+          break;
+      }
+    }
+
+    totalPeriodo += min;
+
+    let creditoMin = min - jornadaEscala;
+    if(isFeriadoLista && temAlgumaMarcacao) creditoMin = 16*60; // 16h de crédito
+
+    let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+    if(isFeriadoLista) nomeDia="Feriado";
+
+    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
+
+    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
+      conteudoEntrada = "FOLGA";
+      conteudoSaidaAlm = "FOLGA";
+      conteudoRetorno  = "FOLGA";
+      conteudoSaida    = "FOLGA";
+    } else {
+      conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
+      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
+      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
+      conteudoSaida     = campo(dadosAtual.saida,"saida");
+    }
 
     html+=`<tr>
       <td>${dBR}</td>
+      <td>${nomeDia}</td>
+      <td>${conteudoEntrada}</td>
+      <td>${conteudoSaidaAlm}</td>
+      <td>${conteudoRetorno}</td>
+      <td>${conteudoSaida}</td>
       <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
-      <td>${fmt(min-480)}</td>
-    </tr>`;
+      <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>`;
+
+    if(tipo==="comGeo"){
+      html+=`<td>${dadosAtual.geoEntrada||""}</td>
+             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
+             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
+             <td>${dadosAtual.geoSaida||""}</td>`;
+    }
+    html+="</tr>";
+
+    currentDate.setDate(currentDate.getDate()+1);
   }
 
-  html+=`<tr>
-    <th>Total</th>
-    <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
-    <th></th>
-  </tr></table>`;
+  html+=`<tr><th colspan="6">TOTAL</th>
+           <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
+           <th></th>`;
+  if(tipo==="comGeo"){
+    html+=`<th colspan="4"></th>`;
+  }
+  html+=`</tr></table>`;
 
-  cartaoFuncionario.innerHTML=html;
+  html+=`<br><h4>Totais do Período</h4>`;
+  html+=`<p><strong>Total trabalhado:</strong> ${fmt(totalPeriodo)}</p>`;
+  html+=`<p><strong>Total de atestados:</strong> ${fmt(totalAtestadosMin)}</p>`;
+  html+=`<p><strong>Total de afastamentos:</strong> ${fmt(totalAfastamentosMin)}</p>`;
+  html+=`<p><strong>Total atrasos/faltas:</strong> ${fmt(totalAtrasosFaltasMin)}</p>`;
+  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+
+  document.getElementById("cartaoFuncionario").innerHTML = html;
 }
 
 /************* EXPORTAÇÕES *************/
@@ -805,22 +963,7 @@ function gerarExcel(){
   XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
   XLSX.writeFile(wb, "cartao_ponto.xlsx");
 }
-let destaqueCredito = false;
 
-// FERIADO com marcação → dobra
-if(isFeriadoLista && temAlgumaMarcacao){
-  destaqueCredito = true;
-}
-
-// FOLGA trabalhada
-if(folgaProgramada && temAlgumaMarcacao){
-  destaqueCredito = true;
-}
-
-// Excedente da escala
-if(!isFeriadoLista && !folgaProgramada && min > jornadaEscala){
-  destaqueCredito = true;
-}
 async function gerarPDFAdmin(){
   const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
   const {jsPDF}=window.jspdf;
@@ -962,11 +1105,19 @@ function salvarEscalaMensal(){
   fecharEscalaMensal();
   alert("Escala mensal salva (em memória – se quiser, depois mandamos pra planilha).");
 }
+  async function buscarEscalaPlanilha(usuario){
+  const res = await apiPost({
+    tipo:"getEscalaFuncionario",
+    usuario_login: usuario
+  });
+
+  if(res.status === "ok"){
+    return res.escala;
+  }
+
+  return {};
+}
 </script>
 </body>
 </html>
-
-
-
-
 
