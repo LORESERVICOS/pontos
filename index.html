@@ -8,150 +8,161 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <style>
-body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;margin:0}
-header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
-.card{background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin:20px auto}
-button{padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;margin:2px}
-button:hover{background:#1d4ed8}
-.hidden{display:none}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
-th{background:#f1f5f9}
-.verde{color:green;font-weight:bold;}
-.vermelho{color:red;font-weight:bold;}
-input,select{padding:4px 6px;margin:2px 0;}
+  body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;margin:0}
+  header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
+  .card{background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin:20px auto}
+  button{padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;margin:2px}
+  button:hover{background:#1d4ed8}
+  .hidden{display:none}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
+  th{background:#f1f5f9}
+  .verde{color:green;font-weight:bold;}
+  .vermelho{color:red;font-weight:bold;}
+  input,select{padding:4px 6px;margin:2px 0;}
+  .verde{color:green;font-weight:bold;}
+  .vermelho{color:red;font-weight:bold;}
+
+  /* NOVO – crédito especial */
+  .credito-excedente{
+    background:#0f5132;
+    color:#ffffff;
+    font-weight:600;
+  }
+</style>
+
 </style>
 </head>
 <body>
 <header>
-Bem-vindo, <span id="nomeUsuario"></span>
+  Bem-vindo, <span id="nomeUsuario"></span>
 </header>
 
 <!-- LOGIN -->
 <div id="loginSection" class="card" style="max-width:400px">
-<h2>Login</h2>
-<input id="username" placeholder="Usuário"><br><br>
-<input id="password" type="password" placeholder="Senha"><br><br>
-<button onclick="login()">Entrar</button>
+  <h2>Login</h2>
+  <input id="username" placeholder="Usuário"><br><br>
+  <input id="password" type="password" placeholder="Senha"><br><br>
+  <button onclick="login()">Entrar</button>
 </div>
 
 <!-- OPERACIONAL -->
 <div id="operacionalSection" class="hidden">
-<div class="card" style="max-width:600px">
-<h2>Registro de Ponto</h2>
-<div id="dataAtual"></div>
-<div id="horaAtual"></div>
-<hr>
-<div id="botoesRegistro"></div>
-<hr>
-<h3>Marcações do Dia</h3>
-<div id="registrosUsuario"></div>
-<hr>
-<button onclick="logout()">Sair</button>
-</div>
+  <div class="card" style="max-width:600px">
+    <h2>Registro de Ponto</h2>
+    <div id="dataAtual"></div>
+    <div id="horaAtual"></div>
+    <hr>
+    <div id="botoesRegistro"></div>
+    <hr>
+    <h3>Marcações do Dia</h3>
+    <div id="registrosUsuario"></div>
+    <hr>
+    <button onclick="logout()">Sair</button>
+  </div>
 </div>
 
 <!-- ADMIN -->
 <div id="adminSection" class="hidden">
-<div class="card" style="max-width:1200px">
-<h2>Relatório – Cartão de Ponto</h2>
-<button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
-<button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
+  <div class="card" style="max-width:1200px">
+    <h2>Relatório – Cartão de Ponto</h2>
+    <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
+    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
 
-<select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
-<input type="date" id="dataInicio">
-<input type="date" id="dataFim">
-<select id="tipoRelatorio">
-<option value="simples">Relatório Simples</option>
-<option value="comGeo">Com Geolocalização</option>
-</select>
-<button onclick="gerarRelatorioMensal()">Gerar</button>
-<button onclick="gerarExcel()">Excel</button>
-<button onclick="gerarPDFAdmin()">PDF</button>
-<button onclick="logout()">Sair</button>
-<div id="cartaoFuncionario"></div>
-</div>
+    <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
+    <input type="date" id="dataInicio">
+    <input type="date" id="dataFim">
+    <select id="tipoRelatorio">
+      <option value="simples">Relatório Simples</option>
+      <option value="comGeo">Com Geolocalização</option>
+    </select>
+    <button onclick="gerarRelatorioMensal()">Gerar</button>
+    <button onclick="gerarExcel()">Excel</button>
+    <button onclick="gerarPDFAdmin()">PDF</button>
+    <button onclick="logout()">Sair</button>
+    <div id="cartaoFuncionario"></div>
+  </div>
 </div>
 
 <!-- MODAL CADASTRO FUNCIONARIO -->
 <div id="modalFuncionario" class="card hidden" style="max-width:500px">
-<h3>Cadastro / Edição de Funcionário</h3>
+  <h3>Cadastro / Edição de Funcionário</h3>
 
-<label>Código Funcionário:<br>
-<input id="novoCodigo" placeholder="Código">
-</label><br>
+  <label>Código Funcionário:<br>
+    <input id="novoCodigo" placeholder="Código">
+  </label><br>
 
-<label>Nome Funcionário:<br>
-<input id="novoNome" placeholder="Nome completo">
-</label><br>
+  <label>Nome Funcionário:<br>
+    <input id="novoNome" placeholder="Nome completo">
+  </label><br>
 
-<label>Usuário (login):<br>
-<input id="novoUser" placeholder="Usuário">
-</label><br>
+  <label>Usuário (login):<br>
+    <input id="novoUser" placeholder="Usuário">
+  </label><br>
 
-<label>Senha:<br>
-<input id="novoPass" type="password" placeholder="Senha">
-</label><br>
+  <label>Senha:<br>
+    <input id="novoPass" type="password" placeholder="Senha">
+  </label><br>
 
-<label>Cargo:<br>
-<input id="novoCargo" placeholder="Cargo/Função">
-</label><br>
+  <label>Cargo:<br>
+    <input id="novoCargo" placeholder="Cargo/Função">
+  </label><br>
 
-<label>PIS:<br>
-<input id="novoPis" placeholder="PIS">
-</label><br>
+  <label>PIS:<br>
+    <input id="novoPis" placeholder="PIS">
+  </label><br>
 
-<label>Depto/Setor:<br>
-<input id="novoSetor" placeholder="Departamento / Setor">
-</label><br>
+  <label>Depto/Setor:<br>
+    <input id="novoSetor" placeholder="Departamento / Setor">
+  </label><br>
 
-<label>Local de Trabalho:<br>
-<input id="novoLocal" placeholder="Local de trabalho">
-</label><br>
+  <label>Local de Trabalho:<br>
+    <input id="novoLocal" placeholder="Local de trabalho">
+  </label><br>
 
-<p><strong>Escala padrão semanal do funcionário</strong><br>
-Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
-</p>
+  <p><strong>Escala padrão semanal do funcionário</strong><br>
+    Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
+  </p>
 
-<label>Segunda-feira:<br>
-<input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
-</label><br>
+  <label>Segunda-feira:<br>
+    <input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
 
-<label>Terça-feira:<br>
-<input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
-</label><br>
+  <label>Terça-feira:<br>
+    <input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
 
-<label>Quarta-feira:<br>
-<input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
-</label><br>
+  <label>Quarta-feira:<br>
+    <input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
 
-<label>Quinta-feira:<br>
-<input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
-</label><br>
+  <label>Quinta-feira:<br>
+    <input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
 
-<label>Sexta-feira:<br>
-<input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
-</label><br>
+  <label>Sexta-feira:<br>
+    <input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
+  </label><br>
 
-<label>Sábado:<br>
-<input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
-</label><br>
+  <label>Sábado:<br>
+    <input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
+  </label><br>
 
-<label>Domingo:<br>
-<input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
-</label><br><br>
+  <label>Domingo:<br>
+    <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
+  </label><br><br>
 
-<button onclick="salvarFuncionario()">Salvar</button>
-<button onclick="fecharCadastroFuncionario()">Cancelar</button>
+  <button onclick="salvarFuncionario()">Salvar</button>
+  <button onclick="fecharCadastroFuncionario()">Cancelar</button>
 </div>
 
 <!-- MODAL ESCALA MENSAL -->
 <div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
-<h3>Editar Escala Mensal (manual)</h3>
-<p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
-<div id="conteudoEscala"></div>
-<button onclick="salvarEscalaMensal()">Salvar Escala</button>
-<button onclick="fecharEscalaMensal()">Cancelar</button>
+  <h3>Editar Escala Mensal (manual)</h3>
+  <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
+  <div id="conteudoEscala"></div>
+  <button onclick="salvarEscalaMensal()">Salvar Escala</button>
+  <button onclick="fecharEscalaMensal()">Cancelar</button>
 </div>
 
 <script>
@@ -171,526 +182,522 @@ let dataAtualRel = "";
 const feriados = ["01/01","07/09","25/12"];
 
 const justificativas = [
-"Nenhum","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
-"Atestado Médico Dias","Atestado Médico Horas",
-"Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado"
+  "Nenhum","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
+  "Atestado Médico Dias","Atestado Médico Horas",
+  "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado"
 ];
 
 /************* API *************/
 async function apiPost(payload){
-const r = await fetch(WEBAPP_URL, {
-method: "POST",
-headers: { "Content-Type": "text/plain;charset=utf-8" },
-body: JSON.stringify(payload)
-});
-return await r.json();
+  const r = await fetch(WEBAPP_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+  return await r.json();
 }
 
 /************* HELPERS *************/
 function capitalize(s){
-if(!s) return "";
-return s.charAt(0).toUpperCase()+s.slice(1);
+  if(!s) return "";
+  return s.charAt(0).toUpperCase()+s.slice(1);
 }
 
 // Converte "HH:MM" em minutos
 function hm(h){
-if(!h || typeof h!=="string" || !h.includes(":")) return 0;
-const[x,y]=h.split(":").map(Number);
-if(isNaN(x) || isNaN(y)) return 0;
-return x*60+y;
+  if(!h || typeof h!=="string" || !h.includes(":")) return 0;
+  const[x,y]=h.split(":").map(Number);
+  if(isNaN(x) || isNaN(y)) return 0;
+  return x*60+y;
 }
 
 // Converte minutos → "HH:MM" (com sinal)
 function fmt(m){
-const sign = m<0 ? "-" : "";
-const abs = Math.abs(m);
-const h = String(Math.floor(abs/60)).padStart(2,"0");
-const mm = String(abs%60).padStart(2,"0");
-return sign + h + ":" + mm;
+  const sign = m<0 ? "-" : "";
+  const abs = Math.abs(m);
+  const h = String(Math.floor(abs/60)).padStart(2,"0");
+  const mm = String(abs%60).padStart(2,"0");
+  return sign + h + ":" + mm;
 }
 
 // Pega carga diária da escala (escStr) em minutos
 function cargaEscalaMin(escStr){
-if(!escStr) return 0;
-const s = escStr.toString().toUpperCase().trim();
-if(s==="FOLGA") return 0;
-if(/^\d{2}:\d{2}$/.test(s)) return hm(s);
-if(s.includes("=")){
-const partes = s.split("=");
-const carga = partes[partes.length-1].trim();
-if(/^\d{2}:\d{2}$/.test(carga)) return hm(carga);
-}
-return 0;
+  if(!escStr) return 0;
+  const s = escStr.toString().toUpperCase().trim();
+  if(s==="FOLGA") return 0;
+  if(/^\d{2}:\d{2}$/.test(s)) return hm(s);
+  if(s.includes("=")){
+    const partes = s.split("=");
+    const carga = partes[partes.length-1].trim();
+    if(/^\d{2}:\d{2}$/.test(carga)) return hm(carga);
+  }
+  return 0;
 }
 
 // Normaliza valor vindo da planilha (Date, string ISO, string longa) para "HH:MM"
 function formataHoraCelula(valor){
-if (!valor) return "";
+  if (!valor) return "";
 
-if (valor instanceof Date) {
-const hh = String(valor.getHours()).padStart(2,"0");
-const mm = String(valor.getMinutes()).padStart(2,"0");
-return `${hh}:${mm}`;
-}
+  if (valor instanceof Date) {
+    const hh = String(valor.getHours()).padStart(2,"0");
+    const mm = String(valor.getMinutes()).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
 
-const s = String(valor).trim();
-if (!s) return "";
+  const s = String(valor).trim();
+  if (!s) return "";
 
-if (/^\d{1,2}:\d{2}$/.test(s)) {
-const [h, m] = s.split(":");
-return `${h.padStart(2,"0")}:${m}`;
-}
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const [h, m] = s.split(":");
+    return `${h.padStart(2,"0")}:${m}`;
+  }
 
-const m = s.match(/(\d{1,2}):(\d{2})/);
-if (m) {
-const h  = m[1].padStart(2,"0");
-const mm = m[2];
-return `${h}:${mm}`;
-}
+  const m = s.match(/(\d{1,2}):(\d{2})/);
+  if (m) {
+    const h  = m[1].padStart(2,"0");
+    const mm = m[2];
+    return `${h}:${mm}`;
+  }
 
-return s;
+  return s;
 }
 
 // Converte "yyyy-mm-dd" do <input type="date"> em Date local
 function parseInputDateLocal(str){
-if(!str) return null;
-const [ano, mes, dia] = str.split("-").map(Number);
-return new Date(ano, mes - 1, dia);
+  if(!str) return null;
+  const [ano, mes, dia] = str.split("-").map(Number);
+  return new Date(ano, mes - 1, dia);
 }
 
 /************* LOGIN VIA APPS SCRIPT *************/
 async function login(){
-const u = document.getElementById("username").value.trim();
-const p = document.getElementById("password").value.trim();
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
 
-if(!u || !p){
-alert("Preencha usuário e senha.");
-return;
-}
+  if(!u || !p){
+    alert("Preencha usuário e senha.");
+    return;
+  }
 
-let res;
-try {
-res = await apiPost({ tipo:"login", usuario:u, senha:p });
-} catch(e){
-alert("Erro ao conectar com o servidor: " + e);
-return;
-}
+  let res;
+  try {
+    res = await apiPost({ tipo:"login", usuario:u, senha:p });
+  } catch(e){
+    alert("Erro ao conectar com o servidor: " + e);
+    return;
+  }
 
-if(!res || res.status !== "ok"){
-alert(res && res.message ? res.message : "Usuário ou senha inválidos.");
-return;
-}
+  if(!res || res.status !== "ok"){
+    alert(res && res.message ? res.message : "Usuário ou senha inválidos.");
+    return;
+  }
 
-const user = res.user || {};
-const loginKey = (user.usuario_login || u).toString().trim().toLowerCase();
+  const user = res.user || {};
+  const loginKey = (user.usuario_login || u).toString().trim().toLowerCase();
 
-currentUser = loginKey;
-currentUserObj = user;
+  currentUser = loginKey;
+  currentUserObj = user;
 
-const esc = {
-1: user.escSeg || "08:00",
-2: user.escTer || user.escSeg || "08:00",
-3: user.escQua || user.escSeg || "08:00",
-4: user.escQui || user.escSeg || "08:00",
-5: user.escSex || user.escSeg || "08:00",
-6: user.escSab || "04:00",
-0: user.escDom || "FOLGA"
-};
+  const esc = {
+    1: user.escSeg || "08:00",
+    2: user.escTer || user.escSeg || "08:00",
+    3: user.escQua || user.escSeg || "08:00",
+    4: user.escQui || user.escSeg || "08:00",
+    5: user.escSex || user.escSeg || "08:00",
+    6: user.escSab || "04:00",
+    0: user.escDom || "FOLGA"
+  };
 
-users[loginKey] = {
-role: (user.role || "operacional").toLowerCase(),
-nomeCompleto: user.nomeCompleto || user.nome || loginKey,
-pis: user.pis || "",
-cargo: user.cargo || "",
-setor: user.setor || "",
-localTrabalho: user.local_trabalho || "",
-escalaMensal: {},
-escalaSemanal: esc
-};
+  users[loginKey] = {
+    role: (user.role || "operacional").toLowerCase(),
+    nomeCompleto: user.nomeCompleto || user.nome || loginKey,
+    pis: user.pis || "",
+    cargo: user.cargo || "",
+    setor: user.setor || "",
+    localTrabalho: user.local_trabalho || "",
+    escalaMensal: {},
+    escalaSemanal: esc
+  };
 
-const spanNome = document.getElementById("nomeUsuario");
-if(spanNome) spanNome.textContent = users[loginKey].nomeCompleto;
+  const spanNome = document.getElementById("nomeUsuario");
+  if(spanNome) spanNome.textContent = users[loginKey].nomeCompleto;
 
-document.getElementById("loginSection").classList.add("hidden");
+  document.getElementById("loginSection").classList.add("hidden");
 
-const role = users[loginKey].role;
-if(role === "admin"){
-document.getElementById("adminSection").classList.remove("hidden");
-await carregarUsuariosAdmin();
-preencherFuncionarios();
-} else {
-document.getElementById("operacionalSection").classList.remove("hidden");
-mostrarDataHora();
-mostrarRegistrosUsuario();
-}
+  const role = users[loginKey].role;
+  if(role === "admin"){
+    document.getElementById("adminSection").classList.remove("hidden");
+    await carregarUsuariosAdmin();
+    preencherFuncionarios();
+  } else {
+    document.getElementById("operacionalSection").classList.remove("hidden");
+    mostrarDataHora();
+    mostrarRegistrosUsuario();
+  }
 }
 
 function logout(){ location.reload(); }
 
 /************* CARREGAR USUÁRIOS (ADMIN) *************/
 async function carregarUsuariosAdmin(){
-try{
-const res = await apiPost({ tipo:"listarUsuarios" });
-if(res.status !== "ok") return;
-const lista = res.usuarios || [];
-lista.forEach(u=>{
-const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
-if(!loginKey) return;
-const esc = {
-1: u.escSeg || "08:00",
-2: u.escTer || u.escSeg || "08:00",
-3: u.escQua || u.escSeg || "08:00",
-4: u.escQui || u.escSeg || "08:00",
-5: u.escSex || u.escSeg || "08:00",
-6: u.escSab || "04:00",
-0: u.escDom || "FOLGA"
-};
-users[loginKey] = {
-role: (u.role || "operacional").toLowerCase(),
-nomeCompleto: u.nomeCompleto || u.nome || loginKey,
-pis: u.pis || "",
-cargo: u.cargo || "",
-setor: u.setor || "",
-localTrabalho: u.local_trabalho || "",
-escalaMensal: {},
-escalaSemanal: esc
-};
-});
-}catch(e){
-console.error("Erro ao listar usuários:", e);
-}
+  try{
+    const res = await apiPost({ tipo:"listarUsuarios" });
+    if(res.status !== "ok") return;
+    const lista = res.usuarios || [];
+    lista.forEach(u=>{
+      const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
+      if(!loginKey) return;
+      const esc = {
+        1: u.escSeg || "08:00",
+        2: u.escTer || u.escSeg || "08:00",
+        3: u.escQua || u.escSeg || "08:00",
+        4: u.escQui || u.escSeg || "08:00",
+        5: u.escSex || u.escSeg || "08:00",
+        6: u.escSab || "04:00",
+        0: u.escDom || "FOLGA"
+      };
+      users[loginKey] = {
+        role: (u.role || "operacional").toLowerCase(),
+        nomeCompleto: u.nomeCompleto || u.nome || loginKey,
+        pis: u.pis || "",
+        cargo: u.cargo || "",
+        setor: u.setor || "",
+        localTrabalho: u.local_trabalho || "",
+        escalaMensal: {},
+        escalaSemanal: esc
+      };
+    });
+  }catch(e){
+    console.error("Erro ao listar usuários:", e);
+  }
 }
 
 /************* OPERACIONAL *************/
 function registrar(tipo){
-const agora=new Date();
-const hora=agora.toTimeString().slice(0,5); // HH:MM
-const data=agora.toLocaleDateString("pt-BR"); // dd/mm/aaaa
+  const agora=new Date();
+  const hora=agora.toTimeString().slice(0,5); // HH:MM
+  const data=agora.toLocaleDateString("pt-BR"); // dd/mm/aaaa
 
-navigator.geolocation.getCurrentPosition(
-pos=> salvarRegistro(tipo,hora,data,`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
-()=> salvarRegistro(tipo,hora,data,"Não registrada")
-);
+  navigator.geolocation.getCurrentPosition(
+    pos=> salvarRegistro(tipo,hora,data,`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
+    ()=> salvarRegistro(tipo,hora,data,"Não registrada")
+  );
 }
 
 async function salvarRegistro(tipo,hora,data,geo){
-const res = await apiPost({
-tipo:"registroPonto",
-usuario_login: currentUser,
-data: data,
-marcacao: tipo,
-hora: hora,
-geo: geo
-});
+  const res = await apiPost({
+    tipo:"registroPonto",
+    usuario_login: currentUser,
+    data: data,
+    marcacao: tipo,
+    hora: hora,
+    geo: geo
+  });
 
-if(res.status !== "ok"){
-alert(res.message || "Erro ao salvar registro na planilha");
-return;
-}
+  if(res.status !== "ok"){
+    alert(res.message || "Erro ao salvar registro na planilha");
+    return;
+  }
 
-await mostrarRegistrosUsuario();
+  await mostrarRegistrosUsuario();
 }
 
 function mostrarDataHora(){
-setInterval(()=>{
-const a=new Date();
-document.getElementById("dataAtual").textContent="Data: "+a.toLocaleDateString("pt-BR");
-document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString("pt-BR");
-},1000);
+  setInterval(()=>{
+    const a=new Date();
+    document.getElementById("dataAtual").textContent="Data: "+a.toLocaleDateString("pt-BR");
+    document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString("pt-BR");
+  },1000);
 }
 
 async function mostrarRegistrosUsuario(){
-const hoje = new Date().toLocaleDateString("pt-BR"); // dd/mm/aaaa
-let r = {};
+  const hoje = new Date().toLocaleDateString("pt-BR"); // dd/mm/aaaa
+  let r = {};
 
-const registrosDiv = document.getElementById("registrosUsuario");
-const botoesDiv = document.getElementById("botoesRegistro");
+  const registrosDiv = document.getElementById("registrosUsuario");
+  const botoesDiv = document.getElementById("botoesRegistro");
 
-registrosDiv.innerHTML = "Carregando marcações...";
-botoesDiv.innerHTML = "";
+  registrosDiv.innerHTML = "Carregando marcações...";
+  botoesDiv.innerHTML = "";
 
-try{
-const res = await apiPost({tipo:"getDia", usuario_login: currentUser, data: hoje});
-if(res && res.status === "ok" && res.dia){
-r = res.dia;
-}else if(res && res.status === "erro"){
-registrosDiv.innerHTML = "Erro ao carregar dia: " + (res.message || "");
-}else{
-registrosDiv.innerHTML = "";
-}
-}catch(e){
-console.error("Erro em mostrarRegistrosUsuario:", e);
-registrosDiv.innerHTML = "Erro ao conectar com o servidor.";
-}
+  try{
+    const res = await apiPost({tipo:"getDia", usuario_login: currentUser, data: hoje});
+    if(res && res.status === "ok" && res.dia){
+      r = res.dia;
+    }else if(res && res.status === "erro"){
+      registrosDiv.innerHTML = "Erro ao carregar dia: " + (res.message || "");
+    }else{
+      registrosDiv.innerHTML = "";
+    }
+  }catch(e){
+    console.error("Erro em mostrarRegistrosUsuario:", e);
+    registrosDiv.innerHTML = "Erro ao conectar com o servidor.";
+  }
 
-registrosDiv.innerHTML = "";
-["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
-if(r[t]){
-const horaFmt = formataHoraCelula(r[t]);
-registrosDiv.innerHTML+=`
-       <div>
-         <strong>${capitalize(t)}:</strong> ${horaFmt}
-         <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button>
-       </div>`;
-}
-});
+  registrosDiv.innerHTML = "";
+  ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(t=>{
+    if(r[t]){
+      const horaFmt = formataHoraCelula(r[t]);
+      registrosDiv.innerHTML+=`
+        <div>
+          <strong>${capitalize(t)}:</strong> ${horaFmt}
+          <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button>
+        </div>`;
+    }
+  });
 
-if(!r.entrada){
-botoesDiv.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
-} else if(!r.saidaAlmoco){
-botoesDiv.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
-} else if(!r.retornoAlmoco){
-botoesDiv.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
-} else if(!r.saida){
-botoesDiv.innerHTML=`<button onclick="registrar('saida')">Saída</button>`;
-} else {
-botoesDiv.innerHTML="✅ Jornada finalizada";
-}
+  if(!r.entrada){
+    botoesDiv.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`;
+  } else if(!r.saidaAlmoco){
+    botoesDiv.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
+  } else if(!r.retornoAlmoco){
+    botoesDiv.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
+  } else if(!r.saida){
+    botoesDiv.innerHTML=`<button onclick="registrar('saida')">Saída</button>`;
+  } else {
+    botoesDiv.innerHTML="✅ Jornada finalizada";
+  }
 }
 
 /************* COMPROVANTE INDIVIDUAL *************/
 async function gerarComprovante(tipo){
-const {jsPDF}=window.jspdf;
-const doc=new jsPDF();
-const hoje=new Date().toLocaleDateString("pt-BR");
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const hoje=new Date().toLocaleDateString("pt-BR");
 
-const res = await apiPost({tipo:"getDia", usuario_login: currentUser, data: hoje});
-const r = (res.status==="ok" ? res.dia : {}) || {};
+  const res = await apiPost({tipo:"getDia", usuario_login: currentUser, data: hoje});
+  const r = (res.status==="ok" ? res.dia : {}) || {};
 
-const hora=formataHoraCelula(r[tipo]||"");
-const geoKey = ({
-entrada: "geoEntrada",
-saidaAlmoco: "geoSaidaAlmoco",
-retornoAlmoco: "geoRetornoAlmoco",
-saida: "geoSaida"
-})[tipo] || ("geo"+capitalize(tipo));
+  const hora=formataHoraCelula(r[tipo]||"");
+  const geoKey = ({
+    entrada: "geoEntrada",
+    saidaAlmoco: "geoSaidaAlmoco",
+    retornoAlmoco: "geoRetornoAlmoco",
+    saida: "geoSaida"
+  })[tipo] || ("geo"+capitalize(tipo));
 
-const geo=r[geoKey]||"";
+  const geo=r[geoKey]||"";
 
-doc.setFontSize(14);
-doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
-doc.setFontSize(11);
-doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
-doc.text(`PIS: ${users[currentUser]?.pis||""}`,14,36);
-doc.text(`Data: ${hoje}`,14,42);
-doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
-doc.text(`Horário: ${hora}`,14,54);
-doc.text(`Geolocalização: ${geo}`,14,60);
-doc.save(`comprovante_${tipo}_${hoje}.pdf`);
+  doc.setFontSize(14);
+  doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
+  doc.setFontSize(11);
+  doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
+  doc.text(`PIS: ${users[currentUser]?.pis||""}`,14,36);
+  doc.text(`Data: ${hoje}`,14,42);
+  doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
+  doc.text(`Horário: ${hora}`,14,54);
+  doc.text(`Geolocalização: ${geo}`,14,60);
+  doc.save(`comprovante_${tipo}_${hoje}.pdf`);
 }
 
 /************* AJUSTES (ADMIN) *************/
 function campo(valor, c, adminView = true){
-const valorFmt = formataHoraCelula(valor);
-const vazio = !valorFmt || valorFmt === "-";
-const evento = dadosAtual[c+"_evento"];
+  const valorFmt = formataHoraCelula(valor);
+  const vazio = !valorFmt || valorFmt === "-";
+  const evento = dadosAtual[c+"_evento"];
 
-if(!vazio && !evento){
-if(adminView){
-return valorFmt + (dadosAtual[c+"_editado"]
-? ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
-: "");
-}
-return valorFmt;
-}
+  if(!vazio && !evento){
+    if(adminView){
+      return valorFmt + (dadosAtual[c+"_editado"]
+        ? ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
+        : "");
+    }
+    return valorFmt;
+  }
 
-if(evento){
-if(adminView){
-return evento +
-` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`;
-}
-return evento;
-}
+  if(evento){
+    if(adminView){
+      return evento +
+        ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`;
+    }
+    return evento;
+  }
 
-if(adminView){
-return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
-}
-return "";
+  if(adminView){
+    return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
+  }
+  return "";
 }
 
 async function abrirAjuste(u,d,c){
-const resGet = await apiPost({tipo:"getDia", usuario_login:u, data:d});
-if(resGet.status !== "ok"){
-alert(resGet.message || "Erro ao carregar dia");
-return;
-}
-const atual = resGet.dia || {};
+  const resGet = await apiPost({tipo:"getDia", usuario_login:u, data:d});
+  if(resGet.status !== "ok"){
+    alert(resGet.message || "Erro ao carregar dia");
+    return;
+  }
+  const atual = resGet.dia || {};
 
-let popup = document.createElement("div");
-popup.style.position="fixed";
-popup.style.top="50%";
-popup.style.left="50%";
-popup.style.transform="translate(-50%,-50%)";
-popup.style.background="#fff";
-popup.style.padding="20px";
-popup.style.border="1px solid #333";
-popup.style.zIndex=1000;
+  let popup = document.createElement("div");
+  popup.style.position="fixed";
+  popup.style.top="50%";
+  popup.style.left="50%";
+  popup.style.transform="translate(-50%,-50%)";
+  popup.style.background="#fff";
+  popup.style.padding="20px";
+  popup.style.border="1px solid #333";
+  popup.style.zIndex=1000;
 
-popup.innerHTML=`
-   <h3>Ajustar ${c}</h3>
-   <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}"></label><br><br>
-   <label>Justificar:
-     <select id="selectJustificacao">
-       <option value="">--Escolha--</option>
-       ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")===j?'selected':''}>${j}</option>`).join("")}
-     </select>
-   </label><br><br>
-   <button id="okBtn">Ok</button>
-   <button id="cancelBtn">Cancelar</button>
- `;
-document.body.appendChild(popup);
+  popup.innerHTML=`
+    <h3>Ajustar ${c}</h3>
+    <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}"></label><br><br>
+    <label>Justificar:
+      <select id="selectJustificacao">
+        <option value="">--Escolha--</option>
+        ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")===j?'selected':''}>${j}</option>`).join("")}
+      </select>
+    </label><br><br>
+    <button id="okBtn">Ok</button>
+    <button id="cancelBtn">Cancelar</button>
+  `;
+  document.body.appendChild(popup);
 
-popup.querySelector("#okBtn").onclick = async ()=>{
-const h = popup.querySelector("#inputHoras").value.trim();
-const ev = popup.querySelector("#selectJustificacao").value;
+  popup.querySelector("#okBtn").onclick = async ()=>{
+    const h = popup.querySelector("#inputHoras").value.trim();
+    const ev = popup.querySelector("#selectJustificacao").value;
 
-if(ev === "Nenhum"){
-["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-delete atual[campoNome+"_evento"];
-delete atual[campoNome+"_editado"];
-if(atual[campoNome] === "-" || atual[campoNome] === "" || atual[campoNome] == null){
-delete atual[campoNome];
-}
-});
-delete atual.atestadoHorasMin;
+    if(ev === "Nenhum"){
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        delete atual[campoNome+"_evento"];
+        delete atual[campoNome+"_editado"];
+        if(atual[campoNome] === "-" || atual[campoNome] === "" || atual[campoNome] == null){
+          delete atual[campoNome];
+        }
+      });
+      delete atual.atestadoHorasMin;
 
-      // >>> garante que a data também vai na estrutura do dia
-atual.data = d;
+      atual.data = d;
 
-const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
-if(resSave.status!=="ok") alert(resSave.message||"Erro ao salvar ajuste");
-popup.remove();
-await gerarRelatorioMensal();
-return;
-}
+      const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
+      if(resSave.status!=="ok") alert(resSave.message||"Erro ao salvar ajuste");
+      popup.remove();
+      await gerarRelatorioMensal();
+      return;
+    }
 
-if(ev === "Atestado Médico Dias"){
-const intervalo = prompt("Informe o intervalo do atestado (formato: dd/mm/aaaa - dd/mm/aaaa):", d+" - "+d);
-if(intervalo){
-const partes = intervalo.split("-");
-if(partes.length===2){
-const iniStr = partes[0].trim();
-const fimStr = partes[1].trim();
-const [di,mi,ai] = iniStr.split("/").map(Number);
-const [df,mf,af] = fimStr.split("/").map(Number);
-if(di&&mi&&ai&&df&&mf&&af){
-let dataIni = new Date(ai,mi-1,di);
-let dataFim = new Date(af,mf-1,df);
-if(dataIni > dataFim){ const tmp=dataIni; dataIni=dataFim; dataFim=tmp; }
+    if(ev === "Atestado Médico Dias"){
+      const intervalo = prompt("Informe o intervalo do atestado (formato: dd/mm/aaaa - dd/mm/aaaa):", d+" - "+d);
+      if(intervalo){
+        const partes = intervalo.split("-");
+        if(partes.length===2){
+          const iniStr = partes[0].trim();
+          const fimStr = partes[1].trim();
+          const [di,mi,ai] = iniStr.split("/").map(Number);
+          const [df,mf,af] = fimStr.split("/").map(Number);
+          if(di&&mi&&ai&&df&&mf&&af){
+            let dataIni = new Date(ai,mi-1,di);
+            let dataFim = new Date(af,mf-1,df);
+            if(dataIni > dataFim){ const tmp=dataIni; dataIni=dataFim; dataFim=tmp; }
 
-let cursor = new Date(dataIni);
-while(cursor <= dataFim){
-const cdia = String(cursor.getDate()).padStart(2,"0");
-const cmes = String(cursor.getMonth()+1).padStart(2,"0");
-const cano = cursor.getFullYear();
-const chave = `${cdia}/${cmes}/${cano}`;
+            let cursor = new Date(dataIni);
+            while(cursor <= dataFim){
+              const cdia = String(cursor.getDate()).padStart(2,"0");
+              const cmes = String(cursor.getMonth()+1).padStart(2,"0");
+              const cano = cursor.getFullYear();
+              const chave = `${cdia}/${cmes}/${cano}`;
 
-const resDia = await apiPost({tipo:"getDia", usuario_login:u, data:chave});
-const reg = (resDia.status==="ok" ? resDia.dia : {}) || {};
+              const resDia = await apiPost({tipo:"getDia", usuario_login:u, data:chave});
+              const reg = (resDia.status==="ok" ? resDia.dia : {}) || {};
 
-["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-reg[campoNome] = "-";
-reg[campoNome+"_evento"] = ev;
-reg[campoNome+"_editado"] = true;
-});
-delete reg.atestadoHorasMin;
+              ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+                reg[campoNome] = "-";
+                reg[campoNome+"_evento"] = ev;
+                reg[campoNome+"_editado"] = true;
+              });
+              delete reg.atestadoHorasMin;
 
-              // >>> garante que a data também vai gravada neste dia
-reg.data = chave;
+              reg.data = chave;
 
-await apiPost({tipo:"salvarDia", usuario_login:u, data:chave, dia: reg});
-cursor.setDate(cursor.getDate()+1);
-}
-popup.remove();
-await gerarRelatorioMensal();
-return;
-}
-}
-}
-}
+              await apiPost({tipo:"salvarDia", usuario_login:u, data:chave, dia: reg});
+              cursor.setDate(cursor.getDate()+1);
+            }
+            popup.remove();
+            await gerarRelatorioMensal();
+            return;
+          }
+        }
+      }
+    }
 
-if(ev === "Atestado Médico Horas"){
-const dataAtestadoStr = prompt("Data do atestado (dd/mm/aaaa):", d);
-if(!dataAtestadoStr){ popup.remove(); return; }
-const [ddia,dmes,dano] = dataAtestadoStr.split("/").map(Number);
-if(!ddia||!dmes||!dano){ popup.remove(); return; }
-const dataAtestadoKey = `${String(ddia).padStart(2,"0")}/${String(dmes).padStart(2,"0")}/${dano}`;
-const hIni = prompt("Hora INÍCIO do atestado (HH:MM):","08:00");
-const hFim = prompt("Hora FIM do atestado (HH:MM):","10:00");
-if(!hIni || !hFim){ popup.remove(); return; }
-const minutosAtestado = Math.max(0, hm(hFim) - hm(hIni));
+    if(ev === "Atestado Médico Horas"){
+      const dataAtestadoStr = prompt("Data do atestado (dd/mm/aaaa):", d);
+      if(!dataAtestadoStr){ popup.remove(); return; }
+      const [ddia,dmes,dano] = dataAtestadoStr.split("/").map(Number);
+      if(!ddia||!dmes||!dano){ popup.remove(); return; }
+      const dataAtestadoKey = `${String(ddia).padStart(2,"0")}/${String(dmes).padStart(2,"0")}/${dano}`;
+      const hIni = prompt("Hora INÍCIO do atestado (HH:MM):","08:00");
+      const hFim = prompt("Hora FIM do atestado (HH:MM):","10:00");
+      if(!hIni || !hFim){ popup.remove(); return; }
+      const minutosAtestado = Math.max(0, hm(hFim) - hm(hIni));
 
-const resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dataAtestadoKey});
-const regA = (resDia.status==="ok" ? resDia.dia : {}) || {};
+      const resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dataAtestadoKey});
+      const regA = (resDia.status==="ok" ? resDia.dia : {}) || {};
 
-["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-regA[campoNome]="-";
-regA[campoNome+"_evento"]=ev;
-regA[campoNome+"_editado"]=true;
-});
-regA.atestadoHorasMin = minutosAtestado;
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        regA[campoNome]="-";
+        regA[campoNome+"_evento"]=ev;
+        regA[campoNome+"_editado"]=true;
+      });
+      regA.atestadoHorasMin = minutosAtestado;
 
-      // >>> garante que a data também vai gravada neste dia
-regA.data = dataAtestadoKey;
+      regA.data = dataAtestadoKey;
 
-const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:dataAtestadoKey, dia: regA});
-if(resSave.status!=="ok") alert(resSave.message||"Erro ao salvar atestado");
-popup.remove();
-await gerarRelatorioMensal();
-return;
-}
+      const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:dataAtestadoKey, dia: regA});
+      if(resSave.status!=="ok") alert(resSave.message||"Erro ao salvar atestado");
+      popup.remove();
+      await gerarRelatorioMensal();
+      return;
+    }
 
-if(h){
-atual[c]=h;
-atual[c+"_evento"]="";
-atual[c+"_editado"]=true;
-delete atual.atestadoHorasMin;
-} else if(ev){
-["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-atual[campoNome]="-";
-atual[campoNome+"_evento"]=ev;
-atual[campoNome+"_editado"]=true;
-});
-delete atual.atestadoHorasMin;
-}
+    if(h){
+      atual[c]=h;
+      atual[c+"_evento"]="";
+      atual[c+"_editado"]=true;
+      delete atual.atestadoHorasMin;
+    } else if(ev){
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        atual[campoNome]="-";
+        atual[campoNome+"_evento"]=ev;
+        atual[campoNome+"_editado"]=true;
+      });
+      delete atual.atestadoHorasMin;
+    }
 
-    // >>> em qualquer outro ajuste simples, também garantimos a data
-atual.data = d;
+    atual.data = d;
 
-const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
-if(resSave.status!=="ok") alert(resSave.message||"Erro ao salvar ajuste");
-popup.remove();
-await gerarRelatorioMensal();
-};
+    const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
+    if(resSave.status!=="ok") alert(resSave.message||"Erro ao salvar ajuste");
+    popup.remove();
+    await gerarRelatorioMensal();
+  };
 
-popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
+  popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
 }
 
 /************* ADMIN – CARREGAR FUNCIONÁRIOS *************/
 function preencherFuncionarios(){
-const select=document.getElementById("funcionarioSelect");
-select.innerHTML="<option value=''>Selecionar Funcionário</option>";
-Object.keys(users).forEach(u=>{
-if(users[u].role==="operacional"){
-const option=document.createElement("option");
-option.value=u;
-option.textContent=users[u].nomeCompleto || u;
-select.appendChild(option);
-}
-});
+  const select=document.getElementById("funcionarioSelect");
+  select.innerHTML="<option value=''>Selecionar Funcionário</option>";
+  Object.keys(users).forEach(u=>{
+    if(users[u].role==="operacional"){
+      const option=document.createElement("option");
+      option.value=u;
+      option.textContent=users[u].nomeCompleto || u;
+      select.appendChild(option);
+    }
+  });
 }
 
 /************* RELATÓRIO MENSAL *************/
 async function gerarRelatorioMensal(){
-const funcSelect = document.getElementById("funcionarioSelect");
-const dataInicioEl = document.getElementById("dataInicio");
-const dataFimEl = document.getElementById("dataFim");
-const tipoEl = document.getElementById("tipoRelatorio");
+  const funcSelect = document.getElementById("funcionarioSelect");
+  const dataInicioEl = document.getElementById("dataInicio");
+  const dataFimEl = document.getElementById("dataFim");
+  const tipoEl = document.getElementById("tipoRelatorio");
 
-const u = funcSelect.value;
-if(!u || !dataInicioEl.value) return;
+  const u = funcSelect.value;
+  if(!u || !dataInicioEl.value) return;
 
-const tipo = tipoEl.value;
+  const tipo = tipoEl.value;
 
   // Datas reais usadas no laço
   const inicio = parseInputDateLocal(dataInicioEl.value);
@@ -704,433 +711,426 @@ const tipo = tipoEl.value;
   // Textos bonitos para o cabeçalho (dd/mm/aaaa)
   const periodoInicioStr = inicio.toLocaleDateString("pt-BR");
   const periodoFimStr = fim.toLocaleDateString("pt-BR");
-const escSem = await buscarEscalaPlanilha(u);
+
   const escSem = (users[u] && users[u].escalaSemanal) || {};
-const escMensal = (users[u] && users[u].escalaMensal) || {};
+  const escMensal = (users[u] && users[u].escalaMensal) || {};
 
-let html = "";
-html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
-html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
+  let html = "";
+  html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
+  html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
   html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
-  html += `<p>Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}</p>`;
 
-html += `<table id="tabelaRelatorio"><tr>
-   <th>Data</th>
-   <th>Dia</th>
-   <th>Entrada</th>
-   <th>Saída Almoço</th>
-   <th>Retorno</th>
-   <th>Saída</th>
-   <th>Total</th>
-   <th>Crédito</th>`;
+  html += `<table id="tabelaRelatorio"><tr>
+    <th>Data</th>
+    <th>Dia</th>
+    <th>Entrada</th>
+    <th>Saída Almoço</th>
+    <th>Retorno</th>
+    <th>Saída</th>
+    <th>Total</th>
+    <th>Crédito</th>`;
 
-if(tipo==="comGeo"){
-html += `<th>Geo Entrada</th>
-            <th>Geo Saída Almoço</th>
-            <th>Geo Retorno</th>
-            <th>Geo Saída</th>`;
-}
-html += `</tr>`;
+  if(tipo==="comGeo"){
+    html += `<th>Geo Entrada</th>
+             <th>Geo Saída Almoço</th>
+             <th>Geo Retorno</th>
+             <th>Geo Saída</th>`;
+  }
+  html += `</tr>`;
 
-let totalPeriodo = 0;
-let totalAtestadosMin = 0;
-let totalAfastamentosMin = 0;
-let totalAtrasosFaltasMin = 0;
+  let totalPeriodo = 0;
+  let totalAtestadosMin = 0;
+  let totalAfastamentosMin = 0;
+  let totalAtrasosFaltasMin = 0;
 
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
-let currentDate = new Date(inicio);
+  let currentDate = new Date(inicio);
 
-while(currentDate <= fim){
-const dd = String(currentDate.getDate()).padStart(2,"0");
-const mm = String(currentDate.getMonth()+1).padStart(2,"0");
-const yyyy = currentDate.getFullYear();
-const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
+  while(currentDate <= fim){
+    const dd = String(currentDate.getDate()).padStart(2,"0");
+    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
+    const yyyy = currentDate.getFullYear();
+    const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
 
-    // BUSCA O DIA DIRETO NO APPS SCRIPT
-let resDia;
-try{
-resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
-}catch(e){
-resDia = {status:"erro"};
-}
+    let resDia;
+    try{
+      resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
+    }catch(e){
+      resDia = {status:"erro"};
+    }
 
-dadosAtual = (resDia && resDia.status==="ok" && resDia.dia) ? resDia.dia : {};
-dataAtualRel = dBR;
+    dadosAtual = (resDia && resDia.status==="ok" && resDia.dia) ? resDia.dia : {};
+    dataAtualRel = dBR;
 
-const diaNum = currentDate.getDate();
-const weekday = currentDate.getDay(); // 0=Dom..6=Sab
+    const diaNum = currentDate.getDate();
+    const weekday = currentDate.getDay(); // 0=Dom..6=Sab
 
-let escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
-const jornadaEscala = cargaEscalaMin(escStr);
+    let escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
+    const jornadaEscala = cargaEscalaMin(escStr);
 
-const ddmm = `${dd}/${mm}`;
-const isFeriadoLista = feriados.includes(ddmm);
+    const ddmm = `${dd}/${mm}`;
+    const isFeriadoLista = feriados.includes(ddmm);
 
-let min = 0;
+    let min = 0;
 
-const eventos = [
-dadosAtual.entrada_evento,
-dadosAtual.saidaAlmoco_evento,
-dadosAtual.retornoAlmoco_evento,
-dadosAtual.saida_evento
-].filter(Boolean);
-const eventoDia = eventos[0] || "";
+    const eventos = [
+      dadosAtual.entrada_evento,
+      dadosAtual.saidaAlmoco_evento,
+      dadosAtual.retornoAlmoco_evento,
+      dadosAtual.saida_evento
+    ].filter(Boolean);
+    const eventoDia = eventos[0] || "";
 
-const temAlgumaMarcacao =
-dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
+    const temAlgumaMarcacao =
+      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
 
-const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
+    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
 
-if(!eventoDia){
-      // NOVA REGRA DE CÁLCULO DO TOTAL
-const ent = formataHoraCelula(dadosAtual.entrada);
-const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
-const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
-const sai = formataHoraCelula(dadosAtual.saida);
+    if(!eventoDia){
+      const ent = formataHoraCelula(dadosAtual.entrada);
+      const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
+      const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
+      const sai = formataHoraCelula(dadosAtual.saida);
 
-const temEnt = !!ent;
-const temSAl = !!sAl;
-const temRet = !!ret;
-const temSai = !!sai;
+      const temEnt = !!ent;
+      const temSAl = !!sAl;
+      const temRet = !!ret;
+      const temSai = !!sai;
 
-if(temEnt && temSAl && temRet && temSai){
-        // 4 batidas (entrada, saída almoço, retorno, saída)
-min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
-} else if(temEnt && temSai && !temSAl && !temRet){
-        // Só entrada e saída: considera direto
-min = hm(sai) - hm(ent);
-} else if(temEnt && temSAl && !temRet && !temSai){
-        // Só entrada e saída almoço
-min = hm(sAl) - hm(ent);
-} else if(temEnt && temRet && !temSAl && !temSai){
-        // Só entrada e retorno (caso raro)
-min = hm(ret) - hm(ent);
-} else {
-min = 0;
-}
+      if(temEnt && temSAl && temRet && temSai){
+        min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
+      } else if(temEnt && temSai && !temSAl && !temRet){
+        min = hm(sai) - hm(ent);
+      } else if(temEnt && temSAl && !temRet && !temSai){
+        min = hm(sAl) - hm(ent);
+      } else if(temEnt && temRet && !temSAl && !temSai){
+        min = hm(ret) - hm(ent);
+      } else {
+        min = 0;
+      }
 
-if(isFeriadoLista) min = 0;
-if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
-} else {
-const JORNADA_PADRAO = 480; // 8h
-switch(eventoDia){
-case "Falta Justificada":
-min = -JORNADA_PADRAO;
-totalAtestadosMin += -min;
-break;
-case "Atestado Médico Dias":
-min = -JORNADA_PADRAO;
-totalAtestadosMin += -min;
-break;
-case "Atestado Médico Horas": {
-const minutosAtestado = Number(dadosAtual.atestadoHorasMin || JORNADA_PADRAO);
-min = -minutosAtestado;
-totalAtestadosMin += minutosAtestado;
-break;
-}
-case "Falta Injustificada":
-min = -JORNADA_PADRAO;
-totalAtrasosFaltasMin += min;
-break;
-case "Falta Abonada":
-min = JORNADA_PADRAO;
-totalAtestadosMin += min;
-break;
-case "Férias":
-case "Licença Maternidade":
-case "Licença Paternidade":
-case "Licença INSS+15 D":
-case "Acidente de Trabalho":
-min = JORNADA_PADRAO;
-totalAfastamentosMin += min;
-break;
-case "Feriado":
-min = 0;
-break;
-}
-}
+      if(isFeriadoLista) min = 0;
+      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
+    } else {
+      const JORNADA_PADRAO = 480; // 8h
+      switch(eventoDia){
+        case "Falta Justificada":
+          min = -JORNADA_PADRAO;
+          totalAtestadosMin += -min;
+          break;
+        case "Atestado Médico Dias":
+          min = -JORNADA_PADRAO;
+          totalAtestadosMin += -min;
+          break;
+        case "Atestado Médico Horas": {
+          const minutosAtestado = Number(dadosAtual.atestadoHorasMin || JORNADA_PADRAO);
+          min = -minutosAtestado;
+          totalAtestadosMin += minutosAtestado;
+          break;
+        }
+        case "Falta Injustificada":
+          min = -JORNADA_PADRAO;
+          totalAtrasosFaltasMin += min;
+          break;
+        case "Falta Abonada":
+          min = JORNADA_PADRAO;
+          totalAtestadosMin += min;
+          break;
+        case "Férias":
+        case "Licença Maternidade":
+        case "Licença Paternidade":
+        case "Licença INSS+15 D":
+        case "Acidente de Trabalho":
+          min = JORNADA_PADRAO;
+          totalAfastamentosMin += min;
+          break;
+        case "Feriado":
+          min = 0;
+          break;
+      }
+    }
 
-totalPeriodo += min;
+    totalPeriodo += min;
 
-let creditoMin = min - jornadaEscala;
-if(isFeriadoLista && temAlgumaMarcacao) creditoMin = 16*60; // 16h de crédito
+    let creditoMin = min - jornadaEscala;
+    if(isFeriadoLista && temAlgumaMarcacao) creditoMin = 16*60; // 16h de crédito
 
-let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-if(isFeriadoLista) nomeDia="Feriado";
+    let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+    if(isFeriadoLista) nomeDia="Feriado";
 
-let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
+    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
 
-if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
-conteudoEntrada = "FOLGA";
-conteudoSaidaAlm = "FOLGA";
-conteudoRetorno  = "FOLGA";
-conteudoSaida    = "FOLGA";
-} else {
-conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
-conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
-conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
-conteudoSaida     = campo(dadosAtual.saida,"saida");
-}
+    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
+      conteudoEntrada = "FOLGA";
+      conteudoSaidaAlm = "FOLGA";
+      conteudoRetorno  = "FOLGA";
+      conteudoSaida    = "FOLGA";
+    } else {
+      conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
+      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
+      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
+      conteudoSaida     = campo(dadosAtual.saida,"saida");
+    }
 
-html+=`<tr>
-     <td>${dBR}</td>
-     <td>${nomeDia}</td>
-     <td>${conteudoEntrada}</td>
-     <td>${conteudoSaidaAlm}</td>
-     <td>${conteudoRetorno}</td>
-     <td>${conteudoSaida}</td>
-     <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
-     <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>`;
+    html+=`<tr>
+      <td>${dBR}</td>
+      <td>${nomeDia}</td>
+      <td>${conteudoEntrada}</td>
+      <td>${conteudoSaidaAlm}</td>
+      <td>${conteudoRetorno}</td>
+      <td>${conteudoSaida}</td>
+      <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
+      <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>`;
 
-if(tipo==="comGeo"){
-html+=`<td>${dadosAtual.geoEntrada||""}</td>
-            <td>${dadosAtual.geoSaidaAlmoco||""}</td>
-            <td>${dadosAtual.geoRetornoAlmoco||""}</td>
-            <td>${dadosAtual.geoSaida||""}</td>`;
-}
-html+="</tr>";
+    if(tipo==="comGeo"){
+      html+=`<td>${dadosAtual.geoEntrada||""}</td>
+             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
+             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
+             <td>${dadosAtual.geoSaida||""}</td>`;
+    }
+    html+="</tr>";
 
-currentDate.setDate(currentDate.getDate()+1);
-}
+    currentDate.setDate(currentDate.getDate()+1);
+  }
 
-html+=`<tr><th colspan="6">TOTAL</th>
-          <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
-          <th></th>`;
-if(tipo==="comGeo"){
-html+=`<th colspan="4"></th>`;
-}
-html+=`</tr></table>`;
+  html+=`<tr><th colspan="6">TOTAL</th>
+           <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
+           <th></th>`;
+  if(tipo==="comGeo"){
+    html+=`<th colspan="4"></th>`;
+  }
+  html+=`</tr></table>`;
 
-html+=`<br><h4>Totais do Período</h4>`;
-html+=`<p><strong>Total trabalhado:</strong> ${fmt(totalPeriodo)}</p>`;
-html+=`<p><strong>Total de atestados:</strong> ${fmt(totalAtestadosMin)}</p>`;
-html+=`<p><strong>Total de afastamentos:</strong> ${fmt(totalAfastamentosMin)}</p>`;
-html+=`<p><strong>Total atrasos/faltas:</strong> ${fmt(totalAtrasosFaltasMin)}</p>`;
-html+=`<p>Assinatura do Funcionário: _____________________</p>`;
+  html+=`<br><h4>Totais do Período</h4>`;
+  html+=`<p><strong>Total trabalhado:</strong> ${fmt(totalPeriodo)}</p>`;
+  html+=`<p><strong>Total de atestados:</strong> ${fmt(totalAtestadosMin)}</p>`;
+  html+=`<p><strong>Total de afastamentos:</strong> ${fmt(totalAfastamentosMin)}</p>`;
+  html+=`<p><strong>Total atrasos/faltas:</strong> ${fmt(totalAtrasosFaltasMin)}</p>`;
+  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
 
-document.getElementById("cartaoFuncionario").innerHTML = html;
+  document.getElementById("cartaoFuncionario").innerHTML = html;
 }
 
 /************* EXPORTAÇÕES *************/
 function gerarExcel(){
-const tabelaOriginal = document.querySelector("#tabelaRelatorio");
-if(!tabelaOriginal){
-alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
-return;
+  const tabelaOriginal = document.querySelector("#tabelaRelatorio");
+  if(!tabelaOriginal){
+    alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
+    return;
+  }
+
+  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const tabela = tabelaOriginal.cloneNode(true);
+
+  if(!opt){
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML = "";
+    });
+  } else {
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
+
+  const wb = XLSX.utils.book_new();
+  const linhas = [];
+  const trs = tabela.querySelectorAll("tr");
+
+  function excelSerialFromDMY(dd, mm, yyyy){
+    const excelEpoch = Date.UTC(1899, 11, 30);
+    const dtUTC = Date.UTC(yyyy, mm - 1, dd);
+    return (dtUTC - excelEpoch) / 86400000;
+  }
+
+  trs.forEach((tr, rowIndex) => {
+    const row = [];
+    const cells = tr.querySelectorAll("th,td");
+
+    cells.forEach((cell, colIndex) => {
+      let txt = (cell.innerText || cell.textContent || "").trim();
+      if(rowIndex > 0 && colIndex === 0){
+        const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if(m){
+          const dd = parseInt(m[1],10);
+          const mm = parseInt(m[2],10);
+          const yyyy = parseInt(m[3],10);
+          row.push(excelSerialFromDMY(dd, mm, yyyy));
+        } else row.push(txt);
+      } else row.push(txt);
+    });
+
+    linhas.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(linhas);
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  for(let r = 1; r <= range.e.r; r++){
+    const addr = XLSX.utils.encode_cell({ c: 0, r: r });
+    const cell = ws[addr];
+    if(cell && typeof cell.v === "number"){
+      cell.t = "n";
+      cell.z = "dd/mm/yyyy";
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
+  XLSX.writeFile(wb, "cartao_ponto.xlsx");
+}
+let destaqueCredito = false;
+
+// FERIADO com marcação → dobra
+if(isFeriadoLista && temAlgumaMarcacao){
+  destaqueCredito = true;
 }
 
-const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-const tabela = tabelaOriginal.cloneNode(true);
-
-if(!opt){
-[...tabela.querySelectorAll("td")].forEach(td=>{
-if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML = "";
-});
-} else {
-[...tabela.querySelectorAll("td")].forEach(td=>{
-td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
-});
+// FOLGA trabalhada
+if(folgaProgramada && temAlgumaMarcacao){
+  destaqueCredito = true;
 }
 
-const wb = XLSX.utils.book_new();
-const linhas = [];
-const trs = tabela.querySelectorAll("tr");
-
-function excelSerialFromDMY(dd, mm, yyyy){
-const excelEpoch = Date.UTC(1899, 11, 30);
-const dtUTC = Date.UTC(yyyy, mm - 1, dd);
-return (dtUTC - excelEpoch) / 86400000;
+// Excedente da escala
+if(!isFeriadoLista && !folgaProgramada && min > jornadaEscala){
+  destaqueCredito = true;
 }
-
-trs.forEach((tr, rowIndex) => {
-const row = [];
-const cells = tr.querySelectorAll("th,td");
-
-cells.forEach((cell, colIndex) => {
-let txt = (cell.innerText || cell.textContent || "").trim();
-if(rowIndex > 0 && colIndex === 0){
-const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-if(m){
-const dd = parseInt(m[1],10);
-const mm = parseInt(m[2],10);
-const yyyy = parseInt(m[3],10);
-row.push(excelSerialFromDMY(dd, mm, yyyy));
-} else row.push(txt);
-} else row.push(txt);
-});
-
-linhas.push(row);
-});
-
-const ws = XLSX.utils.aoa_to_sheet(linhas);
-const range = XLSX.utils.decode_range(ws["!ref"]);
-for(let r = 1; r <= range.e.r; r++){
-const addr = XLSX.utils.encode_cell({ c: 0, r: r });
-const cell = ws[addr];
-if(cell && typeof cell.v === "number"){
-cell.t = "n";
-cell.z = "dd/mm/yyyy";
-}
-}
-
-XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
-XLSX.writeFile(wb, "cartao_ponto.xlsx");
-}
-
 async function gerarPDFAdmin(){
-const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-const {jsPDF}=window.jspdf;
-const doc=new jsPDF('p','mm','a4');
+  const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
 
-doc.setFontSize(12);
-doc.text("RELATÓRIO MENSAL DE PONTO",105,10,{align:"center"});
+  doc.setFontSize(12);
+  doc.text("RELATÓRIO MENSAL DE PONTO",105,10,{align:"center"});
 
-doc.setFontSize(10);
-const u = funcionarioSelect.value;
-if(!u){ alert("Selecione o funcionário"); return; }
-doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
-doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
-const dataInicioEl = document.getElementById("dataInicio");
-const dataFimEl = document.getElementById("dataFim");
+  doc.setFontSize(10);
+  const u = funcionarioSelect.value;
+  if(!u){ alert("Selecione o funcionário"); return; }
+  doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
+  doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
+  const dataInicioEl = document.getElementById("dataInicio");
+  const dataFimEl = document.getElementById("dataFim");
   const inicio = parseInputDateLocal(dataInicioEl.value);
   const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
   const periodoInicioStr = inicio ? inicio.toLocaleDateString("pt-BR") : dataInicioEl.value;
   const periodoFimStr = fim ? fim.toLocaleDateString("pt-BR") : (dataFimEl.value || dataInicioEl.value);
   doc.text(`Período: ${periodoInicioStr} até ${periodoFimStr}`,14,30);
-  doc.text(`Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}`,14,30);
 
-const tabela=document.querySelector("#tabelaRelatorio");
-if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
-const clone = tabela.cloneNode(true);
+  const tabela=document.querySelector("#tabelaRelatorio");
+  if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
+  const clone = tabela.cloneNode(true);
 
-if(!opt){
-[...clone.querySelectorAll("td")].forEach(td=>{
-if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML="";
-});
-} else {
-[...clone.querySelectorAll("td")].forEach(td=>{
-td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
-});
-}
+  if(!opt){
+    [...clone.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML="";
+    });
+  } else {
+    [...clone.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
 
-doc.autoTable({startY:36,html:clone});
-doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
-doc.save("cartao_ponto.pdf");
+  doc.autoTable({startY:36,html:clone});
+  doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
+  doc.save("cartao_ponto.pdf");
 }
 
 /************* CADASTRO FUNCIONÁRIO *************/
 function abrirCadastroFuncionario(){
-document.getElementById("modalFuncionario").classList.remove("hidden");
-escSeg.value = "08:00"; escTer.value="08:00"; escQua.value="08:00";
-escQui.value="08:00"; escSex.value="08:00"; escSab.value="04:00"; escDom.value="FOLGA";
+  document.getElementById("modalFuncionario").classList.remove("hidden");
+  escSeg.value = "08:00"; escTer.value="08:00"; escQua.value="08:00";
+  escQui.value="08:00"; escSex.value="08:00"; escSab.value="04:00"; escDom.value="FOLGA";
 }
 function fecharCadastroFuncionario(){ document.getElementById("modalFuncionario").classList.add("hidden"); }
 
 async function salvarFuncionario(){
-const codigo=novoCodigo.value.trim();
-const nome=novoNome.value.trim();
-const u=novoUser.value.trim().toLowerCase();
-const p=novoPass.value.trim();
-const cargo=novoCargo.value.trim();
-const pis=novoPis.value.trim();
-const setor=novoSetor.value.trim();
-const local=novoLocal.value.trim();
+  const codigo=novoCodigo.value.trim();
+  const nome=novoNome.value.trim();
+  const u=novoUser.value.trim().toLowerCase();
+  const p=novoPass.value.trim();
+  const cargo=novoCargo.value.trim();
+  const pis=novoPis.value.trim();
+  const setor=novoSetor.value.trim();
+  const local=novoLocal.value.trim();
 
-const eSeg = (escSeg.value || "").trim() || "08:00";
-const eTer = (escTer.value || "").trim() || eSeg;
-const eQua = (escQua.value || "").trim() || eSeg;
-const eQui = (escQui.value || "").trim() || eSeg;
-const eSex = (escSex.value || "").trim() || eSeg;
-const eSab = (escSab.value || "").trim() || "04:00";
-const eDom = (escDom.value || "").trim() || "FOLGA";
+  const eSeg = (escSeg.value || "").trim() || "08:00";
+  const eTer = (escTer.value || "").trim() || eSeg;
+  const eQua = (escQua.value || "").trim() || eSeg;
+  const eQui = (escQui.value || "").trim() || eSeg;
+  const eSex = (escSex.value || "").trim() || eSeg;
+  const eSab = (escSab.value || "").trim() || "04:00";
+  const eDom = (escDom.value || "").trim() || "FOLGA";
 
-if(!u||!p||!pis||!nome){
-alert("Preencha pelo menos: Nome, Usuário, Senha e PIS");
-return;
-}
+  if(!u||!p||!pis||!nome){
+    alert("Preencha pelo menos: Nome, Usuário, Senha e PIS");
+    return;
+  }
 
-const payload = {
-tipo:"salvarUsuario",
-usuario_login: u,
-senha: p,
-role: "operacional",
-nome: nome,
-pis: pis,
-cargo: cargo,
-setor: setor,
-local_trabalho: local,
-escSeg: eSeg, escTer: eTer, escQua: eQua, escQui: eQui, escSex: eSex, escSab: eSab, escDom: eDom
-};
+  const payload = {
+    tipo:"salvarUsuario",
+    usuario_login: u,
+    senha: p,
+    role: "operacional",
+    nome: nome,
+    pis: pis,
+    cargo: cargo,
+    setor: setor,
+    local_trabalho: local,
+    escSeg: eSeg, escTer: eTer, escQua: eQua, escQui: eQui, escSex: eSex, escSab: eSab, escDom: eDom
+  };
 
-const res = await apiPost(payload);
+  const res = await apiPost(payload);
 
-if(res.status !== "ok"){
-alert(res.message || "Erro ao salvar usuário na planilha");
-return;
-}
+  if(res.status !== "ok"){
+    alert(res.message || "Erro ao salvar usuário na planilha");
+    return;
+  }
 
-const esc = {
-1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom
-};
+  const esc = {
+    1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom
+  };
 
-users[u] = {
-role: "operacional",
-nomeCompleto: nome,
-pis: pis,
-cargo: cargo,
-setor: setor,
-localTrabalho: local,
-escalaMensal: {},
-escalaSemanal: esc
-};
+  users[u] = {
+    role: "operacional",
+    nomeCompleto: nome,
+    pis: pis,
+    cargo: cargo,
+    setor: setor,
+    localTrabalho: local,
+    escalaMensal: {},
+    escalaSemanal: esc
+  };
 
-preencherFuncionarios();
-fecharCadastroFuncionario();
+  preencherFuncionarios();
+  fecharCadastroFuncionario();
 
-novoCodigo.value=""; novoNome.value=""; novoUser.value=""; novoPass.value="";
-novoCargo.value=""; novoPis.value=""; novoSetor.value=""; novoLocal.value="";
-escSeg.value="08:00"; escTer.value="08:00"; escQua.value="08:00";
-escQui.value="08:00"; escSex.value="08:00"; escSab.value="04:00"; escDom.value="FOLGA";
+  novoCodigo.value=""; novoNome.value=""; novoUser.value=""; novoPass.value="";
+  novoCargo.value=""; novoPis.value=""; novoSetor.value=""; novoLocal.value="";
+  escSeg.value="08:00"; escTer.value="08:00"; escQua.value="08:00";
+  escQui.value="08:00"; escSex.value="08:00"; escSab.value="04:00"; escDom.value="FOLGA";
 
-alert("Funcionário salvo com sucesso na planilha e no sistema!");
+  alert("Funcionário salvo com sucesso na planilha e no sistema!");
 }
 
 /************* ESCALA MENSAL (apenas em memória) *************/
 function abrirEscalaMensal(){
-const u=document.getElementById("funcionarioSelect").value;
-if(!u) return alert("Selecione um funcionário");
-const conteudo=document.getElementById("conteudoEscala");
-conteudo.innerHTML="";
-users[u].escalaMensal = users[u].escalaMensal || {};
-for(let i=1;i<=31;i++){
-const val = users[u].escalaMensal[i]||"";
-conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
-}
-document.getElementById("modalEscala").classList.remove("hidden");
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return alert("Selecione um funcionário");
+  const conteudo=document.getElementById("conteudoEscala");
+  conteudo.innerHTML="";
+  users[u].escalaMensal = users[u].escalaMensal || {};
+  for(let i=1;i<=31;i++){
+    const val = users[u].escalaMensal[i]||"";
+    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
+  }
+  document.getElementById("modalEscala").classList.remove("hidden");
 }
 function fecharEscalaMensal(){ document.getElementById("modalEscala").classList.add("hidden"); }
 function salvarEscalaMensal(){
-const u=document.getElementById("funcionarioSelect").value;
-if(!u) return;
-users[u].escalaMensal = users[u].escalaMensal || {};
-for(let i=1;i<=31;i++){
-users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
-}
-fecharEscalaMensal();
-alert("Escala mensal salva (em memória – se quiser, depois mandamos pra planilha).");
-}
-  async function buscarEscalaPlanilha(usuario){
-  const res = await apiPost({
-    tipo:"getEscalaFuncionario",
-    usuario_login: usuario
-  });
-
-  if(res.status === "ok"){
-    return res.escala;
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return;
+  users[u].escalaMensal = users[u].escalaMensal || {};
+  for(let i=1;i<=31;i++){
+    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
   }
-
-  return {};
+  fecharEscalaMensal();
+  alert("Escala mensal salva (em memória – se quiser, depois mandamos pra planilha).");
 }
 </script>
 </body>
