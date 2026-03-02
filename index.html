@@ -565,6 +565,7 @@ async function abrirAjuste(u,d,c){
       });
       delete atual.atestadoHorasMin;
 
+      // >>> garante que a data também vai na estrutura do dia
       atual.data = d;
 
       const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
@@ -605,6 +606,7 @@ async function abrirAjuste(u,d,c){
               });
               delete reg.atestadoHorasMin;
 
+              // >>> garante que a data também vai gravada neste dia
               reg.data = chave;
 
               await apiPost({tipo:"salvarDia", usuario_login:u, data:chave, dia: reg});
@@ -639,6 +641,7 @@ async function abrirAjuste(u,d,c){
       });
       regA.atestadoHorasMin = minutosAtestado;
 
+      // >>> garante que a data também vai gravada neste dia
       regA.data = dataAtestadoKey;
 
       const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:dataAtestadoKey, dia: regA});
@@ -662,6 +665,7 @@ async function abrirAjuste(u,d,c){
       delete atual.atestadoHorasMin;
     }
 
+    // >>> em qualquer outro ajuste simples, também garantimos a data
     atual.data = d;
 
     const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: atual});
@@ -718,6 +722,7 @@ async function gerarRelatorioMensal(){
   let html = "";
   html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
   html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
+  html += `<p>Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}</p>`;
   html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
 
   html += `<table id="tabelaRelatorio"><tr>
@@ -743,6 +748,8 @@ async function gerarRelatorioMensal(){
   let totalAfastamentosMin = 0;
   let totalAtrasosFaltasMin = 0;
 
+  const inicio = parseInputDateLocal(dataInicioEl.value);
+  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
@@ -751,6 +758,7 @@ async function gerarRelatorioMensal(){
     const yyyy = currentDate.getFullYear();
     const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
 
+    // BUSCA O DIA DIRETO NO APPS SCRIPT
     let resDia;
     try{
       resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
@@ -786,6 +794,7 @@ async function gerarRelatorioMensal(){
     const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
 
     if(!eventoDia){
+      // NOVA REGRA DE CÁLCULO DO TOTAL
       const ent = formataHoraCelula(dadosAtual.entrada);
       const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
       const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
@@ -797,12 +806,16 @@ async function gerarRelatorioMensal(){
       const temSai = !!sai;
 
       if(temEnt && temSAl && temRet && temSai){
+        // 4 batidas (entrada, saída almoço, retorno, saída)
         min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
       } else if(temEnt && temSai && !temSAl && !temRet){
+        // Só entrada e saída: considera direto
         min = hm(sai) - hm(ent);
       } else if(temEnt && temSAl && !temRet && !temSai){
+        // Só entrada e saída almoço
         min = hm(sAl) - hm(ent);
       } else if(temEnt && temRet && !temSAl && !temSai){
+        // Só entrada e retorno (caso raro)
         min = hm(ret) - hm(ent);
       } else {
         min = 0;
@@ -1006,6 +1019,7 @@ async function gerarPDFAdmin(){
   doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
   const dataInicioEl = document.getElementById("dataInicio");
   const dataFimEl = document.getElementById("dataFim");
+  doc.text(`Período: ${dataInicioEl.value} até ${dataFimEl.value || dataInicioEl.value}`,14,30);
   const inicio = parseInputDateLocal(dataInicioEl.value);
   const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
   const periodoInicioStr = inicio ? inicio.toLocaleDateString("pt-BR") : dataInicioEl.value;
