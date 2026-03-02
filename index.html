@@ -261,6 +261,30 @@ function formataHoraCelula(valor){
 
   return s;
 }
+  <script>
+function normalizarHorario(valor){
+  if(!valor) return "";
+
+  // Já está HH:MM
+  if(/^\d{2}:\d{2}$/.test(valor)) return valor;
+
+  // Se vier Date ou string longa
+  const d = new Date(valor);
+  if(!isNaN(d.getTime())){
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+
+  // Tenta extrair HH:MM de textos longos
+  const m = String(valor).match(/(\d{1,2}):(\d{2})/);
+  if(m){
+    return `${m[1].padStart(2,"0")}:${m[2]}`;
+  }
+
+  return "";
+}
+</script>
 
 // Converte "yyyy-mm-dd" do <input type="date"> em Date local
 function parseInputDateLocal(str){
@@ -1135,3 +1159,4 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
