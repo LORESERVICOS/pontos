@@ -7,7 +7,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
-
 <style>
 body{font-family:Inter,system-ui;background:#f8fafc;margin:0}
 header{background:#1e40af;color:#fff;padding:20px}
@@ -721,47 +720,72 @@ async function gerarRelatorioMensal(){
   const mapaDias = res.dias || {};
 
   let html = `
-  <table>
-    <tr>
-      <th>Data</th>
-      <th>Entrada</th>
-      <th>Saída</th>
-      <th>Total</th>
-    </tr>`;
+<table id="tabelaRelatorio">
+  <tr>
+    <th>Data</th>
+    <th>Dia</th>
+    <th>Entrada</th>
+    <th>Saída Almoço</th>
+    <th>Retorno Almoço</th>
+    <th>Saída</th>
+    <th>Total</th>
+    <th>Crédito</th>
+  </tr>`;
 
   let d = new Date(ini);
   let total = 0;
 
   while(d <= fim){
-    const key = d.toLocaleDateString("pt-BR");
-    const r = mapaDias[key] || {};
+  const key = d.toLocaleDateString("pt-BR");
+  const r = mapaDias[key] || {};
 
-    const e = formataHoraCelula(r.entrada);
-    const s = formataHoraCelula(r.saida);
+  const ent = formataHoraCelula(r.entrada);
+  const sAl = formataHoraCelula(r.saidaAlmoco);
+  const ret = formataHoraCelula(r.retornoAlmoco);
+  const sai = formataHoraCelula(r.saida);
 
-    const min = (e && s) ? hm(s) - hm(e) : 0;
-    total += min;
-
-    html += `
-    <tr>
-      <td data-label="Data">${key}</td>
-      <td data-label="Entrada">${e}</td>
-      <td data-label="Saída">${s}</td>
-      <td data-label="Total" class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
-    </tr>`;
-
-    d.setDate(d.getDate()+1);
+  // Total em minutos considerando almoço
+  let min = 0;
+  if(ent && sAl && ret && sai){
+    min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
+  } else if(ent && sai && (!sAl || !ret)){
+    min = hm(sai) - hm(ent);
   }
 
-  html += `
-    <tr>
-      <th colspan="3">TOTAL</th>
-      <th>${fmt(total)}</th>
-    </tr>
-  </table>`;
+  total += min;
 
-  cartaoFuncionario.innerHTML = html;
+  // Dia da semana
+  const diasSemana = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  const diaSemana = diasSemana[d.getDay()];
+
+  // Crédito (excedente, feriado, folga) — pode ajustar a lógica conforme sua escala
+  let credito = "";
+  if(r.creditoExcedente) credito = "✅";
+
+  html += `
+  <tr>
+    <td data-label="Data">${key}</td>
+    <td data-label="Dia">${diaSemana}</td>
+    <td data-label="Entrada">${ent}</td>
+    <td data-label="Saída Almoço">${sAl}</td>
+    <td data-label="Retorno Almoço">${ret}</td>
+    <td data-label="Saída">${sai}</td>
+    <td data-label="Total" class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
+    <td data-label="Crédito">${credito}</td>
+  </tr>`;
+
+  d.setDate(d.getDate()+1);
 }
+
+html += `
+<tr>
+  <th colspan="6">TOTAL</th>
+  <th>${fmt(total)}</th>
+  <th></th>
+</tr>
+</table>`;
+
+cartaoFuncionario.innerHTML = html;
 /************* EXPORTAÇÕES *************/
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
