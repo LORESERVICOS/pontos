@@ -1,7 +1,9 @@
+nde esta o normalizar horario?<!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relógio de Ponto Eletrônico</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -22,6 +24,14 @@
   input,select{padding:4px 6px;margin:2px 0;}
   .verde{color:green;font-weight:bold;}
   .vermelho{color:red;font-weight:bold;}
+@media (max-width:768px){
+  header{text-align:center}
+  button{width:100%;margin:4px 0}
+  table thead{display:none}
+  table tr{display:block;border:1px solid #ddd;margin-bottom:10px;border-radius:8px}
+  table td{display:flex;justify-content:space-between;border:none}
+  table td::before{content:attr(data-label);font-weight:600}
+}
 
   /* NOVO – crédito especial */
   .credito-excedente{
@@ -31,6 +41,7 @@
   }
 </style>
 
+</style>
 </head>
 <body>
 <header>
@@ -752,12 +763,18 @@ async function gerarRelatorioMensal(){
 
     let resDia;
     try{
-      resDia = await apiPost({tipo:"getDia", usuario_login:u, data:dBR});
+     const resPeriodo = await apiPost({
+  tipo:"getPeriodo",
+  usuario_login:u,
+  dataInicio:periodoInicioStr,
+  dataFim:periodoFimStr
+});
+const mapaDias = resPeriodo.dias || {};
     }catch(e){
       resDia = {status:"erro"};
     }
 
-    dadosAtual = (resDia && resDia.status==="ok" && resDia.dia) ? resDia.dia : {};
+    
     dataAtualRel = dBR;
 
     const diaNum = currentDate.getDate();
@@ -1134,4 +1151,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
