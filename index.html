@@ -2,35 +2,300 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Relógio de Ponto Eletrônico</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <style>
-  body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;margin:0}
-  header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
-  .card{background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin:20px auto}
-  button{padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;margin:2px}
-  button:hover{background:#1d4ed8}
-  .hidden{display:none}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
-  th{background:#f1f5f9}
-  .verde{color:green;font-weight:bold;}
-  .vermelho{color:red;font-weight:bold;}
-  input,select{padding:4px 6px;margin:2px 0;}
-  .verde{color:green;font-weight:bold;}
-  .vermelho{color:red;font-weight:bold;}
-
-  /* NOVO – crédito especial */
-  .credito-excedente{
-    background:#0f5132;
-    color:#ffffff;
-    font-weight:600;
+  /* Reset e configurações base */
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
-</style>
-
+  
+  body {
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    background: #f8fafc;
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    touch-action: manipulation;
+  }
+  
+  header {
+    background: #1e40af;
+    color: #fff;
+    padding: 15px 20px;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    margin: 15px;
+    width: calc(100% - 30px);
+    max-width: 100%;
+  }
+  
+  button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    cursor: pointer;
+    margin: 8px 4px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 44px;
+    min-width: 120px;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+  }
+  
+  button:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+  }
+  
+  button:active {
+    transform: translateY(0);
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 14px;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 12px 8px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .verde {
+    color: #16a34a;
+    font-weight: bold;
+  }
+  
+  .vermelho {
+    color: #dc2626;
+    font-weight: bold;
+  }
+  
+  .credito-excedente {
+    background: #0f5132;
+    color: #ffffff;
+    font-weight: 600;
+  }
+  
+  input, select {
+    padding: 12px;
+    margin: 8px 0;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    width: 100%;
+    max-width: 300px;
+    background: #fff;
+    transition: border-color 0.2s ease;
+  }
+  
+  input:focus, select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+  
+  /* Layout específico para mobile */
+  @media (max-width: 768px) {
+    body {
+      font-size: 14px;
+    }
+    
+    header {
+      padding: 12px 15px;
+      font-size: 16px;
+    }
+    
+    .card {
+      padding: 15px;
+      margin: 10px;
+      width: calc(100% - 20px);
+      border-radius: 10px;
+    }
+    
+    button {
+      padding: 14px 20px;
+      font-size: 16px;
+      margin: 6px 3px;
+      min-height: 48px;
+      width: 100%;
+      max-width: 300px;
+    }
+    
+    input, select {
+      padding: 14px;
+      font-size: 16px;
+      margin: 6px 0;
+    }
+    
+    /* Tabelas responsivas */
+    .table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 15px -15px;
+      padding: 0 15px;
+    }
+    
+    table {
+      min-width: 600px;
+      font-size: 12px;
+    }
+    
+    th, td {
+      padding: 10px 6px;
+    }
+    
+    /* Cards de login e formulários */
+    #loginSection.card {
+      max-width: 100%;
+      margin: 20px 15px;
+    }
+    
+    /* Botões de registro empilhados */
+    #botoesRegistro {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    #botoesRegistro button {
+      width: 100%;
+      margin: 0;
+    }
+    
+    /* Modal responsivo */
+    .modal-content {
+      max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Ajustes de espaçamento */
+    h2, h3, h4 {
+      margin: 15px 0 10px 0;
+      font-size: 1.2em;
+    }
+    
+    hr {
+      margin: 20px 0;
+    }
+  }
+  
+  /* Telas muito pequenas */
+  @media (max-width: 480px) {
+    .card {
+      padding: 12px;
+      margin: 8px;
+      width: calc(100% - 16px);
+    }
+    
+    button {
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+    
+    table {
+      font-size: 11px;
+    }
+    
+    th, td {
+      padding: 8px 4px;
+    }
+  }
+  
+  /* Desktop - telas grandes */
+  @media (min-width: 769px) {
+    .card {
+      max-width: 800px;
+      margin: 20px auto;
+    }
+    
+    #loginSection.card {
+      max-width: 400px;
+    }
+    
+    button {
+      width: auto;
+      display: inline-block;
+    }
+    
+    input, select {
+      width: auto;
+      display: inline-block;
+      max-width: 300px;
+    }
+  }
+  
+  /* Container de tabela para scroll horizontal */
+  .table-container {
+    overflow-x: auto;
+    margin: 15px 0;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+  
+  /* Estilos para o modal */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  
+  .modal-content {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
 </style>
 </head>
 <body>
@@ -39,130 +304,147 @@
 </header>
 
 <!-- LOGIN -->
-<div id="loginSection" class="card" style="max-width:400px">
+<div id="loginSection" class="card">
   <h2>Login</h2>
-  <input id="username" placeholder="Usuário"><br><br>
-  <input id="password" type="password" placeholder="Senha"><br><br>
-  <button onclick="login()">Entrar</button>
+  <input id="username" placeholder="Usuário" autocomplete="username">
+  <input id="password" type="password" placeholder="Senha" autocomplete="current-password">
+  <button onclick="login()" style="width: 100%;">Entrar</button>
 </div>
 
 <!-- OPERACIONAL -->
 <div id="operacionalSection" class="hidden">
-  <div class="card" style="max-width:600px">
+  <div class="card">
     <h2>Registro de Ponto</h2>
-    <div id="dataAtual"></div>
-    <div id="horaAtual"></div>
-    <hr>
+    <div id="dataAtual" style="font-size: 18px; margin: 10px 0;"></div>
+    <div id="horaAtual" style="font-size: 24px; font-weight: 600; margin: 10px 0;"></div>
+    <hr style="margin: 20px 0;">
     <div id="botoesRegistro"></div>
-    <hr>
+    <hr style="margin: 20px 0;">
     <h3>Marcações do Dia</h3>
     <div id="registrosUsuario"></div>
-    <hr>
-    <button onclick="logout()">Sair</button>
+    <button onclick="logout()" style="margin-top: 20px;">Sair</button>
   </div>
 </div>
 
 <!-- ADMIN -->
 <div id="adminSection" class="hidden">
-  <div class="card" style="max-width:1200px">
+  <div class="card">
     <h2>Relatório – Cartão de Ponto</h2>
-    <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
-    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
-
-    <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
-    <input type="date" id="dataInicio">
-    <input type="date" id="dataFim">
-    <select id="tipoRelatorio">
-      <option value="simples">Relatório Simples</option>
-      <option value="comGeo">Com Geolocalização</option>
-    </select>
-    <button onclick="gerarRelatorioMensal()">Gerar</button>
-    <button onclick="gerarExcel()">Excel</button>
-    <button onclick="gerarPDFAdmin()">PDF</button>
-    <button onclick="logout()">Sair</button>
-    <div id="cartaoFuncionario"></div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;">
+      <button onclick="abrirCadastroFuncionario()">Cadastro / Edição</button>
+      <button onclick="abrirEscalaMensal()">Editar Escala</button>
+    </div>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 15px 0;">
+      <select id="funcionarioSelect" onchange="gerarRelatorioMensal()" style="flex: 1; min-width: 200px;">
+        <option value="">Selecionar Funcionário</option>
+      </select>
+      <input type="date" id="dataInicio" style="flex: 1; min-width: 150px;">
+      <input type="date" id="dataFim" style="flex: 1; min-width: 150px;">
+      <select id="tipoRelatorio" style="flex: 1; min-width: 150px;">
+        <option value="simples">Relatório Simples</option>
+        <option value="comGeo">Com Geolocalização</option>
+      </select>
+    </div>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;">
+      <button onclick="gerarRelatorioMensal()">Gerar</button>
+      <button onclick="gerarExcel()">Excel</button>
+      <button onclick="gerarPDFAdmin()">PDF</button>
+      <button onclick="logout()">Sair</button>
+    </div>
+    
+    <div id="cartaoFuncionario" class="table-container"></div>
   </div>
 </div>
 
 <!-- MODAL CADASTRO FUNCIONARIO -->
-<div id="modalFuncionario" class="card hidden" style="max-width:500px">
-  <h3>Cadastro / Edição de Funcionário</h3>
+<div id="modalFuncionario" class="modal hidden">
+  <div class="modal-content card">
+    <h3>Cadastro / Edição de Funcionário</h3>
+    
+    <label>Código Funcionário:<br>
+      <input id="novoCodigo" placeholder="Código">
+    </label><br>
 
-  <label>Código Funcionário:<br>
-    <input id="novoCodigo" placeholder="Código">
-  </label><br>
+    <label>Nome Funcionário:<br>
+      <input id="novoNome" placeholder="Nome completo">
+    </label><br>
 
-  <label>Nome Funcionário:<br>
-    <input id="novoNome" placeholder="Nome completo">
-  </label><br>
+    <label>Usuário (login):<br>
+      <input id="novoUser" placeholder="Usuário">
+    </label><br>
 
-  <label>Usuário (login):<br>
-    <input id="novoUser" placeholder="Usuário">
-  </label><br>
+    <label>Senha:<br>
+      <input id="novoPass" type="password" placeholder="Senha">
+    </label><br>
 
-  <label>Senha:<br>
-    <input id="novoPass" type="password" placeholder="Senha">
-  </label><br>
+    <label>Cargo:<br>
+      <input id="novoCargo" placeholder="Cargo/Função">
+    </label><br>
 
-  <label>Cargo:<br>
-    <input id="novoCargo" placeholder="Cargo/Função">
-  </label><br>
+    <label>PIS:<br>
+      <input id="novoPis" placeholder="PIS">
+    </label><br>
 
-  <label>PIS:<br>
-    <input id="novoPis" placeholder="PIS">
-  </label><br>
+    <label>Depto/Setor:<br>
+      <input id="novoSetor" placeholder="Departamento / Setor">
+    </label><br>
 
-  <label>Depto/Setor:<br>
-    <input id="novoSetor" placeholder="Departamento / Setor">
-  </label><br>
+    <label>Local de Trabalho:<br>
+      <input id="novoLocal" placeholder="Local de trabalho">
+    </label><br>
 
-  <label>Local de Trabalho:<br>
-    <input id="novoLocal" placeholder="Local de trabalho">
-  </label><br>
+    <p><strong>Escala padrão semanal do funcionário</strong><br>
+      Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
+    </p>
 
-  <p><strong>Escala padrão semanal do funcionário</strong><br>
-    Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
-  </p>
+    <label>Segunda-feira:<br>
+      <input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
+    </label><br>
 
-  <label>Segunda-feira:<br>
-    <input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
+    <label>Terça-feira:<br>
+      <input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
+    </label><br>
 
-  <label>Terça-feira:<br>
-    <input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
+    <label>Quarta-feira:<br>
+      <input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
+    </label><br>
 
-  <label>Quarta-feira:<br>
-    <input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
+    <label>Quinta-feira:<br>
+      <input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
+    </label><br>
 
-  <label>Quinta-feira:<br>
-    <input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
+    <label>Sexta-feira:<br>
+      <input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
+    </label><br>
 
-  <label>Sexta-feira:<br>
-    <input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
+    <label>Sábado:<br>
+      <input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
+    </label><br>
 
-  <label>Sábado:<br>
-    <input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
-  </label><br>
+    <label>Domingo:<br>
+      <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
+    </label><br><br>
 
-  <label>Domingo:<br>
-    <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
-  </label><br><br>
-
-  <button onclick="salvarFuncionario()">Salvar</button>
-  <button onclick="fecharCadastroFuncionario()">Cancelar</button>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      <button onclick="salvarFuncionario()">Salvar</button>
+      <button onclick="fecharCadastroFuncionario()">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL ESCALA MENSAL -->
-<div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
-  <h3>Editar Escala Mensal (manual)</h3>
-  <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
-  <div id="conteudoEscala"></div>
-  <button onclick="salvarEscalaMensal()">Salvar Escala</button>
-  <button onclick="fecharEscalaMensal()">Cancelar</button>
+<div id="modalEscala" class="modal hidden">
+  <div class="modal-content card" style="max-height: 80vh; overflow-y: auto;">
+    <h3>Editar Escala Mensal (manual)</h3>
+    <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
+    <div id="conteudoEscala"></div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
+      <button onclick="salvarEscalaMensal()">Salvar Escala</button>
+      <button onclick="fecharEscalaMensal()">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -439,9 +721,9 @@ async function mostrarRegistrosUsuario(){
     if(r[t]){
       const horaFmt = formataHoraCelula(r[t]);
       registrosDiv.innerHTML+=`
-        <div>
+        <div style="margin: 8px 0; padding: 10px; background: #f8fafc; border-radius: 6px;">
           <strong>${capitalize(t)}:</strong> ${horaFmt}
-          <button style="font-size:11px" onclick="gerarComprovante('${t}')">📄 PDF</button>
+          <button style="font-size:12px; padding: 6px 10px; margin-left: 10px;" onclick="gerarComprovante('${t}')">📄 PDF</button>
         </div>`;
     }
   });
@@ -528,26 +810,22 @@ async function abrirAjuste(u,d,c){
   const atual = resGet.dia || {};
 
   let popup = document.createElement("div");
-  popup.style.position="fixed";
-  popup.style.top="50%";
-  popup.style.left="50%";
-  popup.style.transform="translate(-50%,-50%)";
-  popup.style.background="#fff";
-  popup.style.padding="20px";
-  popup.style.border="1px solid #333";
-  popup.style.zIndex=1000;
-
-  popup.innerHTML=`
-    <h3>Ajustar ${c}</h3>
-    <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}"></label><br><br>
-    <label>Justificar:
-      <select id="selectJustificacao">
-        <option value="">--Escolha--</option>
-        ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")===j?'selected':''}>${j}</option>`).join("")}
-      </select>
-    </label><br><br>
-    <button id="okBtn">Ok</button>
-    <button id="cancelBtn">Cancelar</button>
+  popup.className = "modal";
+  popup.innerHTML = `
+    <div class="modal-content card">
+      <h3>Ajustar ${c}</h3>
+      <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}"></label><br><br>
+      <label>Justificar:
+        <select id="selectJustificacao">
+          <option value="">--Escolha--</option>
+          ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")====j?'selected':''}>${j}</option>`).join("")}
+        </select>
+      </label><br><br>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button id="okBtn">Ok</button>
+        <button id="cancelBtn">Cancelar</button>
+      </div>
+    </div>
   `;
   document.body.appendChild(popup);
 
@@ -600,8 +878,8 @@ async function abrirAjuste(u,d,c){
 
               ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
                 reg[campoNome] = "-";
-                reg[campoNome+"_evento"] = ev;
-                reg[campoNome+"_editado"] = true;
+                reg[campoNome+"_evento"]=ev;
+                reg[campoNome+"_editado"]=true;
               });
               delete reg.atestadoHorasMin;
 
@@ -720,7 +998,7 @@ async function gerarRelatorioMensal(){
   html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
   html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
 
-  html += `<table id="tabelaRelatorio"><tr>
+  html += `<div class="table-container"><table id="tabelaRelatorio"><tr>
     <th>Data</th>
     <th>Dia</th>
     <th>Entrada</th>
@@ -898,7 +1176,7 @@ async function gerarRelatorioMensal(){
   if(tipo==="comGeo"){
     html+=`<th colspan="4"></th>`;
   }
-  html+=`</tr></table>`;
+  html+=`</tr></table></div>`;
 
   html+=`<br><h4>Totais do Período</h4>`;
   html+=`<p><strong>Total trabalhado:</strong> ${fmt(totalPeriodo)}</p>`;
@@ -975,22 +1253,7 @@ function gerarExcel(){
   XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
   XLSX.writeFile(wb, "cartao_ponto.xlsx");
 }
-let destaqueCredito = false;
 
-// FERIADO com marcação → dobra
-if(isFeriadoLista && temAlgumaMarcacao){
-  destaqueCredito = true;
-}
-
-// FOLGA trabalhada
-if(folgaProgramada && temAlgumaMarcacao){
-  destaqueCredito = true;
-}
-
-// Excedente da escala
-if(!isFeriadoLista && !folgaProgramada && min > jornadaEscala){
-  destaqueCredito = true;
-}
 async function gerarPDFAdmin(){
   const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
   const {jsPDF}=window.jspdf;
@@ -1135,4 +1398,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
