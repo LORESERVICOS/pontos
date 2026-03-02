@@ -672,11 +672,12 @@ async function abrirAjuste(u,d,c){
       return;
     }
 
-    if(h){
-      atual[c]=h;
-      atual[c+"_evento"]="";
-      atual[c+"_editado"]=true;
-      delete atual.atestadoHorasMin;
+   if(h){
+  atual[c] = normalizarHorario(h); // ← AQUI ESTÁ A CORREÇÃO
+  atual[c+"_evento"] = "";
+  atual[c+"_editado"] = true;
+  delete atual.atestadoHorasMin;
+}
     } else if(ev){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
         atual[campoNome]="-";
@@ -1159,4 +1160,5 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
