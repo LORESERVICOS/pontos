@@ -1,3 +1,4 @@
+nde esta o normalizar horario?<!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -38,6 +39,8 @@
     color:#ffffff;
     font-weight:600;
   }
+</style>
+
 </style>
 </head>
 <body>
@@ -752,140 +755,102 @@ async function gerarRelatorioMensal(){
 
   let currentDate = new Date(inicio);
 
-  while(currentDate <= fim){
-    const dd = String(currentDate.getDate()).padStart(2,"0");
-    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
-    const yyyy = currentDate.getFullYear();
-    const dBR = `${dd}/${mm}/${yyyy}`;   // dd/mm/aaaa para o getDia
-
-    let resDia;
-    try{
-     const resPeriodo = await apiPost({
+  // 🔹 BUSCA O PERÍODO UMA ÚNICA VEZ (CORRETO)
+const resPeriodo = await apiPost({
   tipo:"getPeriodo",
   usuario_login:u,
   dataInicio:periodoInicioStr,
   dataFim:periodoFimStr
 });
+
 const mapaDias = resPeriodo.dias || {};
-    }catch(e){
-      resDia = {status:"erro"};
+
+let currentDate = new Date(inicio);
+
+while(currentDate <= fim){
+
+  const dd = String(currentDate.getDate()).padStart(2,"0");
+  const mm = String(currentDate.getMonth()+1).padStart(2,"0");
+  const yyyy = currentDate.getFullYear();
+  const dBR = `${dd}/${mm}/${yyyy}`;
+
+  // ✅ AQUI ESTÁ A CORREÇÃO PRINCIPAL
+  dadosAtual = mapaDias[dBR] || {};
+
+  dataAtualRel = dBR;
+
+  const weekday = currentDate.getDay();
+
+  let escStr =
+    (users[u].escalaMensal && users[u].escalaMensal[currentDate.getDate()]) ||
+    users[u].escalaSemanal[weekday] ||
+    "";
+
+  const jornadaEscala = cargaEscalaMin(escStr);
+
+  const ddmm = `${dd}/${mm}`;
+  const isFeriadoLista = feriados.includes(ddmm);
+
+  let min = 0;
+
+  const eventoDia =
+    dadosAtual.entrada_evento ||
+    dadosAtual.saidaAlmoco_evento ||
+    dadosAtual.retornoAlmoco_evento ||
+    dadosAtual.saida_evento ||
+    "";
+
+  const temAlgumaMarcacao =
+    dadosAtual.entrada ||
+    dadosAtual.saidaAlmoco ||
+    dadosAtual.retornoAlmoco ||
+    dadosAtual.saida;
+
+  const folgaProgramada = escStr.toString().toUpperCase()==="FOLGA";
+
+  if(!eventoDia){
+    const ent = formataHoraCelula(dadosAtual.entrada);
+    const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
+    const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
+    const sai = formataHoraCelula(dadosAtual.saida);
+
+    if(ent && sAl && ret && sai){
+      min = (hm(sAl)-hm(ent)) + (hm(sai)-hm(ret));
+    } else if(ent && sai){
+      min = hm(sai)-hm(ent);
     }
 
-    
-    dataAtualRel = dBR;
+    if(isFeriadoLista) min = 0;
+    if(folgaProgramada && !temAlgumaMarcacao) min = 0;
+  }
 
-    const diaNum = currentDate.getDate();
-    const weekday = currentDate.getDay(); // 0=Dom..6=Sab
+  totalPeriodo += min;
 
-    let escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
-    const jornadaEscala = cargaEscalaMin(escStr);
+  const creditoMin = min - jornadaEscala;
 
-    const ddmm = `${dd}/${mm}`;
-    const isFeriadoLista = feriados.includes(ddmm);
+  const nomeDia = isFeriadoLista
+    ? "Feriado"
+    : ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
 
-    let min = 0;
+  const conteudoEntrada  = campo(dadosAtual.entrada,"entrada");
+  const conteudoSaidaAlm = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
+  const conteudoRetorno  = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
+  const conteudoSaida    = campo(dadosAtual.saida,"saida");
 
-    const eventos = [
-      dadosAtual.entrada_evento,
-      dadosAtual.saidaAlmoco_evento,
-      dadosAtual.retornoAlmoco_evento,
-      dadosAtual.saida_evento
-    ].filter(Boolean);
-    const eventoDia = eventos[0] || "";
+  html += `
+  <tr>
+    <td>${dBR}</td>
+    <td>${nomeDia}</td>
+    <td>${conteudoEntrada}</td>
+    <td>${conteudoSaidaAlm}</td>
+    <td>${conteudoRetorno}</td>
+    <td>${conteudoSaida}</td>
+    <td class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
+    <td class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0?fmt(creditoMin):""}</td>
+  </tr>`;
 
-    const temAlgumaMarcacao =
-      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
-
-    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
-
-    if(!eventoDia){
-      const ent = formataHoraCelula(dadosAtual.entrada);
-      const sAl = formataHoraCelula(dadosAtual.saidaAlmoco);
-      const ret = formataHoraCelula(dadosAtual.retornoAlmoco);
-      const sai = formataHoraCelula(dadosAtual.saida);
-
-      const temEnt = !!ent;
-      const temSAl = !!sAl;
-      const temRet = !!ret;
-      const temSai = !!sai;
-
-      if(temEnt && temSAl && temRet && temSai){
-        min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
-      } else if(temEnt && temSai && !temSAl && !temRet){
-        min = hm(sai) - hm(ent);
-      } else if(temEnt && temSAl && !temRet && !temSai){
-        min = hm(sAl) - hm(ent);
-      } else if(temEnt && temRet && !temSAl && !temSai){
-        min = hm(ret) - hm(ent);
-      } else {
-        min = 0;
-      }
-
-      if(isFeriadoLista) min = 0;
-      if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
-    } else {
-      const JORNADA_PADRAO = 480; // 8h
-      switch(eventoDia){
-        case "Falta Justificada":
-          min = -JORNADA_PADRAO;
-          totalAtestadosMin += -min;
-          break;
-        case "Atestado Médico Dias":
-          min = -JORNADA_PADRAO;
-          totalAtestadosMin += -min;
-          break;
-        case "Atestado Médico Horas": {
-          const minutosAtestado = Number(dadosAtual.atestadoHorasMin || JORNADA_PADRAO);
-          min = -minutosAtestado;
-          totalAtestadosMin += minutosAtestado;
-          break;
-        }
-        case "Falta Injustificada":
-          min = -JORNADA_PADRAO;
-          totalAtrasosFaltasMin += min;
-          break;
-        case "Falta Abonada":
-          min = JORNADA_PADRAO;
-          totalAtestadosMin += min;
-          break;
-        case "Férias":
-        case "Licença Maternidade":
-        case "Licença Paternidade":
-        case "Licença INSS+15 D":
-        case "Acidente de Trabalho":
-          min = JORNADA_PADRAO;
-          totalAfastamentosMin += min;
-          break;
-        case "Feriado":
-          min = 0;
-          break;
-      }
-    }
-
-    totalPeriodo += min;
-
-    let creditoMin = min - jornadaEscala;
-    if(isFeriadoLista && temAlgumaMarcacao) creditoMin = 16*60; // 16h de crédito
-
-    let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-    if(isFeriadoLista) nomeDia="Feriado";
-
-    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
-
-    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !eventoDia){
-      conteudoEntrada = "FOLGA";
-      conteudoSaidaAlm = "FOLGA";
-      conteudoRetorno  = "FOLGA";
-      conteudoSaida    = "FOLGA";
-    } else {
-      conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
-      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
-      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
-      conteudoSaida     = campo(dadosAtual.saida,"saida");
-    }
-
-    html+=`<tr>
-      <td>${dBR}</td>
+  currentDate.setDate(currentDate.getDate()+1);
+}      <td>${dBR}</td>
       <td>${nomeDia}</td>
       <td>${conteudoEntrada}</td>
       <td>${conteudoSaidaAlm}</td>
@@ -1148,4 +1113,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
