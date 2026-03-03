@@ -442,7 +442,63 @@ function mostrarDataHora(){
     document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString("pt-BR");
   },1000);
 }
+async function mostrarRegistrosUsuario(){
+  const hoje = new Date().toLocaleDateString("pt-BR");
+  const registrosDiv = document.getElementById("registrosUsuario");
+  const botoesDiv = document.getElementById("botoesRegistro");
 
+  registrosDiv.innerHTML = "Carregando marcações...";
+  botoesDiv.innerHTML = "";
+
+  let r = {};
+  try{
+    const res = await apiPost({ tipo:"getDia", usuario_login: currentUser, data: hoje });
+    if(res && res.status === "ok" && res.dia) r = res.dia;
+    else if(res && res.status === "erro"){
+      registrosDiv.innerHTML = "Erro ao carregar dia: " + (res.message || "");
+      return;
+    }
+  }catch(e){
+    console.error(e);
+    registrosDiv.innerHTML = "Erro ao conectar com o servidor.";
+    return;
+  }
+
+  // ✅ LISTA + PDF em cada marcação
+  registrosDiv.innerHTML = "";
+  const campos = [
+    ["entrada","Entrada"],
+    ["saidaAlmoco","Saída Almoço"],
+    ["retornoAlmoco","Retorno"],
+    ["saida","Saída"]
+  ];
+
+  campos.forEach(([k,label])=>{
+    const v = r[k];
+    if(v && String(v).trim() && String(v).trim() !== "-"){
+      const horaFmt = formataHoraCelula(v);
+      registrosDiv.innerHTML += `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eee;">
+          <div><strong>${label}:</strong> ${horaFmt}</div>
+          <button type="button" style="font-size:11px;width:auto" onclick="gerarComprovante('${k}')">📄 PDF</button>
+        </div>
+      `;
+    }
+  });
+
+  // ✅ botões de registro (sequência)
+  if(!r.entrada){
+    botoesDiv.innerHTML = `<button onclick="registrar('entrada')">Entrada</button>`;
+  } else if(!r.saidaAlmoco){
+    botoesDiv.innerHTML = `<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
+  } else if(!r.retornoAlmoco){
+    botoesDiv.innerHTML = `<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
+  } else if(!r.saida){
+    botoesDiv.innerHTML = `<button onclick="registrar('saida')">Saída</button>`;
+  } else {
+    botoesDiv.innerHTML = "✅ Jornada finalizada";
+  }
+}
 
   /************* REGRAS (TOTAL + CRÉDITO) *************/
 function calcularLinhaDia_(u, regDia, dateObj){
@@ -990,6 +1046,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
