@@ -407,14 +407,47 @@ async function carregarUsuariosAdmin(){
 }
 
 /************* OPERACIONAL *************/
-function registrar(tipo){
-  const agora=new Date();
-  const hora=agora.toTimeString().slice(0,5);
-  const data=dateToBR_(agora);
+async function registrar(tipo){
+  if(!navigator.geolocation){
+    alert("Geolocalização não suportada neste dispositivo/navegador.");
+    return;
+  }
+
+  // (opcional) checa permissão e avisa se estiver bloqueada
+  try{
+    if(navigator.permissions?.query){
+      const st = await navigator.permissions.query({ name: "geolocation" });
+      if(st.state === "denied"){
+        alert("Geolocalização BLOQUEADA no navegador.\n\nAtive em: cadeado ao lado do endereço > Permissões > Localização > Permitir.");
+        return;
+      }
+    }
+  }catch(e){ /* ignora */ }
+
+  const agora = new Date();
+  const hora = agora.toTimeString().slice(0,5);
+  const data = dateToBR_(agora);
+
+  const opts = {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  };
 
   navigator.geolocation.getCurrentPosition(
-    pos=> salvarRegistro(tipo,hora,data,`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`),
-    ()=> salvarRegistro(tipo,hora,data,"Não registrada")
+    pos => {
+      const geo = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+      salvarRegistro(tipo, hora, data, geo);
+    },
+    err => {
+      console.warn("Geolocalização falhou:", err);
+      let msg = "Não registrada";
+      if(err?.code === 1) msg = "Permissão negada";
+      if(err?.code === 2) msg = "Posição indisponível";
+      if(err?.code === 3) msg = "Tempo esgotado";
+      salvarRegistro(tipo, hora, data, msg);
+    },
+    opts
   );
 }
 
@@ -1046,6 +1079,7 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
 
