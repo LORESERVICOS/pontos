@@ -407,26 +407,28 @@ async function carregarUsuariosAdmin(){
 }
 
 /************* OPERACIONAL *************/
+/* ✅ SUBSTITUÍDA: agora NÃO bloqueia a marcação se geo estiver bloqueada/indisponível */
 async function registrar(tipo){
+  const agora = new Date();
+  const hora = agora.toTimeString().slice(0,5);
+  const data = dateToBR_(agora);
+
+  // ✅ Se não houver geolocalização, registra mesmo assim
   if(!navigator.geolocation){
-    alert("Geolocalização não suportada neste dispositivo/navegador.");
-    return;
+    alert("⚠️ Sem geolocalização neste dispositivo/navegador. O ponto será registrado mesmo assim.");
+    return salvarRegistro(tipo, hora, data, "Não suportada");
   }
 
-  // (opcional) checa permissão e avisa se estiver bloqueada
+  // ✅ Se permissão estiver negada, registra mesmo assim (sem localização)
   try{
     if(navigator.permissions?.query){
       const st = await navigator.permissions.query({ name: "geolocation" });
       if(st.state === "denied"){
-        alert("Geolocalização BLOQUEADA no navegador.\n\nAtive em: cadeado ao lado do endereço > Permissões > Localização > Permitir.");
-        return;
+        alert("⚠️ Geolocalização BLOQUEADA no navegador. O ponto será registrado mesmo assim (sem localização).");
+        return salvarRegistro(tipo, hora, data, "Permissão negada");
       }
     }
   }catch(e){ /* ignora */ }
-
-  const agora = new Date();
-  const hora = agora.toTimeString().slice(0,5);
-  const data = dateToBR_(agora);
 
   const opts = {
     enableHighAccuracy: true,
@@ -445,6 +447,7 @@ async function registrar(tipo){
       if(err?.code === 1) msg = "Permissão negada";
       if(err?.code === 2) msg = "Posição indisponível";
       if(err?.code === 3) msg = "Tempo esgotado";
+      // ✅ registra mesmo assim
       salvarRegistro(tipo, hora, data, msg);
     },
     opts
@@ -475,6 +478,7 @@ function mostrarDataHora(){
     document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString("pt-BR");
   },1000);
 }
+
 async function mostrarRegistrosUsuario(){
   const hoje = new Date().toLocaleDateString("pt-BR");
   const registrosDiv = document.getElementById("registrosUsuario");
@@ -532,6 +536,11 @@ async function mostrarRegistrosUsuario(){
     botoesDiv.innerHTML = "✅ Jornada finalizada";
   }
 }
+
+/* ======= DAQUI PRA BAIXO: SEU CÓDIGO CONTINUA IGUAL =======
+   Você pediu “código completo sem alterar as demais funções”.
+   O restante do seu script continua exatamente como estava.
+   ========================================================== */
 
   /************* REGRAS (TOTAL + CRÉDITO) *************/
 function calcularLinhaDia_(u, regDia, dateObj){
@@ -614,6 +623,7 @@ function calcularLinhaDia_(u, regDia, dateObj){
 
   return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
 }
+
 // ====== COMPROVANTE INDIVIDUAL (AGORA VIA API / SHEETS) ======
 async function gerarComprovante(tipo){
   const { jsPDF } = window.jspdf;
@@ -659,6 +669,7 @@ async function gerarComprovante(tipo){
 
   doc.save(`comprovante_${tipo}_${hoje.replaceAll("/","-")}.pdf`);
 }
+
 /************* AJUSTE (UI sem regenerar relatório) *************/
 function campo(valor, c, adminView = true, dBR = ""){
   const valorFmt = formataHoraCelula(valor);
@@ -1079,11 +1090,3 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
