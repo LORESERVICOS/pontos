@@ -277,6 +277,30 @@ function parseInputDateLocal(str){
   const [ano, mes, dia] = str.split("-").map(Number);
   return new Date(ano, mes - 1, dia);
 }
+  function normalizaHoraInput(h){
+  if(!h) return "";
+  const s = String(h).trim();
+
+  // aceita H:MM ou HH:MM
+  let m = s.match(/^(\d{1,2}):(\d{2})$/);
+  if(m){
+    const hh = String(Number(m[1])).padStart(2,"0");
+    const mm = m[2];
+    const hhn = Number(hh), mmn = Number(mm);
+    if(hhn >= 0 && hhn <= 23 && mmn >= 0 && mmn <= 59) return `${hh}:${mm}`;
+  }
+
+  // tenta extrair de string longa
+  m = s.match(/(\d{1,2}):(\d{2})/);
+  if(m){
+    const hh = String(Number(m[1])).padStart(2,"0");
+    const mm = m[2];
+    const hhn = Number(hh), mmn = Number(mm);
+    if(hhn >= 0 && hhn <= 23 && mmn >= 0 && mmn <= 59) return `${hh}:${mm}`;
+  }
+
+  return ""; // inválido
+}
 
 /************* LOGIN VIA APPS SCRIPT *************/
 async function login(){
@@ -561,8 +585,13 @@ async function abrirAjuste(u,d,c){
   document.body.appendChild(popup);
 
   popup.querySelector("#okBtn").onclick = async ()=>{
-    const h = popup.querySelector("#inputHoras").value.trim();
-    const ev = popup.querySelector("#selectJustificacao").value;
+   const hRaw = popup.querySelector("#inputHoras").value.trim();
+const h = normalizaHoraInput(hRaw);
+
+if(hRaw && !h){
+  alert("Hora inválida. Use o formato HH:MM (ex: 08:00).");
+  return;
+}
 
     if(ev === "Nenhum"){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
@@ -1144,3 +1173,4 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
