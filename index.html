@@ -1030,15 +1030,16 @@ async function gerarRelatorioMensal(){
   html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
   html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
 
-  html += `<table id="tabelaRelatorio"><tr>
-    <th>Data</th>
-    <th>Dia</th>
-    <th>Entrada</th>
-    <th>Saída Almoço</th>
-    <th>Retorno</th>
-    <th>Saída</th>
-    <th>Total</th>
-    <th>Crédito</th>`;
+ html += `<table id="tabelaRelatorio"><tr>
+  <th>Data</th>
+  <th>Dia</th>
+  <th>Entrada</th>
+  <th>Saída Almoço</th>
+  <th>Retorno</th>
+  <th>Saída</th>
+  <th>Total</th>
+  <th>Escala</th>
+  <th>Crédito</th>`;
 
   if(tipo==="comGeo"){
     html += `<th>Geo Entrada</th>
@@ -1052,6 +1053,8 @@ async function gerarRelatorioMensal(){
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
+    const escStrDia = getEscalaDoDia_(u, currentDate) || "";
+const escExibir = (escStrDia && escStrDia.toString().trim()) ? escStrDia : "";
     const dBR = dateToBR_(currentDate);
 
     dadosAtual = periodoCache[dBR] || {};
@@ -1095,15 +1098,16 @@ async function gerarRelatorioMensal(){
     const credClass = calc.destaqueCredito ? "credito-excedente" : (calc.creditoMin>=0 ? "verde" : "vermelho");
 
     html+=`<tr>
-      <td>${dBR}</td>
-      <td>${calc.nomeDia}</td>
-      <td>${conteudoEntrada}</td>
-      <td>${conteudoSaidaAlm}</td>
-      <td>${conteudoRetorno}</td>
-      <td>${conteudoSaida}</td>
-      <td id="total_${dBR}" class="${totalClass}">${totalTxt}</td>
-      <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
-
+  <td>${dBR}</td>
+  <td>${calc.nomeDia}</td>
+  <td>${conteudoEntrada}</td>
+  <td>${conteudoSaidaAlm}</td>
+  <td>${conteudoRetorno}</td>
+  <td>${conteudoSaida}</td>
+  <td id="escala_${dBR}">${escExibir}</td>
+  <td id="total_${dBR}" class="${totalClass}">${totalTxt}</td>
+  <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
+    
     if(tipo==="comGeo"){
       html+=`<td>${dadosAtual.geoEntrada||""}</td>
              <td>${dadosAtual.geoSaidaAlmoco||""}</td>
@@ -1339,4 +1343,5 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
