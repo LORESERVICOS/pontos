@@ -7,7 +7,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
-
 <style>
   body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;margin:0}
   header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
@@ -21,7 +20,7 @@
   .verde{color:green;font-weight:bold;}
   .vermelho{color:red;font-weight:bold;}
   input,select{padding:4px 6px;margin:2px 0;}
-
+  /* ===== MOBILE ===== */
   @media (max-width:768px){
     header{text-align:center}
     button,input,select{width:100%;margin:4px 0}
@@ -30,9 +29,14 @@
     table td{display:flex;justify-content:space-between;border:none}
     table td::before{content:attr(data-label);font-weight:600}
   }
+  /* NOVO – crédito especial (verde escuro) */
+  .credito-excedente{
+    background:#0f5132;
+    color:#ffffff;
+    font-weight:600;
+  }
 </style>
 </head>
-
 <body>
 <header>
   Bem-vindo, <span id="nomeUsuario"></span>
@@ -69,7 +73,7 @@
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
     <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
 
-    <select id="funcionarioSelect"></select>
+    <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
     <input type="date" id="dataInicio">
     <input type="date" id="dataFim">
     <select id="tipoRelatorio">
@@ -80,7 +84,6 @@
     <button onclick="gerarExcel()">Excel</button>
     <button onclick="gerarPDFAdmin()">PDF</button>
     <button onclick="logout()">Sair</button>
-
     <div id="cartaoFuncionario"></div>
   </div>
 </div>
@@ -168,16 +171,22 @@
 
 <script>
 /************* CONFIG *************/
+// COLE AQUI A URL DO SEU WEB APP (terminando em /exec)
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
 
 let users = {};
 let currentUser = null;
 let currentUserObj = null;
 
-// estado usado no relatório
+// estado global usado no relatório
 let dadosAtual = {};
 let dataAtualRel = "";
-let periodoCache = {}; // ✅ mapa dd/mm/aaaa => objeto do dia (vem do getPeriodo)
+
+// ✅ cache do período (1 chamada)
+let periodoCache = {};      // { "dd/mm/aaaa": { ...colunas... } }
+let periodoUser = "";       // usuário atual do relatório
+let periodoInicioKey = "";  // dd/mm/aaaa
+let periodoFimKey = "";     // dd/mm/aaaa
 
 // Lista simples de feriados (dd/mm)
 const feriados = ["01/01","07/09","25/12"];
@@ -206,7 +215,7 @@ function capitalize(s){
 
 function hm(h){
   if(!h || typeof h!=="string" || !h.includes(":")) return 0;
-  const[x,y]=h.split(":").map(Number);
+  const [x,y] = h.split(":").map(Number);
   if(isNaN(x) || isNaN(y)) return 0;
   return x*60+y;
 }
@@ -217,6 +226,15 @@ function fmt(m){
   const h = String(Math.floor(abs/60)).padStart(2,"0");
   const mm = String(abs%60).padStart(2,"0");
   return sign + h + ":" + mm;
+}
+
+// ✅ negativo entre parênteses (exigência)
+function fmtParentesesSeNegativo(m){
+  if(m < 0){
+    const s = fmt(m);         // "-HH:MM"
+    return "(" + s.slice(1) + ")";
+  }
+  return fmt(m);
 }
 
 function cargaEscalaMin(escStr){
@@ -288,7 +306,30 @@ function normalizaHoraInput(h){
   return "";
 }
 
-/************* LOGIN *************/
+// ✅ pega escala do dia (mensal sobrescreve semanal)
+function getEscalaDoDia_(u, dateObj){
+  const diaNum = dateObj.getDate();
+  const weekday = dateObj.getDay(); // 0..6
+  const escSem = (users[u] && users[u].escalaSemanal) || {};
+  const escMensal = (users[u] && users[u].escalaMensal) || {};
+  const escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
+  return escStr;
+}
+
+// ✅ verifica se a escala do dia é folga
+function isFolgaEscala_(escStr){
+  return escStr && escStr.toString().trim().toUpperCase() === "FOLGA";
+}
+
+// ✅ retorna "dd/mm/aaaa" de Date local
+function dateToBR_(dt){
+  const dd = String(dt.getDate()).padStart(2,"0");
+  const mm = String(dt.getMonth()+1).padStart(2,"0");
+  const yyyy = dt.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+/************* LOGIN VIA APPS SCRIPT *************/
 async function login(){
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
@@ -348,7 +389,6 @@ async function login(){
     document.getElementById("adminSection").classList.remove("hidden");
     await carregarUsuariosAdmin();
     preencherFuncionarios();
-    configurarDebounceRelatorio(); // ✅ melhora UX
   } else {
     document.getElementById("operacionalSection").classList.remove("hidden");
     mostrarDataHora();
@@ -479,7 +519,7 @@ async function mostrarRegistrosUsuario(){
   }
 }
 
-/************* COMPROVANTE *************/
+/************* COMPROVANTE INDIVIDUAL *************/
 async function gerarComprovante(tipo){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF();
@@ -510,45 +550,228 @@ async function gerarComprovante(tipo){
   doc.save(`comprovante_${tipo}_${hoje}.pdf`);
 }
 
+/************* CÁLCULO LINHA A LINHA (REGRAS) *************/
+/**
+ Regras (conforme você pediu):
+ - trabalhar feriado => crédito extra = total * 100% (ou seja, crédito = total)
+ - trabalhar na folga:
+    - se NÃO teve folga no dia seguinte => crédito extra = total * 100% (crédito = total)
+    - se teve folga no dia seguinte => crédito = total
+ - se total > carga da escala => destaque verde escuro no Crédito (hora extra) e crédito = total - escala
+ - se total < escala => total em vermelho e negativo em parênteses (aqui deixamos total negativo = total - escala)
+*/
+function calcularLinhaDia_(u, regDia, dateObj){
+  const dBR = dateToBR_(dateObj);
+  const dd = String(dateObj.getDate()).padStart(2,"0");
+  const mm = String(dateObj.getMonth()+1).padStart(2,"0");
+  const weekday = dateObj.getDay();
+
+  // escala do dia (mensal > semanal)
+  const escStr = getEscalaDoDia_(u, dateObj);
+  const jornadaEscala = cargaEscalaMin(escStr);
+  const folgaProgramada = isFolgaEscala_(escStr);
+
+  // feriado por lista dd/mm
+  const ddmm = `${dd}/${mm}`;
+  const isFeriadoLista = feriados.includes(ddmm);
+
+  // marcações
+  const ent = formataHoraCelula(regDia?.entrada);
+  const sAl = formataHoraCelula(regDia?.saidaAlmoco);
+  const ret = formataHoraCelula(regDia?.retornoAlmoco);
+  const sai = formataHoraCelula(regDia?.saida);
+
+  const temAlgumaMarcacao = !!(ent || sAl || ret || sai);
+
+  // evento do dia (se existir)
+  const eventos = [
+    regDia?.entrada_evento,
+    regDia?.saidaAlmoco_evento,
+    regDia?.retornoAlmoco_evento,
+    regDia?.saida_evento
+  ].filter(Boolean);
+  const eventoDia = eventos[0] || "";
+
+  let minutosTrabalhados = 0;
+
+  // calcula minutos quando NÃO é evento
+  if(!eventoDia){
+    const temEnt = !!ent;
+    const temSAl = !!sAl;
+    const temRet = !!ret;
+    const temSai = !!sai;
+
+    if(temEnt && temSAl && temRet && temSai){
+      minutosTrabalhados = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
+    } else if(temEnt && temSai && !temSAl && !temRet){
+      minutosTrabalhados = hm(sai) - hm(ent);
+    } else if(temEnt && temSAl && !temRet && !temSai){
+      minutosTrabalhados = hm(sAl) - hm(ent);
+    } else if(temEnt && temRet && !temSAl && !temSai){
+      minutosTrabalhados = hm(ret) - hm(ent);
+    } else {
+      minutosTrabalhados = 0;
+    }
+    if(minutosTrabalhados < 0) minutosTrabalhados = 0;
+  } else {
+    // mantém seu modelo de eventos (não mexi na sua lista; só deixei coerente)
+    const JORNADA_PADRAO = 480; // 8h
+    switch(eventoDia){
+      case "Falta Justificada":
+      case "Atestado Médico Dias":
+        minutosTrabalhados = 0;
+        break;
+      case "Atestado Médico Horas":
+        minutosTrabalhados = 0;
+        break;
+      case "Falta Injustificada":
+      case "Falta Abonada":
+      case "Férias":
+      case "Licença Maternidade":
+      case "Licença Paternidade":
+      case "Licença INSS+15 D":
+      case "Acidente de Trabalho":
+      case "Feriado":
+        minutosTrabalhados = 0;
+        break;
+      default:
+        minutosTrabalhados = 0;
+    }
+  }
+
+  // nome do dia
+  let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+  if(isFeriadoLista) nomeDia = "Feriado";
+
+  // ✅ total exibido no seu relatório precisa continuar sendo o “total do dia”
+  // mas o vermelho/negativo que você quer é “diferença da escala”.
+  // Então:
+  // - totalDiaMin = minutosTrabalhados (para cálculo)
+  // - minExibicao = (minutosTrabalhados - jornadaEscala) quando for dia normal (para vermelho/negativo)
+  //
+  // Observação: você já usa "Total" como saldo. Mantive o mesmo conceito.
+  let saldoMin = 0;
+
+  // feriado trabalhado: saldo = 0 (para não virar negativo) e crédito extra = total
+  let creditoMin = 0;
+  let destaqueCredito = false;
+
+  // regra feriado: se trabalhou feriado => crédito extra = total (100%)
+  if(isFeriadoLista && temAlgumaMarcacao){
+    saldoMin = 0;
+    creditoMin = minutosTrabalhados; // extra 100%
+    destaqueCredito = true;
+    return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
+  }
+
+  // regra folga
+  if(folgaProgramada){
+    if(temAlgumaMarcacao){
+      // verifica folga no dia seguinte
+      const prox = new Date(dateObj);
+      prox.setDate(prox.getDate()+1);
+      const escProx = getEscalaDoDia_(u, prox);
+      const folgaAmanha = isFolgaEscala_(escProx);
+
+      saldoMin = 0; // não saldo negativo/positivo, pois não tem obrigação
+      creditoMin = minutosTrabalhados; // banco = total
+
+      // se NÃO teve folga dia seguinte => adicional 100% (continua crédito = total, mas destacamos)
+      if(!folgaAmanha){
+        destaqueCredito = true;
+      } else {
+        // teve folga dia seguinte => crédito normal (sem destaque)
+        destaqueCredito = false;
+      }
+      return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
+    } else {
+      // folga sem marcação
+      saldoMin = 0;
+      creditoMin = 0;
+      destaqueCredito = false;
+      return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
+    }
+  }
+
+  // dia normal: saldo = total - escala
+  saldoMin = minutosTrabalhados - jornadaEscala;
+  creditoMin = (saldoMin > 0 ? saldoMin : 0); // “hora extra” no crédito
+  destaqueCredito = (saldoMin > 0);
+
+  return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
+}
+
 /************* AJUSTES (ADMIN) *************/
-function campo(valor, c, adminView = true){
+// ✅ agora gera a célula com ID (para atualizar sem regenerar relatório)
+function campo(valor, c, adminView = true, dBR = ""){
   const valorFmt = formataHoraCelula(valor);
   const vazio = !valorFmt || valorFmt === "-";
   const evento = dadosAtual[c+"_evento"];
 
+  const cellId = (dBR ? `cell_${dBR}_${c}` : "");
+  const wrapOpen = cellId ? `<span id="${cellId}">` : `<span>`;
+  const wrapClose = `</span>`;
+
+  const u = document.getElementById("funcionarioSelect")?.value || "";
+  const d = dBR || dataAtualRel;
+
+  // mostra valor (registrado) + editar
   if(!vazio && !evento){
     if(adminView){
-      return valorFmt + (dadosAtual[c+"_editado"]
-        ? ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`
-        : "");
+      const btn = ` <button style="font-size:11px" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
+      return wrapOpen + valorFmt + btn + wrapClose;
     }
-    return valorFmt;
+    return wrapOpen + valorFmt + wrapClose;
   }
 
+  // mostra evento + editar
   if(evento){
     if(adminView){
-      return evento + ` <button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">Editar</button>`;
+      const btn = ` <button style="font-size:11px" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
+      return wrapOpen + evento + btn + wrapClose;
     }
-    return evento;
+    return wrapOpen + evento + wrapClose;
   }
 
+  // vazio: ajustar
   if(adminView){
-    return `<button style="font-size:11px" onclick="abrirAjuste('${funcionarioSelect.value}','${dataAtualRel}','${c}')">➕ Ajustar</button>`;
+    return wrapOpen + `<button style="font-size:11px" onclick="abrirAjuste('${u}','${d}','${c}')">➕ Ajustar</button>` + wrapClose;
   }
-  return "";
+  return wrapOpen + "" + wrapClose;
+}
+
+// ✅ atualiza na tela só a linha (horas + total + crédito)
+function atualizarLinhaUI_(u, dBR, dateObj){
+  const reg = periodoCache[dBR] || {};
+  const calc = calcularLinhaDia_(u, reg, dateObj);
+
+  // atualiza as 4 células (mantendo botões)
+  ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(c=>{
+    const span = document.getElementById(`cell_${dBR}_${c}`);
+    if(!span) return;
+    dadosAtual = reg; // para campo() enxergar eventos/flags do dia atual
+    span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
+  });
+
+  // total/saldo
+  const tdTotal = document.getElementById(`total_${dBR}`);
+  if(tdTotal){
+    tdTotal.className = (calc.min >= 0 ? "verde" : "vermelho");
+    tdTotal.textContent = fmtParentesesSeNegativo(calc.min);
+  }
+
+  // crédito
+  const tdCred = document.getElementById(`credito_${dBR}`);
+  if(tdCred){
+    const clsBase = (calc.creditoMin >= 0 ? "verde" : "vermelho");
+    tdCred.className = calc.destaqueCredito ? "credito-excedente" : clsBase;
+    tdCred.textContent = (calc.creditoMin!==0 ? fmtParentesesSeNegativo(calc.creditoMin) : "");
+  }
 }
 
 async function abrirAjuste(u,d,c){
-  // ✅ usa cache do período se existir (sem pedir getDia toda hora)
-  let atual = periodoCache[d];
-  if(!atual){
-    const resGet = await apiPost({tipo:"getDia", usuario_login:u, data:d});
-    if(resGet.status !== "ok"){
-      alert(resGet.message || "Erro ao carregar dia");
-      return;
-    }
-    atual = resGet.dia || {};
-  }
+  // ✅ usa o cache do período (sem chamar getDia aqui)
+  const atual = (periodoCache[d] || {});
 
   let popup = document.createElement("div");
   popup.style.position="fixed";
@@ -577,64 +800,171 @@ async function abrirAjuste(u,d,c){
   popup.querySelector("#okBtn").onclick = async ()=>{
     const hRaw = popup.querySelector("#inputHoras").value.trim();
     const h = normalizaHoraInput(hRaw);
-
-    const ev = popup.querySelector("#selectJustificacao").value || ""; // ✅ estava faltando no seu código
+    const ev = popup.querySelector("#selectJustificacao").value;
 
     if(hRaw && !h){
       alert("Hora inválida. Use o formato HH:MM (ex: 08:00).");
       return;
     }
 
-    // ✅ faz cópia para não “quebrar” referência
-    const novo = JSON.parse(JSON.stringify(atual || {}));
+    // ✅ monta um "patch" (salvarDia atualiza só o que vier)
+    const patch = {};
 
-    // “Nenhum” limpa justificativas/edicao
+    // Nenhum = limpa eventos/editado; não apaga marcações do funcionário se existirem
     if(ev === "Nenhum"){
-      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-        delete novo[campoNome+"_evento"];
-        delete novo[campoNome+"_editado"];
-        if(novo[campoNome] === "-" || novo[campoNome] === "" || novo[campoNome] == null){
-          delete novo[campoNome];
-        }
-      });
-      delete novo.atestadoHorasMin;
-    } else if(ev){
-      // evento (sem hora): marca tudo "-"
-      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-        novo[campoNome] = "-";
-        novo[campoNome+"_evento"] = ev;
-        novo[campoNome+"_editado"] = true;
-      });
-      delete novo.atestadoHorasMin;
-    } else if(h){
-      // hora ajustada
-      novo[c] = h;
-      novo[c+"_evento"] = "";
-      novo[c+"_editado"] = true;
-      delete novo.atestadoHorasMin;
+      patch[c+"_evento"] = "";
+      patch[c+"_editado"] = false;
+
+      // se quiser limpar a hora do ajuste ao escolher Nenhum:
+      // patch[c] = "";
+
+      const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
+      if(resSave.status!=="ok"){
+        alert(resSave.message||"Erro ao salvar ajuste");
+        return;
+      }
+
+      // atualiza cache
+      periodoCache[d] = periodoCache[d] || {};
+      periodoCache[d][c+"_evento"] = "";
+      periodoCache[d][c+"_editado"] = false;
+
+      popup.remove();
+
+      // ✅ atualiza só a linha/célula
+      const dateObj = parseBRtoDate_(d);
+      atualizarLinhaUI_(u, d, dateObj);
+      return;
     }
 
-    novo.data = d;
+    // atestado dias / horas: mantém sua lógica antiga chamando salvarDia em várias datas
+    if(ev === "Atestado Médico Dias"){
+      const intervalo = prompt("Informe o intervalo do atestado (formato: dd/mm/aaaa - dd/mm/aaaa):", d+" - "+d);
+      if(intervalo){
+        const partes = intervalo.split("-");
+        if(partes.length===2){
+          const iniStr = partes[0].trim();
+          const fimStr = partes[1].trim();
+          const [di,mi,ai] = iniStr.split("/").map(Number);
+          const [df,mf,af] = fimStr.split("/").map(Number);
+          if(di&&mi&&ai&&df&&mf&&af){
+            let dataIni = new Date(ai,mi-1,di);
+            let dataFim = new Date(af,mf-1,df);
+            if(dataIni > dataFim){ const tmp=dataIni; dataIni=dataFim; dataFim=tmp; }
 
-    const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:d, dia: novo});
+            let cursor = new Date(dataIni);
+            while(cursor <= dataFim){
+              const chave = dateToBR_(cursor);
+
+              const reg = (periodoCache[chave] || {});
+              ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+                reg[campoNome] = "-";
+                reg[campoNome+"_evento"] = ev;
+                reg[campoNome+"_editado"] = true;
+              });
+              delete reg.atestadoHorasMin;
+
+              await apiPost({tipo:"salvarDia", usuario_login:u, data:chave, dia: reg});
+              periodoCache[chave] = reg;
+
+              // atualiza UI se o dia estiver na tela
+              const dt = parseBRtoDate_(chave);
+              atualizarLinhaUI_(u, chave, dt);
+
+              cursor.setDate(cursor.getDate()+1);
+            }
+            popup.remove();
+            return;
+          }
+        }
+      }
+      popup.remove();
+      return;
+    }
+
+    if(ev === "Atestado Médico Horas"){
+      const dataAtestadoStr = prompt("Data do atestado (dd/mm/aaaa):", d);
+      if(!dataAtestadoStr){ popup.remove(); return; }
+      const [ddia,dmes,dano] = dataAtestadoStr.split("/").map(Number);
+      if(!ddia||!dmes||!dano){ popup.remove(); return; }
+      const dataAtestadoKey = `${String(ddia).padStart(2,"0")}/${String(dmes).padStart(2,"0")}/${dano}`;
+      const hIni = prompt("Hora INÍCIO do atestado (HH:MM):","08:00");
+      const hFim = prompt("Hora FIM do atestado (HH:MM):","10:00");
+      if(!hIni || !hFim){ popup.remove(); return; }
+      const minutosAtestado = Math.max(0, hm(hFim) - hm(hIni));
+
+      const regA = (periodoCache[dataAtestadoKey] || {});
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        regA[campoNome] = "-";
+        regA[campoNome+"_evento"] = ev;
+        regA[campoNome+"_editado"] = true;
+      });
+      regA.atestadoHorasMin = minutosAtestado;
+
+      const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:dataAtestadoKey, dia: regA});
+      if(resSave.status!=="ok"){
+        alert(resSave.message||"Erro ao salvar atestado");
+        return;
+      }
+
+      periodoCache[dataAtestadoKey] = regA;
+      popup.remove();
+
+      const dt = parseBRtoDate_(dataAtestadoKey);
+      atualizarLinhaUI_(u, dataAtestadoKey, dt);
+      return;
+    }
+
+    // ajuste simples de hora
+    if(h){
+      patch[c] = h;
+      patch[c+"_evento"] = "";
+      patch[c+"_editado"] = true;
+      patch.atestadoHorasMin = "";
+    } else if(ev){
+      // evento geral do dia (marca tudo como "-")
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        patch[campoNome] = "-";
+        patch[campoNome+"_evento"] = ev;
+        patch[campoNome+"_editado"] = true;
+      });
+      patch.atestadoHorasMin = "";
+    }
+
+    const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
     if(resSave.status!=="ok"){
       alert(resSave.message||"Erro ao salvar ajuste");
       return;
     }
 
     // ✅ atualiza cache local
-    periodoCache[d] = novo;
-
-    // ✅ atualiza só a LINHA (sem gerarRelatorioMensal)
-    atualizarLinhaRelatorio(u, d);
+    periodoCache[d] = periodoCache[d] || {};
+    Object.keys(patch).forEach(k=>{
+      if(patch[k] === "") {
+        // opcional: pode manter vazio; aqui só aplica
+        periodoCache[d][k] = patch[k];
+      } else {
+        periodoCache[d][k] = patch[k];
+      }
+    });
 
     popup.remove();
+
+    // ✅ atualiza só a linha (sem regenerar relatório)
+    const dateObj = parseBRtoDate_(d);
+    atualizarLinhaUI_(u, d, dateObj);
   };
 
   popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
 }
 
-/************* ADMIN – LISTA FUNCIONÁRIOS *************/
+// ✅ parse dd/mm/aaaa → Date local (sem timezone do JS bagunçar)
+function parseBRtoDate_(dBR){
+  const [dd,mm,yyyy] = String(dBR||"").split("/").map(Number);
+  return new Date(yyyy, (mm||1)-1, dd||1);
+}
+
+/************* ADMIN – CARREGAR FUNCIONÁRIOS *************/
 function preencherFuncionarios(){
   const select=document.getElementById("funcionarioSelect");
   select.innerHTML="<option value=''>Selecionar Funcionário</option>";
@@ -648,20 +978,15 @@ function preencherFuncionarios(){
   });
 }
 
-/************* RELATÓRIO (1 chamada getPeriodo) *************/
+/************* RELATÓRIO MENSAL (OTIMIZADO: 1 chamada getPeriodo) *************/
 async function gerarRelatorioMensal(){
   const funcSelect = document.getElementById("funcionarioSelect");
   const dataInicioEl = document.getElementById("dataInicio");
   const dataFimEl = document.getElementById("dataFim");
   const tipoEl = document.getElementById("tipoRelatorio");
-  const out = document.getElementById("cartaoFuncionario");
 
   const u = funcSelect.value;
-  if(!u || !dataInicioEl.value){
-    return;
-  }
-
-  out.innerHTML = "<p>Carregando relatório...</p>";
+  if(!u || !dataInicioEl.value) return;
 
   const tipo = tipoEl.value;
 
@@ -676,326 +1001,135 @@ async function gerarRelatorioMensal(){
   const periodoInicioStr = inicio.toLocaleDateString("pt-BR");
   const periodoFimStr = fim.toLocaleDateString("pt-BR");
 
-  // ✅ 1 ÚNICA CHAMADA
+  // ✅ 1 chamada só
   let resPeriodo;
   try{
     resPeriodo = await apiPost({
-      tipo:"getPeriodo",
+      tipo: "getPeriodo",
       usuario_login: u,
       dataInicio: periodoInicioStr,
       dataFim: periodoFimStr
     });
   }catch(e){
-    out.innerHTML = "<p>Erro ao conectar com o servidor.</p>";
+    resPeriodo = { status:"erro", message:String(e) };
+  }
+
+  if(!resPeriodo || resPeriodo.status !== "ok"){
+    alert(resPeriodo?.message || "Erro ao carregar período");
     return;
   }
 
-  periodoCache = (resPeriodo && resPeriodo.status==="ok" ? (resPeriodo.registros || {}) : {}) || {};
-
-  const escSem = (users[u] && users[u].escalaSemanal) || {};
-  const escMensal = (users[u] && users[u].escalaMensal) || {};
+  // guarda cache global
+  periodoCache = resPeriodo.registros || {};
+  periodoUser = u;
+  periodoInicioKey = periodoInicioStr;
+  periodoFimKey = periodoFimStr;
 
   let html = "";
   html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
   html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
   html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
 
-  html += `<table id="tabelaRelatorio">
-    <thead>
-      <tr>
-        <th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Crédito</th>
-        ${tipo==="comGeo" ? "<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>" : ""}
-      </tr>
-    </thead>
-    <tbody>`;
+  html += `<table id="tabelaRelatorio"><tr>
+    <th>Data</th>
+    <th>Dia</th>
+    <th>Entrada</th>
+    <th>Saída Almoço</th>
+    <th>Retorno</th>
+    <th>Saída</th>
+    <th>Total</th>
+    <th>Crédito</th>`;
+
+  if(tipo==="comGeo"){
+    html += `<th>Geo Entrada</th>
+             <th>Geo Saída Almoço</th>
+             <th>Geo Retorno</th>
+             <th>Geo Saída</th>`;
+  }
+  html += `</tr>`;
 
   let totalPeriodo = 0;
-
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
-    const dd = String(currentDate.getDate()).padStart(2,"0");
-    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
-    const yyyy = currentDate.getFullYear();
-    const dBR = `${dd}/${mm}/${yyyy}`;
+    const dBR = dateToBR_(currentDate);
 
     dadosAtual = periodoCache[dBR] || {};
     dataAtualRel = dBR;
 
-    const weekday = currentDate.getDay();
-    const diaNum = currentDate.getDate();
+    // ✅ cálculo linha a linha (regras)
+    const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
 
-    let escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
-    const jornadaEscala = cargaEscalaMin(escStr);
+    totalPeriodo += calc.min;
 
+    // conteúdo das 4 colunas
+    const escStr = getEscalaDoDia_(u, currentDate);
+    const folgaProgramada = isFolgaEscala_(escStr);
+    const dd = String(currentDate.getDate()).padStart(2,"0");
+    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
     const ddmm = `${dd}/${mm}`;
     const isFeriadoLista = feriados.includes(ddmm);
-
-    // calcula min do dia
-    const {min, creditoMin, nomeDia} = calcularLinhaDia_(dadosAtual, currentDate, escStr, jornadaEscala, isFeriadoLista);
-
-    totalPeriodo += min;
-
-    // conteudos das colunas
-    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
-
     const temAlgumaMarcacao =
       dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
 
-    const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
+    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
 
-    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !temEventoDia_(dadosAtual)){
+    // folga sem marcação => mostra "FOLGA"
+    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !dadosAtual.entrada_evento){
       conteudoEntrada = "FOLGA";
       conteudoSaidaAlm = "FOLGA";
       conteudoRetorno  = "FOLGA";
       conteudoSaida    = "FOLGA";
     } else {
-      conteudoEntrada   = campo(dadosAtual.entrada,"entrada");
-      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
-      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
-      conteudoSaida     = campo(dadosAtual.saida,"saida");
+      conteudoEntrada   = campo(dadosAtual.entrada,"entrada", true, dBR);
+      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco", true, dBR);
+      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco", true, dBR);
+      conteudoSaida     = campo(dadosAtual.saida,"saida", true, dBR);
     }
 
-    html += `<tr data-dia="${dBR}" data-min="${min}" data-creditomin="${creditoMin}">
-      <td data-label="Data">${dBR}</td>
-      <td data-label="Dia">${nomeDia}</td>
+    // total e crédito (com ID para atualizar sem regenerar)
+    const totalTxt = fmtParentesesSeNegativo(calc.min);
+    const credTxt = (calc.creditoMin!==0 ? fmtParentesesSeNegativo(calc.creditoMin) : "");
 
-      <td data-label="Entrada" data-campo="entrada">${conteudoEntrada}</td>
-      <td data-label="Saída Almoço" data-campo="saidaAlmoco">${conteudoSaidaAlm}</td>
-      <td data-label="Retorno" data-campo="retornoAlmoco">${conteudoRetorno}</td>
-      <td data-label="Saída" data-campo="saida">${conteudoSaida}</td>
+    const totalClass = (calc.min>=0 ? "verde" : "vermelho");
+    const credClass = calc.destaqueCredito ? "credito-excedente" : (calc.creditoMin>=0 ? "verde" : "vermelho");
 
-      <td data-label="Total" data-campo="total" class="${min>=0?'verde':'vermelho'}">${fmt(min)}</td>
-      <td data-label="Crédito" data-campo="credito" class="${creditoMin>=0?'verde':'vermelho'}">${creditoMin!==0 ? fmt(creditoMin) : ""}</td>
-      ${tipo==="comGeo" ? `
-        <td data-label="Geo Entrada" data-campo="geoEntrada">${dadosAtual.geoEntrada||""}</td>
-        <td data-label="Geo Saída Almoço" data-campo="geoSaidaAlmoco">${dadosAtual.geoSaidaAlmoco||""}</td>
-        <td data-label="Geo Retorno" data-campo="geoRetornoAlmoco">${dadosAtual.geoRetornoAlmoco||""}</td>
-        <td data-label="Geo Saída" data-campo="geoSaida">${dadosAtual.geoSaida||""}</td>
-      ` : ""}
-    </tr>`;
+    html+=`<tr>
+      <td>${dBR}</td>
+      <td>${calc.nomeDia}</td>
+      <td>${conteudoEntrada}</td>
+      <td>${conteudoSaidaAlm}</td>
+      <td>${conteudoRetorno}</td>
+      <td>${conteudoSaida}</td>
+      <td id="total_${dBR}" class="${totalClass}">${totalTxt}</td>
+      <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
+
+    if(tipo==="comGeo"){
+      html+=`<td>${dadosAtual.geoEntrada||""}</td>
+             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
+             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
+             <td>${dadosAtual.geoSaida||""}</td>`;
+    }
+
+    html+="</tr>";
 
     currentDate.setDate(currentDate.getDate()+1);
   }
 
-  html += `</tbody>
-    <tfoot>
-      <tr>
-        <th colspan="6">TOTAL</th>
-        <th id="totalPeriodoCell" class="${totalPeriodo>=0?'verde':'vermelho'}">${fmt(totalPeriodo)}</th>
-        <th></th>
-        ${tipo==="comGeo" ? `<th colspan="4"></th>` : ""}
-      </tr>
-    </tfoot>
-  </table>`;
-
-  html += `<p>Assinatura do Funcionário: _____________________</p>`;
-
-  out.innerHTML = html;
-}
-
-// ✅ calcula min/credito/nomeDia para uma data (usado tanto no gerar quanto no ajuste)
-function temEventoDia_(dia){
-  const eventos = [
-    dia.entrada_evento,
-    dia.saidaAlmoco_evento,
-    dia.retornoAlmoco_evento,
-    dia.saida_evento
-  ].filter(Boolean);
-  return eventos[0] || "";
-}
-
-function calcularLinhaDia_(diaObj, dateObj, escStr, jornadaEscala, isFeriadoLista){
-  const weekday = dateObj.getDay();
-  let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-  if(isFeriadoLista) nomeDia="Feriado";
-
-  const eventoDia = temEventoDia_(diaObj);
-
-  const temAlgumaMarcacao =
-    diaObj.entrada || diaObj.saidaAlmoco || diaObj.retornoAlmoco || diaObj.saida;
-
-  const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
-
-  let min = 0;
-
-  if(!eventoDia){
-    const ent = formataHoraCelula(diaObj.entrada);
-    const sAl = formataHoraCelula(diaObj.saidaAlmoco);
-    const ret = formataHoraCelula(diaObj.retornoAlmoco);
-    const sai = formataHoraCelula(diaObj.saida);
-
-    const temEnt = !!ent;
-    const temSAl = !!sAl;
-    const temRet = !!ret;
-    const temSai = !!sai;
-
-    if(temEnt && temSAl && temRet && temSai){
-      min = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
-    } else if(temEnt && temSai && !temSAl && !temRet){
-      min = hm(sai) - hm(ent);
-    } else if(temEnt && temSAl && !temRet && !temSai){
-      min = hm(sAl) - hm(ent);
-    } else if(temEnt && temRet && !temSAl && !temSai){
-      min = hm(ret) - hm(ent);
-    } else {
-      min = 0;
-    }
-
-    if(isFeriadoLista) min = 0;
-    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao) min = 0;
-  } else {
-    const JORNADA_PADRAO = 480;
-    switch(eventoDia){
-      case "Falta Justificada":
-      case "Atestado Médico Dias":
-        min = -JORNADA_PADRAO;
-        break;
-      case "Atestado Médico Horas": {
-        const minutosAtestado = Number(diaObj.atestadoHorasMin || JORNADA_PADRAO);
-        min = -minutosAtestado;
-        break;
-      }
-      case "Falta Injustificada":
-        min = -JORNADA_PADRAO;
-        break;
-      case "Falta Abonada":
-      case "Férias":
-      case "Licença Maternidade":
-      case "Licença Paternidade":
-      case "Licença INSS+15 D":
-      case "Acidente de Trabalho":
-        min = JORNADA_PADRAO;
-        break;
-      case "Feriado":
-        min = 0;
-        break;
-    }
+  html+=`<tr><th colspan="6">TOTAL</th>
+           <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmtParentesesSeNegativo(totalPeriodo)}</th>
+           <th></th>`;
+  if(tipo==="comGeo"){
+    html+=`<th colspan="4"></th>`;
   }
+  html+=`</tr></table>`;
 
-  let creditoMin = min - jornadaEscala;
-  if(isFeriadoLista && temAlgumaMarcacao) creditoMin = 16*60;
+  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
 
-  return {min, creditoMin, nomeDia};
+  document.getElementById("cartaoFuncionario").innerHTML = html;
 }
 
-/************* ✅ ATUALIZA SOMENTE A LINHA NO RELATÓRIO *************/
-function atualizarLinhaRelatorio(u, dBR){
-  const tabela = document.getElementById("tabelaRelatorio");
-  if(!tabela) return;
-
-  const tr = tabela.querySelector(`tr[data-dia="${dBR}"]`);
-  if(!tr) return;
-
-  const tipo = document.getElementById("tipoRelatorio").value;
-
-  const dataInicioEl = document.getElementById("dataInicio");
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  if(!inicio) return;
-
-  // reconstrói Date da linha (dd/mm/aaaa)
-  const [dd,mm,yyyy] = dBR.split("/").map(Number);
-  const dt = new Date(yyyy, mm-1, dd);
-  const weekday = dt.getDay();
-  const diaNum = dt.getDate();
-
-  const escSem = (users[u] && users[u].escalaSemanal) || {};
-  const escMensal = (users[u] && users[u].escalaMensal) || {};
-  let escStr = (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
-  const jornadaEscala = cargaEscalaMin(escStr);
-
-  const ddmm = `${String(dd).padStart(2,"0")}/${String(mm).padStart(2,"0")}`;
-  const isFeriadoLista = feriados.includes(ddmm);
-
-  // atualiza dadosAtual/dataAtualRel para reutilizar campo()
-  dadosAtual = periodoCache[dBR] || {};
-  dataAtualRel = dBR;
-
-  const {min, creditoMin, nomeDia} = calcularLinhaDia_(dadosAtual, dt, escStr, jornadaEscala, isFeriadoLista);
-
-  // atualiza células
-  tr.querySelector(`td[data-label="Dia"]`).textContent = nomeDia;
-
-  const temAlgumaMarcacao =
-    dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
-
-  const folgaProgramada = escStr && escStr.toString().trim().toUpperCase()==="FOLGA";
-
-  let vEntrada, vSA, vRet, vSai;
-  if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !temEventoDia_(dadosAtual)){
-    vEntrada="FOLGA"; vSA="FOLGA"; vRet="FOLGA"; vSai="FOLGA";
-  } else {
-    vEntrada = campo(dadosAtual.entrada,"entrada");
-    vSA      = campo(dadosAtual.saidaAlmoco,"saidaAlmoco");
-    vRet     = campo(dadosAtual.retornoAlmoco,"retornoAlmoco");
-    vSai     = campo(dadosAtual.saida,"saida");
-  }
-
-  tr.querySelector(`td[data-campo="entrada"]`).innerHTML = vEntrada;
-  tr.querySelector(`td[data-campo="saidaAlmoco"]`).innerHTML = vSA;
-  tr.querySelector(`td[data-campo="retornoAlmoco"]`).innerHTML = vRet;
-  tr.querySelector(`td[data-campo="saida"]`).innerHTML = vSai;
-
-  const tdTotal = tr.querySelector(`td[data-campo="total"]`);
-  tdTotal.textContent = fmt(min);
-  tdTotal.className = (min>=0 ? "verde" : "vermelho");
-
-  const tdCredito = tr.querySelector(`td[data-campo="credito"]`);
-  tdCredito.textContent = (creditoMin!==0 ? fmt(creditoMin) : "");
-  tdCredito.className = (creditoMin>=0 ? "verde" : "vermelho");
-
-  if(tipo === "comGeo"){
-    const setGeo = (k)=>{ const td=tr.querySelector(`td[data-campo="${k}"]`); if(td) td.textContent = dadosAtual[k]||""; };
-    setGeo("geoEntrada");
-    setGeo("geoSaidaAlmoco");
-    setGeo("geoRetornoAlmoco");
-    setGeo("geoSaida");
-  }
-
-  // atualiza atributos (pra recalcular total rápido)
-  tr.setAttribute("data-min", String(min));
-  tr.setAttribute("data-creditomin", String(creditoMin));
-
-  // ✅ recalcula total do período somando data-min (rápido, só DOM)
-  recalcularTotalPeriodo_();
-}
-
-function recalcularTotalPeriodo_(){
-  const tabela = document.getElementById("tabelaRelatorio");
-  if(!tabela) return;
-  const trs = tabela.querySelectorAll("tbody tr[data-dia]");
-  let soma = 0;
-  trs.forEach(tr=>{
-    const v = Number(tr.getAttribute("data-min") || "0");
-    soma += isNaN(v) ? 0 : v;
-  });
-  const cell = document.getElementById("totalPeriodoCell");
-  if(cell){
-    cell.textContent = fmt(soma);
-    cell.className = (soma>=0 ? "verde" : "vermelho");
-  }
-}
-
-/************* DEBOUNCE (opcional, mas ajuda muito UX) *************/
-function configurarDebounceRelatorio(){
-  const funcSelect = document.getElementById("funcionarioSelect");
-  const dataInicioEl = document.getElementById("dataInicio");
-  const dataFimEl = document.getElementById("dataFim");
-  const tipoEl = document.getElementById("tipoRelatorio");
-
-  let tmr = null;
-  function deb(){
-    clearTimeout(tmr);
-    tmr = setTimeout(()=>gerarRelatorioMensal(), 250);
-  }
-
-  funcSelect.onchange = deb;
-  dataInicioEl.onchange = deb;
-  dataFimEl.onchange = deb;
-  tipoEl.onchange = deb;
-}
-
-/************* EXPORTAÇÕES (mantive) *************/
+/************* EXPORTAÇÕES *************/
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
   if(!tabelaOriginal){
@@ -1074,7 +1208,6 @@ async function gerarPDFAdmin(){
   if(!u){ alert("Selecione o funcionário"); return; }
   doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
   doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
-
   const dataInicioEl = document.getElementById("dataInicio");
   const dataFimEl = document.getElementById("dataFim");
   const inicio = parseInputDateLocal(dataInicioEl.value);
@@ -1111,6 +1244,7 @@ function abrirCadastroFuncionario(){
 function fecharCadastroFuncionario(){ document.getElementById("modalFuncionario").classList.add("hidden"); }
 
 async function salvarFuncionario(){
+  const codigo=novoCodigo.value.trim();
   const nome=novoNome.value.trim();
   const u=novoUser.value.trim().toLowerCase();
   const p=novoPass.value.trim();
@@ -1152,7 +1286,9 @@ async function salvarFuncionario(){
     return;
   }
 
-  const esc = { 1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom };
+  const esc = {
+    1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom
+  };
 
   users[u] = {
     role: "operacional",
@@ -1168,15 +1304,15 @@ async function salvarFuncionario(){
   preencherFuncionarios();
   fecharCadastroFuncionario();
 
-  novoNome.value=""; novoUser.value=""; novoPass.value="";
+  novoCodigo.value=""; novoNome.value=""; novoUser.value=""; novoPass.value="";
   novoCargo.value=""; novoPis.value=""; novoSetor.value=""; novoLocal.value="";
   escSeg.value="08:00"; escTer.value="08:00"; escQua.value="08:00";
   escQui.value="08:00"; escSex.value="08:00"; escSab.value="04:00"; escDom.value="FOLGA";
 
-  alert("Funcionário salvo com sucesso!");
+  alert("Funcionário salvo com sucesso na planilha e no sistema!");
 }
 
-/************* ESCALA MENSAL (memória) *************/
+/************* ESCALA MENSAL (apenas em memória) *************/
 function abrirEscalaMensal(){
   const u=document.getElementById("funcionarioSelect").value;
   if(!u) return alert("Selecione um funcionário");
@@ -1198,9 +1334,8 @@ function salvarEscalaMensal(){
     users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
   }
   fecharEscalaMensal();
-  alert("Escala mensal salva (em memória).");
+  alert("Escala mensal salva (em memória – se quiser, depois mandamos pra planilha).");
 }
 </script>
 </body>
 </html>
-
