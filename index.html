@@ -564,7 +564,27 @@ function calcularLinhaDia_(u, regDia, dateObj){
 
   return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
 }
+// ====== COMPROVANTE INDIVIDUAL ======
+function gerarComprovante(tipo){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const hoje=new Date().toLocaleDateString();
+  const d=JSON.parse(localStorage.getItem("registros")||"{}");
+  const r=d[currentUser]?.[hoje]||{};
+  const hora=r[tipo]||"";
+  const geo=r["geo"+capitalize(tipo)]||"";
 
+  doc.setFontSize(14);
+  doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
+  doc.setFontSize(11);
+  doc.text(`Colaborador: ${currentUser}`,14,30);
+  doc.text(`PIS: ${users[currentUser]?.pis||""}`,14,36);
+  doc.text(`Data: ${hoje}`,14,42);
+  doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
+  doc.text(`Horário: ${hora}`,14,54);
+  doc.text(`Geolocalização: ${geo}`,14,60);
+  doc.save(`comprovante_${tipo}_${hoje}.pdf`);
+}
 /************* AJUSTE (UI sem regenerar relatório) *************/
 function campo(valor, c, adminView = true, dBR = ""){
   const valorFmt = formataHoraCelula(valor);
@@ -985,4 +1005,5 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
