@@ -20,7 +20,6 @@
   .verde{color:green;font-weight:bold;}
   .vermelho{color:red;font-weight:bold;}
   input,select{padding:4px 6px;margin:2px 0;}
-  /* ===== MOBILE ===== */
   @media (max-width:768px){
     header{text-align:center}
     button,input,select{width:100%;margin:4px 0}
@@ -29,7 +28,6 @@
     table td{display:flex;justify-content:space-between;border:none}
     table td::before{content:attr(data-label);font-weight:600}
   }
-  /* NOVO – crédito especial (verde escuro) */
   .credito-excedente{
     background:#0f5132;
     color:#ffffff;
@@ -228,7 +226,6 @@ function fmt(m){
   return sign + h + ":" + mm;
 }
 
-// ✅ negativo entre parênteses (exigência)
 function fmtParentesesSeNegativo(m){
   if(m < 0){
     const s = fmt(m);         // "-HH:MM"
@@ -306,6 +303,64 @@ function normalizaHoraInput(h){
   return "";
 }
 
+// ✅ retorna "dd/mm/aaaa" de Date local
+function dateToBR_(dt){
+  const dd = String(dt.getDate()).padStart(2,"0");
+  const mm = String(dt.getMonth()+1).padStart(2,"0");
+  const yyyy = dt.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+// ✅ parse dd/mm/aaaa → Date local (sem timezone do JS bagunçar)
+function parseBRtoDate_(dBR){
+  const [dd,mm,yyyy] = String(dBR||"").split("/").map(Number);
+  return new Date(yyyy, (mm||1)-1, dd||1);
+}
+
+/**
+ * ✅ AJUSTE PRINCIPAL:
+ * formataEscala agora corrige:
+ * - string HH:MM / "FOLGA"
+ * - Date
+ * - number (serial do Sheets: fração do dia)
+ */
+function formataEscala(valor){
+  if(valor == null) return "";
+
+  // string (inclui FOLGA, HH:MM, "Sat Dec 30 1899 08:00:00 ...")
+  if(typeof valor === "string"){
+    const s = valor.trim();
+    if(!s) return "";
+    if(s.toUpperCase() === "FOLGA") return "FOLGA";
+
+    const m = s.match(/(\d{1,2}):(\d{2})/);
+    if(m) return `${String(m[1]).padStart(2,"0")}:${m[2]}`;
+
+    if(/^\d{1,2}:\d{2}$/.test(s)){
+      const [h,mm] = s.split(":");
+      return `${String(h).padStart(2,"0")}:${mm}`;
+    }
+    return s;
+  }
+
+  // ✅ number (serial Sheets)
+  if(typeof valor === "number" && isFinite(valor)){
+    const totalMin = Math.round(valor * 24 * 60);
+    const hh = String(Math.floor(totalMin / 60) % 24).padStart(2,"0");
+    const mm = String(totalMin % 60).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+
+  // ✅ Date
+  if(valor instanceof Date){
+    const hh = String(valor.getHours()).padStart(2,"0");
+    const mm = String(valor.getMinutes()).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+
+  return String(valor).trim();
+}
+
 // ✅ pega escala do dia (mensal sobrescreve semanal)
 function getEscalaDoDia_(u, dateObj){
   const diaNum = dateObj.getDate();
@@ -316,40 +371,8 @@ function getEscalaDoDia_(u, dateObj){
   return escStr;
 }
 
-// ✅ verifica se a escala do dia é folga
 function isFolgaEscala_(escStr){
   return escStr && escStr.toString().trim().toUpperCase() === "FOLGA";
-}
-
-// ✅ retorna "dd/mm/aaaa" de Date local
-function dateToBR_(dt){
-  const dd = String(dt.getDate()).padStart(2,"0");
-  const mm = String(dt.getMonth()+1).padStart(2,"0");
-  const yyyy = dt.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function formataEscala(valor){
-  if(valor == null) return "";
-
-  const s = String(valor).trim();
-  if(s.toUpperCase() === "FOLGA") return "FOLGA";
-
-  if(valor instanceof Date){
-    const hh = String(valor.getHours()).padStart(2,"0");
-    const mm = String(valor.getMinutes()).padStart(2,"0");
-    return `${hh}:${mm}`;
-  }
-
-  const m = s.match(/(\d{1,2}):(\d{2})/);
-  if(m) return `${String(m[1]).padStart(2,"0")}:${m[2]}`;
-
-  if(/^\d{1,2}:\d{2}$/.test(s)){
-    const [h,mm] = s.split(":");
-    return `${String(h).padStart(2,"0")}:${mm}`;
-  }
-
-  return s;
 }
 
 /************* LOGIN VIA APPS SCRIPT *************/
@@ -381,14 +404,15 @@ async function login(){
   currentUser = loginKey;
   currentUserObj = user;
 
+  // ✅ AJUSTE: normaliza as escalas SEMPRE usando formataEscala
   const esc = {
-    1: user.escSeg || "08:00",
-    2: user.escTer || user.escSeg || "08:00",
-    3: user.escQua || user.escSeg || "08:00",
-    4: user.escQui || user.escSeg || "08:00",
-    5: user.escSex || user.escSeg || "08:00",
-    6: user.escSab || "04:00",
-    0: user.escDom || "FOLGA"
+    1: formataEscala(user.escSeg || "08:00"),
+    2: formataEscala(user.escTer || user.escSeg || "08:00"),
+    3: formataEscala(user.escQua || user.escSeg || "08:00"),
+    4: formataEscala(user.escQui || user.escSeg || "08:00"),
+    5: formataEscala(user.escSex || user.escSeg || "08:00"),
+    6: formataEscala(user.escSab || "04:00"),
+    0: formataEscala(user.escDom || "FOLGA")
   };
 
   users[loginKey] = {
@@ -430,15 +454,18 @@ async function carregarUsuariosAdmin(){
     lista.forEach(u=>{
       const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
       if(!loginKey) return;
+
+      // ✅ AJUSTE: normaliza as escalas SEMPRE usando formataEscala
       const esc = {
-        1: u.escSeg || "08:00",
-        2: u.escTer || u.escSeg || "08:00",
-        3: u.escQua || u.escSeg || "08:00",
-        4: u.escQui || u.escSeg || "08:00",
-        5: u.escSex || u.escSeg || "08:00",
-        6: u.escSab || "04:00",
-        0: u.escDom || "FOLGA"
+        1: formataEscala(u.escSeg || "08:00"),
+        2: formataEscala(u.escTer || u.escSeg || "08:00"),
+        3: formataEscala(u.escQua || u.escSeg || "08:00"),
+        4: formataEscala(u.escQui || u.escSeg || "08:00"),
+        5: formataEscala(u.escSex || u.escSeg || "08:00"),
+        6: formataEscala(u.escSab || "04:00"),
+        0: formataEscala(u.escDom || "FOLGA")
       };
+
       users[loginKey] = {
         role: (u.role || "operacional").toLowerCase(),
         nomeCompleto: u.nomeCompleto || u.nome || loginKey,
@@ -577,6 +604,7 @@ async function gerarComprovante(tipo){
 function calcularLinhaDia_(u, regDia, dateObj){
   const dd = String(dateObj.getDate()).padStart(2,"0");
   const mm = String(dateObj.getMonth()+1).padStart(2,"0");
+  const weekday = dateObj.getDay();
 
   const escStr = getEscalaDoDia_(u, dateObj);
   const jornadaEscala = cargaEscalaMin(escStr);
@@ -603,7 +631,10 @@ function calcularLinhaDia_(u, regDia, dateObj){
   let minutosTrabalhados = 0;
 
   if(!eventoDia){
-    const temEnt = !!ent, temSAl = !!sAl, temRet = !!ret, temSai = !!sai;
+    const temEnt = !!ent;
+    const temSAl = !!sAl;
+    const temRet = !!ret;
+    const temSai = !!sai;
 
     if(temEnt && temSAl && temRet && temSai){
       minutosTrabalhados = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
@@ -621,15 +652,18 @@ function calcularLinhaDia_(u, regDia, dateObj){
     minutosTrabalhados = 0;
   }
 
+  let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+  if(isFeriadoLista) nomeDia = "Feriado";
+
   let saldoMin = 0;
   let creditoMin = 0;
   let destaqueCredito = false;
 
   if(isFeriadoLista && temAlgumaMarcacao){
     saldoMin = 0;
-    creditoMin = minutosTrabalhados; // extra 100%
+    creditoMin = minutosTrabalhados;
     destaqueCredito = true;
-    return { min: saldoMin, creditoMin, destaqueCredito };
+    return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
   }
 
   if(folgaProgramada){
@@ -642,16 +676,21 @@ function calcularLinhaDia_(u, regDia, dateObj){
       saldoMin = 0;
       creditoMin = minutosTrabalhados;
       destaqueCredito = !folgaAmanha;
-      return { min: saldoMin, creditoMin, destaqueCredito };
+
+      return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
+    } else {
+      saldoMin = 0;
+      creditoMin = 0;
+      destaqueCredito = false;
+      return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
     }
-    return { min: 0, creditoMin: 0, destaqueCredito: false };
   }
 
   saldoMin = minutosTrabalhados - jornadaEscala;
   creditoMin = (saldoMin > 0 ? saldoMin : 0);
   destaqueCredito = (saldoMin > 0);
 
-  return { min: saldoMin, creditoMin, destaqueCredito };
+  return { min: saldoMin, creditoMin, destaqueCredito, nomeDia, minutosTrabalhados, jornadaEscala };
 }
 
 /************* AJUSTES (ADMIN) *************/
@@ -712,6 +751,13 @@ function atualizarLinhaUI_(u, dBR, dateObj){
     tdCred.className = calc.destaqueCredito ? "credito-excedente" : clsBase;
     tdCred.textContent = (calc.creditoMin!==0 ? fmtParentesesSeNegativo(calc.creditoMin) : "");
   }
+
+  // ✅ (opcional) atualiza escala se você sobrescrever mensal futuramente
+  const tdEsc = document.getElementById(`escala_${dBR}`);
+  if(tdEsc){
+    const escDia = formataEscala(getEscalaDoDia_(u, dateObj));
+    tdEsc.textContent = escDia;
+  }
 }
 
 async function abrirAjuste(u,d,c){
@@ -768,9 +814,79 @@ async function abrirAjuste(u,d,c){
       periodoCache[d][c+"_editado"] = false;
 
       popup.remove();
+      atualizarLinhaUI_(u, d, parseBRtoDate_(d));
+      return;
+    }
 
-      const dateObj = parseBRtoDate_(d);
-      atualizarLinhaUI_(u, d, dateObj);
+    if(ev === "Atestado Médico Dias"){
+      const intervalo = prompt("Informe o intervalo do atestado (formato: dd/mm/aaaa - dd/mm/aaaa):", d+" - "+d);
+      if(intervalo){
+        const partes = intervalo.split("-");
+        if(partes.length===2){
+          const iniStr = partes[0].trim();
+          const fimStr = partes[1].trim();
+          const [di,mi,ai] = iniStr.split("/").map(Number);
+          const [df,mf,af] = fimStr.split("/").map(Number);
+          if(di&&mi&&ai&&df&&mf&&af){
+            let dataIni = new Date(ai,mi-1,di);
+            let dataFim = new Date(af,mf-1,df);
+            if(dataIni > dataFim){ const tmp=dataIni; dataIni=dataFim; dataFim=tmp; }
+
+            let cursor = new Date(dataIni);
+            while(cursor <= dataFim){
+              const chave = dateToBR_(cursor);
+
+              const reg = (periodoCache[chave] || {});
+              ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+                reg[campoNome] = "-";
+                reg[campoNome+"_evento"] = ev;
+                reg[campoNome+"_editado"] = true;
+              });
+              delete reg.atestadoHorasMin;
+
+              await apiPost({tipo:"salvarDia", usuario_login:u, data:chave, dia: reg});
+              periodoCache[chave] = reg;
+
+              atualizarLinhaUI_(u, chave, parseBRtoDate_(chave));
+              cursor.setDate(cursor.getDate()+1);
+            }
+            popup.remove();
+            return;
+          }
+        }
+      }
+      popup.remove();
+      return;
+    }
+
+    if(ev === "Atestado Médico Horas"){
+      const dataAtestadoStr = prompt("Data do atestado (dd/mm/aaaa):", d);
+      if(!dataAtestadoStr){ popup.remove(); return; }
+      const [ddia,dmes,dano] = dataAtestadoStr.split("/").map(Number);
+      if(!ddia||!dmes||!dano){ popup.remove(); return; }
+      const dataAtestadoKey = `${String(ddia).padStart(2,"0")}/${String(dmes).padStart(2,"0")}/${dano}`;
+      const hIni = prompt("Hora INÍCIO do atestado (HH:MM):","08:00");
+      const hFim = prompt("Hora FIM do atestado (HH:MM):","10:00");
+      if(!hIni || !hFim){ popup.remove(); return; }
+      const minutosAtestado = Math.max(0, hm(hFim) - hm(hIni));
+
+      const regA = (periodoCache[dataAtestadoKey] || {});
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        regA[campoNome] = "-";
+        regA[campoNome+"_evento"] = ev;
+        regA[campoNome+"_editado"] = true;
+      });
+      regA.atestadoHorasMin = minutosAtestado;
+
+      const resSave = await apiPost({tipo:"salvarDia", usuario_login:u, data:dataAtestadoKey, dia: regA});
+      if(resSave.status!=="ok"){
+        alert(resSave.message||"Erro ao salvar atestado");
+        return;
+      }
+
+      periodoCache[dataAtestadoKey] = regA;
+      popup.remove();
+      atualizarLinhaUI_(u, dataAtestadoKey, parseBRtoDate_(dataAtestadoKey));
       return;
     }
 
@@ -798,17 +914,10 @@ async function abrirAjuste(u,d,c){
     Object.keys(patch).forEach(k=> periodoCache[d][k] = patch[k]);
 
     popup.remove();
-
-    const dateObj = parseBRtoDate_(d);
-    atualizarLinhaUI_(u, d, dateObj);
+    atualizarLinhaUI_(u, d, parseBRtoDate_(d));
   };
 
   popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
-}
-
-function parseBRtoDate_(dBR){
-  const [dd,mm,yyyy] = String(dBR||"").split("/").map(Number);
-  return new Date(yyyy, (mm||1)-1, dd||1);
 }
 
 /************* ADMIN – CARREGAR FUNCIONÁRIOS *************/
@@ -825,7 +934,7 @@ function preencherFuncionarios(){
   });
 }
 
-/************* RELATÓRIO MENSAL (✅ AJUSTE APLICADO AQUI) *************/
+/************* RELATÓRIO MENSAL (OTIMIZADO: 1 chamada getPeriodo) *************/
 async function gerarRelatorioMensal(){
   const funcSelect = document.getElementById("funcionarioSelect");
   const dataInicioEl = document.getElementById("dataInicio");
@@ -897,13 +1006,14 @@ async function gerarRelatorioMensal(){
   let totalPeriodo = 0;
   let currentDate = new Date(inicio);
 
-  // ✅ AQUI está o ajuste: SEM "while dentro do while"
   while(currentDate <= fim){
     const dBR = dateToBR_(currentDate);
 
+    // escala (corrigida/normalizada)
     const escStrDia = getEscalaDoDia_(u, currentDate) || "";
     const escExibir = formataEscala(escStrDia);
 
+    // feriado e nome do dia
     const dd = String(currentDate.getDate()).padStart(2,"0");
     const mm = String(currentDate.getMonth()+1).padStart(2,"0");
     const ddmm = `${dd}/${mm}`;
@@ -913,13 +1023,16 @@ async function gerarRelatorioMensal(){
     let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
     if(isFeriadoLista) nomeDia = "Feriado";
 
+    // registros do cache
     dadosAtual = periodoCache[dBR] || {};
     dataAtualRel = dBR;
 
     const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
     totalPeriodo += calc.min;
 
-    const folgaProgramada = isFolgaEscala_(escStrDia);
+    const escStr = getEscalaDoDia_(u, currentDate);
+    const folgaProgramada = isFolgaEscala_(escStr);
+
     const temAlgumaMarcacao =
       dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
 
@@ -955,10 +1068,10 @@ async function gerarRelatorioMensal(){
       <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
 
     if(tipo==="comGeo"){
-      html += `<td>${dadosAtual.geoEntrada||""}</td>
-               <td>${dadosAtual.geoSaidaAlmoco||""}</td>
-               <td>${dadosAtual.geoRetornoAlmoco||""}</td>
-               <td>${dadosAtual.geoSaida||""}</td>`;
+      html+=`<td>${dadosAtual.geoEntrada||""}</td>
+             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
+             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
+             <td>${dadosAtual.geoSaida||""}</td>`;
     }
 
     html += `</tr>`;
@@ -966,16 +1079,15 @@ async function gerarRelatorioMensal(){
     currentDate.setDate(currentDate.getDate()+1);
   }
 
-  html += `<tr><th colspan="6">TOTAL</th>
+  html+=`<tr><th colspan="6">TOTAL</th>
            <th class="${totalPeriodo>=0?'verde':'vermelho'}">${fmtParentesesSeNegativo(totalPeriodo)}</th>
            <th></th>`;
-
   if(tipo==="comGeo"){
-    html += `<th colspan="4"></th>`;
+    html+=`<th colspan="4"></th>`;
   }
-  html += `</tr></table>`;
+  html+=`</tr></table>`;
 
-  html += `<p>Assinatura do Funcionário: _____________________</p>`;
+  html+=`<p>Assinatura do Funcionário: _____________________</p>`;
 
   document.getElementById("cartaoFuncionario").innerHTML = html;
 }
@@ -1136,7 +1248,15 @@ async function salvarFuncionario(){
     return;
   }
 
-  const esc = { 1: eSeg, 2: eTer, 3: eQua, 4: eQui, 5: eSex, 6: eSab, 0: eDom };
+  const esc = {
+    1: formataEscala(eSeg),
+    2: formataEscala(eTer),
+    3: formataEscala(eQua),
+    4: formataEscala(eQui),
+    5: formataEscala(eSex),
+    6: formataEscala(eSab),
+    0: formataEscala(eDom)
+  };
 
   users[u] = {
     role: "operacional",
@@ -1152,7 +1272,7 @@ async function salvarFuncionario(){
   preencherFuncionarios();
   fecharCadastroFuncionario();
 
-  novoNome.value=""; novoUser.value=""; novoPass.value="";
+  novoCodigo.value=""; novoNome.value=""; novoUser.value=""; novoPass.value="";
   novoCargo.value=""; novoPis.value=""; novoSetor.value=""; novoLocal.value="";
   escSeg.value="08:00"; escTer.value="08:00"; escQua.value="08:00";
   escQui.value="08:00"; escSex.value="08:00"; escSab.value="04:00"; escDom.value="FOLGA";
