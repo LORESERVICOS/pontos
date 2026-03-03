@@ -328,6 +328,32 @@ function dateToBR_(dt){
   const yyyy = dt.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
+  function formataEscala(valor){
+  if(valor == null) return "";
+
+  // Se for FOLGA
+  const s = String(valor).trim();
+  if(s.toUpperCase() === "FOLGA") return "FOLGA";
+
+  // Se veio como Date (muito comum vindo do Sheets)
+  if(valor instanceof Date){
+    const hh = String(valor.getHours()).padStart(2,"0");
+    const mm = String(valor.getMinutes()).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+
+  // Se veio "Sat Dec 30 1899 08:00:00 ..."
+  const m = s.match(/(\d{1,2}):(\d{2})/);
+  if(m) return `${String(m[1]).padStart(2,"0")}:${m[2]}`;
+
+  // Se já veio "08:00"
+  if(/^\d{1,2}:\d{2}$/.test(s)){
+    const [h,mm] = s.split(":");
+    return `${String(h).padStart(2,"0")}:${mm}`;
+  }
+
+  return s;
+}
 
 /************* LOGIN VIA APPS SCRIPT *************/
 async function login(){
@@ -1053,12 +1079,35 @@ async function gerarRelatorioMensal(){
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
-    const escStrDia = getEscalaDoDia_(u, currentDate) || "";
-const escExibir = (escStrDia && escStrDia.toString().trim()) ? escStrDia : "";
-    const dBR = dateToBR_(currentDate);
 
-    dadosAtual = periodoCache[dBR] || {};
-    dataAtualRel = dBR;
+  const dBR = dateToBR_(currentDate);
+
+  // escala do dia
+  const escStrDia = getEscalaDoDia_(u, currentDate) || "";
+  const escExibir = formataEscala(escStrDia);
+
+  // feriado (dd/mm)
+  const dd = String(currentDate.getDate()).padStart(2,"0");
+  const mm = String(currentDate.getMonth()+1).padStart(2,"0");
+  const ddmm = `${dd}/${mm}`;
+  const isFeriadoLista = feriados.includes(ddmm);
+
+  // nome do dia (agora sim pode usar isFeriadoLista)
+  const weekday = currentDate.getDay();
+  let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
+  if(isFeriadoLista) nomeDia = "Feriado";
+
+  // debug (opcional)
+  console.log("Dia:", dBR, "Escala:", escExibir);
+
+  // pega os registros do cache do período
+  dadosAtual = periodoCache[dBR] || {};
+  dataAtualRel = dBR;
+
+  // ... resto do seu código da linha (calcularLinhaDia_, campo(), montar html etc)
+
+  currentDate.setDate(currentDate.getDate()+1);
+}
 
     // ✅ cálculo linha a linha (regras)
     const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
@@ -1097,16 +1146,18 @@ const escExibir = (escStrDia && escStrDia.toString().trim()) ? escStrDia : "";
     const totalClass = (calc.min>=0 ? "verde" : "vermelho");
     const credClass = calc.destaqueCredito ? "credito-excedente" : (calc.creditoMin>=0 ? "verde" : "vermelho");
 
-    html+=`<tr>
+   html += `<tr>
   <td>${dBR}</td>
-  <td>${calc.nomeDia}</td>
+  <td>${nomeDia}</td>
   <td>${conteudoEntrada}</td>
   <td>${conteudoSaidaAlm}</td>
   <td>${conteudoRetorno}</td>
   <td>${conteudoSaida}</td>
-  <td id="escala_${dBR}">${escExibir}</td>
+
   <td id="total_${dBR}" class="${totalClass}">${totalTxt}</td>
-  <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
+  <td id="escala_${dBR}">${escExibir}</td>
+  <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>
+`;
     
     if(tipo==="comGeo"){
       html+=`<td>${dadosAtual.geoEntrada||""}</td>
@@ -1343,5 +1394,6 @@ function salvarEscalaMensal(){
 </script>
 </body>
 </html>
+
 
 
