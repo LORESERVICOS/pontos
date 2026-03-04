@@ -35,6 +35,50 @@
     color:#ffffff;
     font-weight:600;
   }
+
+  /* ====== Folha / Holerite ====== */
+  .muted{color:#475569;font-size:13px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row > div{min-width:220px}
+  .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-top:10px}
+  .btn-sec{background:#0f172a}
+  .btn-sec:hover{background:#111827}
+  .btn-warn{background:#b45309}
+  .btn-warn:hover{background:#92400e}
+  .mini{font-size:11px;padding:4px 8px;border-radius:8px}
+
+  /* Modal simples */
+  .modalMask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
+  .modalCard{background:#fff;border-radius:14px;max-width:520px;width:95%;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.2)}
+  .modalCard h3{margin:0 0 10px 0}
+  .modalCard label{display:block;margin:8px 0 4px}
+  .modalCard input,.modalCard select{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:10px}
+  .modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+  /* Área do holerite para impressão */
+  #holeritePrint{
+    display:none;
+    font-family:Inter,system-ui,-apple-system,sans-serif;
+    color:#111827;
+  }
+  #holeritePrint .hp-wrap{padding:18px}
+  #holeritePrint .hp-title{display:flex;justify-content:space-between;align-items:flex-start}
+  #holeritePrint .hp-title h1{font-size:16px;margin:0}
+  #holeritePrint .hp-title .hp-meta{font-size:12px;color:#475569;text-align:right}
+  #holeritePrint .hp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;font-size:12px}
+  #holeritePrint .hp-box{border:1px solid #cbd5e1;border-radius:10px;padding:10px}
+  #holeritePrint .hp-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
+  #holeritePrint .hp-table th,#holeritePrint .hp-table td{border:1px solid #cbd5e1;padding:6px}
+  #holeritePrint .hp-table th{background:#f1f5f9}
+  #holeritePrint .hp-tot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;font-size:12px}
+  #holeritePrint .hp-sign{margin-top:18px;font-size:12px}
+  #holeritePrint .hp-sign .line{margin-top:18px;border-top:1px solid #111827;width:260px}
+
+  @media print{
+    body *{visibility:hidden}
+    #holeritePrint, #holeritePrint *{visibility:visible}
+    #holeritePrint{display:block;position:fixed;inset:0;background:#fff}
+  }
 </style>
 </head>
 <body>
@@ -71,7 +115,11 @@
   <div class="card" style="max-width:1200px">
     <h2>Relatório – Cartão de Ponto</h2>
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
-    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button><br><br>
+    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button>
+
+    <!-- ✅ Botão Folha -->
+    <button onclick="toggleFolha()">Folha de Pagamento</button>
+    <br><br>
 
     <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
     <input type="date" id="dataInicio">
@@ -85,7 +133,40 @@
     <button onclick="gerarPDFAdmin()">PDF</button>
     <button onclick="logout()">Sair</button>
 
+    <!-- ✅ Cartão de ponto continua aqui (não some) -->
     <div id="cartaoFuncionario"></div>
+
+    <!-- ✅ Folha -->
+    <div id="folhaBox" class="hidden" style="margin-top:18px">
+      <hr>
+      <h2>Folha de Pagamento (CLT) – pelo período selecionado</h2>
+
+      <p class="muted">
+        A folha usa o cadastro da aba <b>FUNCIONARIOS</b> + marcações da aba <b>PONTOS</b> no período selecionado.
+      </p>
+
+      <div class="row">
+        <div>
+          <label><b>Funcionário selecionado</b></label><br>
+          <input id="folhaFuncionarioNome" disabled style="width:100%">
+        </div>
+        <div>
+          <label><b>Competência (referência)</b></label><br>
+          <input type="month" id="folhaCompetencia">
+        </div>
+        <div>
+          <button onclick="carregarFolha()">Carregar / Calcular</button>
+        </div>
+        <div style="margin-left:auto">
+          <button class="btn-sec" onclick="imprimirHolerite()">Imprimir Holerite</button>
+          <button class="btn-warn" onclick="gerarPDFHolerite()">PDF Holerite</button>
+        </div>
+      </div>
+
+      <div id="folhaMsg" class="muted" style="margin-top:10px"></div>
+      <div id="folhaCadastro" class="box"></div>
+      <div id="folhaResultado" class="box"></div>
+    </div>
   </div>
 </div>
 
@@ -170,6 +251,51 @@
   <button onclick="fecharEscalaMensal()">Cancelar</button>
 </div>
 
+<!-- ✅ Holerite (somente impressão) -->
+<div id="holeritePrint">
+  <div class="hp-wrap">
+    <div class="hp-title">
+      <div>
+        <h1>HOLERITE / RECIBO DE PAGAMENTO</h1>
+        <div class="muted" id="hpEmpresa">Empresa: ____________________________</div>
+      </div>
+      <div class="hp-meta">
+        <div><b>Competência:</b> <span id="hpCompetencia"></span></div>
+        <div><b>Período:</b> <span id="hpPeriodo"></span></div>
+      </div>
+    </div>
+
+    <div class="hp-grid">
+      <div class="hp-box" id="hpFuncionario"></div>
+      <div class="hp-box" id="hpResumo"></div>
+    </div>
+
+    <table class="hp-table">
+      <thead>
+        <tr>
+          <th style="width:55%">Descrição</th>
+          <th style="width:15%">Ref.</th>
+          <th style="width:15%">Proventos</th>
+          <th style="width:15%">Descontos</th>
+        </tr>
+      </thead>
+      <tbody id="hpTabela"></tbody>
+    </table>
+
+    <div class="hp-tot">
+      <div class="hp-box" id="hpTotais"></div>
+      <div class="hp-box" id="hpBases"></div>
+      <div class="hp-box" id="hpLiquido"></div>
+    </div>
+
+    <div class="hp-sign">
+      Declaro ter recebido a importância líquida discriminada neste recibo.
+      <div class="line"></div>
+      Assinatura do empregado
+    </div>
+  </div>
+</div>
+
 <script>
 /************* CONFIG *************/
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
@@ -188,7 +314,7 @@ let periodoUser = "";
 let periodoInicioKey = "";
 let periodoFimKey = "";
 
-// feriados dd/mm (ajuste se quiser)
+// feriados dd/mm
 const feriados = ["01/01","07/09","25/12"];
 
 const justificativas = [
@@ -298,10 +424,10 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-// pega escala do dia (mensal sobrescreve semanal)
+// escala dia
 function getEscalaDoDia_(u, dateObj){
   const diaNum = dateObj.getDate();
-  const weekday = dateObj.getDay(); // 0..6
+  const weekday = dateObj.getDay();
   const escSem = (users[u] && users[u].escalaSemanal) || {};
   const escMensal = (users[u] && users[u].escalaMensal) || {};
   return (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
@@ -407,19 +533,16 @@ async function carregarUsuariosAdmin(){
 }
 
 /************* OPERACIONAL *************/
-/* ✅ SUBSTITUÍDA: agora NÃO bloqueia a marcação se geo estiver bloqueada/indisponível */
 async function registrar(tipo){
   const agora = new Date();
   const hora = agora.toTimeString().slice(0,5);
   const data = dateToBR_(agora);
 
-  // ✅ Se não houver geolocalização, registra mesmo assim
   if(!navigator.geolocation){
     alert("⚠️ Sem geolocalização neste dispositivo/navegador. O ponto será registrado mesmo assim.");
     return salvarRegistro(tipo, hora, data, "Não suportada");
   }
 
-  // ✅ Se permissão estiver negada, registra mesmo assim (sem localização)
   try{
     if(navigator.permissions?.query){
       const st = await navigator.permissions.query({ name: "geolocation" });
@@ -428,13 +551,9 @@ async function registrar(tipo){
         return salvarRegistro(tipo, hora, data, "Permissão negada");
       }
     }
-  }catch(e){ /* ignora */ }
+  }catch(e){}
 
-  const opts = {
-    enableHighAccuracy: true,
-    timeout: 15000,
-    maximumAge: 0
-  };
+  const opts = { enableHighAccuracy:true, timeout:15000, maximumAge:0 };
 
   navigator.geolocation.getCurrentPosition(
     pos => {
@@ -447,7 +566,6 @@ async function registrar(tipo){
       if(err?.code === 1) msg = "Permissão negada";
       if(err?.code === 2) msg = "Posição indisponível";
       if(err?.code === 3) msg = "Tempo esgotado";
-      // ✅ registra mesmo assim
       salvarRegistro(tipo, hora, data, msg);
     },
     opts
@@ -501,7 +619,6 @@ async function mostrarRegistrosUsuario(){
     return;
   }
 
-  // ✅ LISTA + PDF em cada marcação
   registrosDiv.innerHTML = "";
   const campos = [
     ["entrada","Entrada"],
@@ -517,13 +634,12 @@ async function mostrarRegistrosUsuario(){
       registrosDiv.innerHTML += `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eee;">
           <div><strong>${label}:</strong> ${horaFmt}</div>
-          <button type="button" style="font-size:11px;width:auto" onclick="gerarComprovante('${k}')">📄 PDF</button>
+          <button type="button" class="mini" onclick="gerarComprovante('${k}')">📄 PDF</button>
         </div>
       `;
     }
   });
 
-  // ✅ botões de registro (sequência)
   if(!r.entrada){
     botoesDiv.innerHTML = `<button onclick="registrar('entrada')">Entrada</button>`;
   } else if(!r.saidaAlmoco){
@@ -537,12 +653,7 @@ async function mostrarRegistrosUsuario(){
   }
 }
 
-/* ======= DAQUI PRA BAIXO: SEU CÓDIGO CONTINUA IGUAL =======
-   Você pediu “código completo sem alterar as demais funções”.
-   O restante do seu script continua exatamente como estava.
-   ========================================================== */
-
-  /************* REGRAS (TOTAL + CRÉDITO) *************/
+/************* REGRAS (TOTAL + CRÉDITO) *************/
 function calcularLinhaDia_(u, regDia, dateObj){
   const dd = String(dateObj.getDate()).padStart(2,"0");
   const mm = String(dateObj.getMonth()+1).padStart(2,"0");
@@ -570,12 +681,9 @@ function calcularLinhaDia_(u, regDia, dateObj){
   ].filter(Boolean);
   const eventoDia = eventos[0] || "";
 
-  // TOTAL do dia
   let totalMin = 0;
   if(!eventoDia){
     const temEnt = !!ent, temSAl = !!sAl, temRet = !!ret, temSai = !!sai;
-
-    // total = (SaídaAlmoço-Entrada) + (Saída-Retorno)
     if(temEnt && temSAl && temRet && temSai){
       totalMin = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
     } else if(temEnt && temSai && !temSAl && !temRet){
@@ -591,31 +699,27 @@ function calcularLinhaDia_(u, regDia, dateObj){
   let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
   if(isFeriadoLista) nomeDia = "Feriado";
 
-  // CRÉDITO (suas regras)
   let creditoMin = 0;
   let destaqueCredito = false;
-  let saldoMin = totalMin - jornadaEscala; // interno (se quiser usar depois)
+  let saldoMin = totalMin - jornadaEscala;
 
-  // feriado = 100% sempre
   if(isFeriadoLista && temAlgumaMarcacao){
     creditoMin = totalMin;
     destaqueCredito = true;
     return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
   }
 
-  // folga
   if(folgaProgramada){
     if(temAlgumaMarcacao){
       const prox = new Date(dateObj);
       prox.setDate(prox.getDate()+1);
       const folgaAmanha = isFolgaEscala_(getEscalaDoDia_(u, prox));
       creditoMin = totalMin;
-      destaqueCredito = !folgaAmanha; // sem folga dia seguinte = 100% especial (destaque)
+      destaqueCredito = !folgaAmanha;
     }
     return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
   }
 
-  // normal: hora extra
   if(totalMin > jornadaEscala){
     creditoMin = totalMin - jornadaEscala;
     destaqueCredito = true;
@@ -624,14 +728,13 @@ function calcularLinhaDia_(u, regDia, dateObj){
   return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
 }
 
-// ====== COMPROVANTE INDIVIDUAL (AGORA VIA API / SHEETS) ======
+// ====== COMPROVANTE INDIVIDUAL ======
 async function gerarComprovante(tipo){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
   const hoje = new Date().toLocaleDateString("pt-BR");
 
-  // pega o dia direto do Apps Script (Sheets)
   let res;
   try{
     res = await apiPost({ tipo:"getDia", usuario_login: currentUser, data: hoje });
@@ -641,19 +744,16 @@ async function gerarComprovante(tipo){
   }
 
   const r = (res && res.status === "ok" ? (res.dia || {}) : {});
-
-  // hora normalizada (se você já tem formataHoraCelula, melhor)
-  const hora = (typeof formataHoraCelula === "function")
+   const hora = (typeof formataHoraCelula === "function")
     ? formataHoraCelula(r[tipo] || "")
     : (r[tipo] || "");
 
-  // geo (seu backend usa geoEntrada/geoSaidaAlmoco/geoRetornoAlmoco/geoSaida)
   const geoKey = ({
     entrada: "geoEntrada",
     saidaAlmoco: "geoSaidaAlmoco",
     retornoAlmoco: "geoRetornoAlmoco",
     saida: "geoSaida"
-  })[tipo] || ("geo" + capitalize(tipo)); // fallback
+  })[tipo] || ("geo" + capitalize(tipo));
 
   const geo = r[geoKey] || "";
 
@@ -670,7 +770,7 @@ async function gerarComprovante(tipo){
   doc.save(`comprovante_${tipo}_${hoje.replaceAll("/","-")}.pdf`);
 }
 
-/************* AJUSTE (UI sem regenerar relatório) *************/
+/************* AJUSTE *************/
 function campo(valor, c, adminView = true, dBR = ""){
   const valorFmt = formataHoraCelula(valor);
   const vazio = !valorFmt || valorFmt === "-";
@@ -685,7 +785,7 @@ function campo(valor, c, adminView = true, dBR = ""){
 
   if(!vazio && !evento){
     if(adminView){
-      const btn = ` <button style="font-size:11px" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
+      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
       return wrapOpen + valorFmt + btn + wrapClose;
     }
     return wrapOpen + valorFmt + wrapClose;
@@ -693,14 +793,14 @@ function campo(valor, c, adminView = true, dBR = ""){
 
   if(evento){
     if(adminView){
-      const btn = ` <button style="font-size:11px" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
+      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
       return wrapOpen + evento + btn + wrapClose;
     }
     return wrapOpen + evento + wrapClose;
   }
 
   if(adminView){
-    return wrapOpen + `<button style="font-size:11px" onclick="abrirAjuste('${u}','${d}','${c}')">➕ Ajustar</button>` + wrapClose;
+    return wrapOpen + `<button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">➕ Ajustar</button>` + wrapClose;
   }
   return wrapOpen + "" + wrapClose;
 }
@@ -716,20 +816,17 @@ function atualizarLinhaUI_(u, dBR, dateObj){
     span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
   });
 
-  // TOTAL (trabalhado)
   const tdTotal = document.getElementById(`total_${dBR}`);
   if(tdTotal){
     tdTotal.className = "verde";
     tdTotal.textContent = fmt(calc.totalMin);
   }
 
-  // Escala
   const tdEsc = document.getElementById(`escala_${dBR}`);
   if(tdEsc){
     tdEsc.textContent = formataEscala(getEscalaDoDia_(u, dateObj) || "");
   }
 
-  // Crédito
   const tdCred = document.getElementById(`credito_${dBR}`);
   if(tdCred){
     tdCred.className = calc.destaqueCredito ? "credito-excedente" : "verde";
@@ -741,28 +838,26 @@ async function abrirAjuste(u,d,c){
   const atual = (periodoCache[d] || {});
 
   let popup = document.createElement("div");
-  popup.style.position="fixed";
-  popup.style.top="50%";
-  popup.style.left="50%";
-  popup.style.transform="translate(-50%,-50%)";
-  popup.style.background="#fff";
-  popup.style.padding="20px";
-  popup.style.border="1px solid #333";
-  popup.style.zIndex=1000;
-
-  popup.innerHTML=`
-    <h3>Ajustar ${c}</h3>
-    <label>Horas: <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}"></label><br><br>
-    <label>Justificar:
+  popup.className = "modalMask";
+  popup.innerHTML = `
+    <div class="modalCard">
+      <h3>Ajustar ${c}</h3>
+      <label>Horas</label>
+      <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}">
+      <label>Justificar</label>
       <select id="selectJustificacao">
         <option value="">--Escolha--</option>
         ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")===j?'selected':''}>${j}</option>`).join("")}
       </select>
-    </label><br><br>
-    <button id="okBtn">Ok</button>
-    <button id="cancelBtn">Cancelar</button>
+      <div class="modalActions">
+        <button class="btn-sec" id="cancelBtn">Cancelar</button>
+        <button id="okBtn">Salvar</button>
+      </div>
+    </div>
   `;
   document.body.appendChild(popup);
+
+  popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
 
   popup.querySelector("#okBtn").onclick = async ()=>{
     const hRaw = popup.querySelector("#inputHoras").value.trim();
@@ -812,8 +907,6 @@ async function abrirAjuste(u,d,c){
     popup.remove();
     atualizarLinhaUI_(u, d, parseBRtoDate_(d));
   };
-
-  popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
 }
 
 /************* ADMIN – LISTA *************/
@@ -830,7 +923,7 @@ function preencherFuncionarios(){
   });
 }
 
-/************* RELATÓRIO (1 chamada getPeriodo) *************/
+/************* RELATÓRIO (getPeriodo) *************/
 async function gerarRelatorioMensal(){
   const u = document.getElementById("funcionarioSelect").value;
   const dataInicioEl = document.getElementById("dataInicio");
@@ -911,7 +1004,6 @@ async function gerarRelatorioMensal(){
 
     const escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
 
-    // feriado / folga para exibir FOLGA nas colunas quando não tem marcação
     const dd = String(currentDate.getDate()).padStart(2,"0");
     const mm = String(currentDate.getMonth()+1).padStart(2,"0");
     const ddmm = `${dd}/${mm}`;
@@ -933,9 +1025,8 @@ async function gerarRelatorioMensal(){
       conteudoSaida     = campo(dadosAtual.saida,"saida", true, dBR);
     }
 
-    const totalTxt = fmt(calc.totalMin); // ✅ TOTAL TRABALHADO (não negativo)
+    const totalTxt = fmt(calc.totalMin);
     const credTxt  = (calc.creditoMin > 0 ? fmt(calc.creditoMin) : "");
-
     const credClass = calc.destaqueCredito ? "credito-excedente" : "verde";
 
     html += `<tr>
@@ -976,9 +1067,14 @@ async function gerarRelatorioMensal(){
     <p>Assinatura do Funcionário: _____________________</p>`;
 
   document.getElementById("cartaoFuncionario").innerHTML = html;
+
+  // se folha aberta, atualiza preview
+  if(!document.getElementById("folhaBox").classList.contains("hidden")){
+    preencherTopoFolha_();
+  }
 }
 
-/************* EXPORTAÇÕES *************/
+/************* EXPORTAÇÕES (suas originais) *************/
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
   if(!tabelaOriginal){
@@ -1050,7 +1146,7 @@ async function gerarPDFAdmin(){
   doc.save("cartao_ponto.pdf");
 }
 
-/************* CADASTRO FUNCIONÁRIO (mantive igual ao seu padrão - precisa do endpoint salvarUsuario se quiser usar) *************/
+/************* CADASTRO FUNCIONÁRIO *************/
 function abrirCadastroFuncionario(){
   document.getElementById("modalFuncionario").classList.remove("hidden");
 }
@@ -1061,7 +1157,7 @@ async function salvarFuncionario(){
   alert("Seu cadastro/edição ainda depende do endpoint 'salvarUsuario' no Apps Script. Se quiser, eu adiciono também.");
 }
 
-/************* ESCALA MENSAL (apenas em memória) *************/
+/************* ESCALA MENSAL (em memória) *************/
 function abrirEscalaMensal(){
   const u=document.getElementById("funcionarioSelect").value;
   if(!u) return alert("Selecione um funcionário");
@@ -1087,8 +1183,522 @@ function salvarEscalaMensal(){
   fecharEscalaMensal();
   alert("Escala mensal salva (em memória).");
 }
+
+/* =====================================================================
+   ✅ FOLHA + VERBAS EDITÁVEIS + HOLERITE + FGTS
+   ===================================================================== */
+
+let folhaState = {
+  funcionario: {},
+  periodo: { iniBR:"", fimBR:"", ini:null, fim:null },
+  apuracao: { totalMin:0, creditoMin:0, he50_min:0, he100_min:0, faltas_min:0 },
+  verbas: {
+    proventos: [
+      { key:"salario_base", label:"Salário Base", tipo:"fixo" },
+      { key:"he50", label:"Hora extra 50%", tipo:"calc" },
+      { key:"he100", label:"Hora extra 100%", tipo:"calc" },
+      { key:"outros_proventos", label:"Outros Proventos", tipo:"fixo" }
+    ],
+    descontos: [
+      { key:"faltas", label:"Faltas/Atrasos", tipo:"calc" },
+      { key:"inss", label:"INSS", tipo:"calc" },
+      { key:"irrf", label:"IRRF", tipo:"calc" },
+      { key:"vt", label:"Vale Transporte", tipo:"calc" },
+      { key:"outros_descontos", label:"Outros Descontos", tipo:"fixo" }
+    ]
+  },
+  valoresFixos: {
+    outros_proventos: 0,
+    outros_descontos: 0
+  }
+};
+
+function toggleFolha(){
+  const box = document.getElementById("folhaBox");
+  box.classList.toggle("hidden");
+  if(!box.classList.contains("hidden")){
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    const comp = document.getElementById("folhaCompetencia");
+    if(comp && !comp.value) comp.value = ym;
+    preencherTopoFolha_();
+    document.getElementById("folhaMsg").textContent = "Selecione funcionário e período no Cartão de Ponto, depois clique Carregar / Calcular.";
+  }
+}
+
+function preencherTopoFolha_(){
+  const u = document.getElementById("funcionarioSelect").value;
+  document.getElementById("folhaFuncionarioNome").value = u ? (users[u]?.nomeCompleto || u) : "";
+}
+
+function parseNumeroBR(v){
+  if(v === null || v === undefined || v === "") return 0;
+  if(typeof v === "number") return v;
+  const s = String(v).trim().replace(/\./g,"").replace(",",".").replace(/[^\d.-]/g,"");
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+function simNao(v){
+  const s = String(v||"").trim().toUpperCase();
+  return (s==="SIM" || s==="S" || s==="TRUE" || s==="1");
+}
+function round2(n){ return Math.round((Number(n||0)+Number.EPSILON)*100)/100; }
+function moeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+function horas(min){ return fmt(min); }
+
+function calcINSS2026(salario){
+  const teto = 8475.55;
+  const base = Math.min(Math.max(0, salario), teto);
+  const faixas = [
+    { ate: 1621.00, aliq: 0.075 },
+    { ate: 2902.84, aliq: 0.09  },
+    { ate: 4354.27, aliq: 0.12  },
+    { ate: 8475.55, aliq: 0.14  }
+  ];
+  let restante = base, prev = 0, inss = 0;
+  for(const f of faixas){
+    const faixaValor = Math.max(0, Math.min(restante, f.ate - prev));
+    inss += faixaValor * f.aliq;
+    restante -= faixaValor;
+    prev = f.ate;
+    if(restante <= 0) break;
+  }
+  return round2(inss);
+}
+
+function calcIRRFBase2025(baseCalculo){
+  const b = Math.max(0, baseCalculo);
+  const faixas = [
+    { ate: 2428.80, aliq: 0.0,   ded: 0.00 },
+    { ate: 2826.65, aliq: 0.075, ded: 182.16 },
+    { ate: 3751.05, aliq: 0.15,  ded: 394.16 },
+    { ate: 4664.68, aliq: 0.225, ded: 675.49 },
+    { ate: Infinity, aliq: 0.275, ded: 908.73 }
+  ];
+  const f = faixas.find(x => b <= x.ate) || faixas[faixas.length-1];
+  return Math.max(0, round2((b * f.aliq) - f.ded));
+}
+
+function aplicaRedutorIRRF2026(rendTributavel, irAntes){
+  const r = Math.max(0, rendTributavel);
+  if(r <= 5000.00) return 0;
+  let reducao = 0;
+  if(r > 5000.00 && r <= 7350.00){
+    reducao = 978.62 - (0.133145 * r);
+    if(reducao < 0) reducao = 0;
+  }
+  return Math.max(0, round2(irAntes - reducao));
+}
+
+function competenciaToRange(ym){
+  const [y,m] = String(ym||"").split("-").map(Number);
+  const ini = new Date(y,(m||1)-1,1);
+  const fim = new Date(y,(m||1),0);
+  return {ini, fim};
+}
+
+async function carregarFolha(){
+  const msg = document.getElementById("folhaMsg");
+  msg.textContent = "";
+
+  const u = document.getElementById("funcionarioSelect").value;
+  if(!u){ msg.textContent = "Selecione um funcionário no Cartão de Ponto."; return; }
+
+  const di = document.getElementById("dataInicio").value;
+  const df = document.getElementById("dataFim").value || di;
+  if(!di){ msg.textContent = "Selecione a data início no Cartão de Ponto."; return; }
+
+  // escala atualizada
+  const escRes = await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u });
+  if(escRes?.status === "ok" && escRes.escala){
+    users[u] = users[u] || {};
+    users[u].escalaSemanal = escRes.escala;
+  }
+
+  // cadastro completo
+  const cad = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
+  if(!cad || cad.status !== "ok"){ msg.textContent = cad?.message || "Erro ao buscar cadastro."; return; }
+  const f = cad.funcionario || {};
+  folhaState.funcionario = f;
+
+  // valores fixos iniciais
+  folhaState.valoresFixos.outros_proventos = parseNumeroBR(f.outros_proventos_padrao);
+  folhaState.valoresFixos.outros_descontos = parseNumeroBR(f.outros_descontos_padrao);
+
+  const ini = parseInputDateLocal(di);
+  const fim = parseInputDateLocal(df);
+  const iniBR = dateToBR_(ini);
+  const fimBR = dateToBR_(fim);
+
+  folhaState.periodo = { iniBR, fimBR, ini, fim };
+
+  // período (PONTOS)
+  const periodo = await apiPost({
+    tipo:"getPeriodo",
+    usuario_login:u,
+    dataInicio: iniBR,
+    dataFim: fimBR
+  });
+  if(!periodo || periodo.status !== "ok"){ msg.textContent = periodo?.message || "Erro ao buscar período."; return; }
+
+  const registros = periodo.registros || {};
+
+  let somaTotalMin = 0;
+  let somaCreditoMin = 0;
+  let he50_min = 0;
+  let he100_min = 0;
+  let faltas_min = 0;
+
+  let d = new Date(ini);
+  while(d <= fim){
+    const dBR = dateToBR_(d);
+    const diaObj = registros[dBR] || {};
+    const calc = calcularLinhaDia_(u, diaObj, d);
+    somaTotalMin += calc.totalMin;
+    somaCreditoMin += (calc.creditoMin || 0);
+
+    const ddmm = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+    const ehFeriadoLista = feriados.includes(ddmm);
+    const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
+
+    if((ehFeriadoLista || folgaProgramada) && calc.totalMin > 0){
+      he100_min += calc.totalMin;
+    }else{
+      he50_min += (calc.creditoMin || 0);
+      const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
+      faltas_min += faltaDia;
+    }
+
+    d.setDate(d.getDate()+1);
+  }
+
+  folhaState.apuracao = {
+    totalMin: somaTotalMin,
+    creditoMin: somaCreditoMin,
+    he50_min,
+    he100_min,
+    faltas_min
+  };
+
+  recalcularFolha_();
+}
+
+function recalcularFolha_(){
+  const f = folhaState.funcionario || {};
+  const a = folhaState.apuracao || {};
+  const {iniBR,fimBR,ini,fim} = folhaState.periodo || {};
+
+  const salarioBase = parseNumeroBR(f.salario_base);
+  const horasMensais = parseNumeroBR(f.horas_mensais) || 220;
+
+  let depIR = 0;
+  if(f.dep_ir !== "" && f.dep_ir != null) depIR = parseNumeroBR(f.dep_ir);
+  else depIR = parseNumeroBR(f.dep_menor14) + parseNumeroBR(f.dep_maior14);
+  depIR = Math.max(0, Math.floor(depIR));
+
+  const vtUsa = simNao(f.vt_usa);
+  let vtPercent = parseNumeroBR(f.vt_percent);
+  if(!vtUsa) vtPercent = 0;
+  if(vtUsa && !vtPercent) vtPercent = 6;
+
+  const pensao = parseNumeroBR(f.pensao_alimenticia);
+  const prevCompl = parseNumeroBR(f.prev_complementar);
+
+  const outrosProv = Number(folhaState.valoresFixos.outros_proventos || 0);
+  const outrosDesc = Number(folhaState.valoresFixos.outros_descontos || 0);
+
+  const valorHora = salarioBase / horasMensais;
+
+  const he50_val = (a.he50_min/60) * valorHora * 1.5;
+  const he100_val = (a.he100_min/60) * valorHora * 2.0;
+  const faltas_val = (a.faltas_min/60) * valorHora;
+
+  const bruto = salarioBase + he50_val + he100_val + outrosProv;
+  const inss = calcINSS2026(bruto);
+
+  const dedDep = depIR * 189.59;
+  const descSimpl = 607.20;
+  const dedLegais = inss + dedDep + pensao + prevCompl;
+  const dedUsada = Math.max(dedLegais, descSimpl);
+
+  const base_ir = Math.max(0, bruto - dedUsada);
+  const irAntes = calcIRRFBase2025(base_ir);
+  const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
+
+  const vt = (Math.max(0, Math.min(6, vtPercent)) / 100) * salarioBase;
+
+  const descontos = faltas_val + inss + irrf + vt + outrosDesc;
+  const liquido = bruto - descontos;
+
+  // ✅ FGTS
+  const base_fgts = bruto;           // simplificado (base FGTS normalmente remuneração do mês)
+  const fgts_guia = round2(base_fgts * 0.08);
+
+  // guarda resumo calculado para holerite
+  folhaState.calculado = {
+    salarioBase, horasMensais, valorHora,
+    depIR, vtUsa, vtPercent,
+    outrosProv, outrosDesc,
+    he50_val, he100_val, faltas_val,
+    bruto, inss, base_ir, irrf, vt,
+    descontos, liquido,
+    base_fgts, fgts_guia,
+    dedDep, dedUsada
+  };
+
+  renderFolha_();
+}
+
+function renderLinhaVerba_(grupo, item){
+  const a = folhaState.apuracao;
+  const c = folhaState.calculado;
+
+  let ref = "";
+  let val = 0;
+
+  if(item.key === "salario_base"){ val = c.salarioBase; }
+  if(item.key === "he50"){ ref = horas(a.he50_min); val = c.he50_val; }
+  if(item.key === "he100"){ ref = horas(a.he100_min); val = c.he100_val; }
+  if(item.key === "outros_proventos"){ val = c.outrosProv; }
+
+  if(item.key === "faltas"){ ref = horas(a.faltas_min); val = c.faltas_val; }
+  if(item.key === "inss"){ val = c.inss; }
+  if(item.key === "irrf"){ val = c.irrf; }
+  if(item.key === "vt"){ ref = (c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val = c.vt; }
+  if(item.key === "outros_descontos"){ val = c.outrosDesc; }
+
+  const isEditavel = (item.key === "outros_proventos" || item.key === "outros_descontos");
+  const btn = isEditavel
+    ? ` <button class="mini" onclick="editarVerba('${item.key}')">Editar</button>`
+    : "";
+
+  return `<tr>
+    <td style="text-align:left">${item.label}${btn}</td>
+    <td>${ref || ""}</td>
+    <td>${grupo==="proventos" ? moeda(val) : ""}</td>
+    <td>${grupo==="descontos" ? moeda(val) : ""}</td>
+  </tr>`;
+}
+
+function renderFolha_(){
+  const f = folhaState.funcionario || {};
+  const a = folhaState.apuracao || {};
+  const c = folhaState.calculado || {};
+  const p = folhaState.periodo || {};
+
+  document.getElementById("folhaCadastro").innerHTML = `
+    <b>Cadastro (FUNCIONARIOS)</b><br>
+    Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>
+    Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>
+    Salário base: <b>${f.salario_base||""}</b> • Horas mensais: <b>${c.horasMensais||""}</b> • Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b><br>
+    Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa ? (c.vtPercent||6) : 0}%</b>
+  `;
+
+  const linhasProv = folhaState.verbas.proventos.map(v=>renderLinhaVerba_("proventos", v)).join("");
+  const linhasDesc = folhaState.verbas.descontos.map(v=>renderLinhaVerba_("descontos", v)).join("");
+
+  document.getElementById("folhaResultado").innerHTML = `
+    <b>Apuração do período (PONTOS)</b><br>
+    Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>
+    Total trabalhado: <b>${horas(a.totalMin)}</b> • Crédito: <b>${horas(a.creditoMin)}</b><br><br>
+
+    <table id="tabelaFolha">
+      <tr>
+        <th style="text-align:left">Descrição</th>
+        <th>Ref.</th>
+        <th>Proventos</th>
+        <th>Descontos</th>
+      </tr>
+
+      ${linhasProv}
+      <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
+      ${linhasDesc}
+
+      <tr>
+        <th style="text-align:left">TOTAL</th>
+        <th></th>
+        <th>${moeda(c.bruto)}</th>
+        <th>${moeda(c.descontos)}</th>
+      </tr>
+      <tr>
+        <th style="text-align:left">LÍQUIDO A RECEBER</th>
+        <th></th>
+        <th colspan="2">${moeda(c.liquido)}</th>
+      </tr>
+    </table>
+
+    <p class="muted" style="margin-top:8px">
+      Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
+    </p>
+  `;
+
+  preencherHoleritePrint_();
+}
+
+function editarVerba(chave){
+  const atual = (chave==="outros_proventos")
+    ? folhaState.valoresFixos.outros_proventos
+    : folhaState.valoresFixos.outros_descontos;
+
+  const titulo = (chave==="outros_proventos") ? "Outros Proventos" : "Outros Descontos";
+
+  const mask = document.createElement("div");
+  mask.className = "modalMask";
+  mask.innerHTML = `
+    <div class="modalCard">
+      <h3>Editar verba: ${titulo}</h3>
+      <div class="muted">Informe o valor em R$ (ex.: 150,00). Ao salvar, o cálculo é refeito automaticamente.</div>
+      <label>Valor</label>
+      <input id="verbaValor" placeholder="0,00" value="${String(atual||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}">
+      <div class="modalActions">
+        <button class="btn-sec" id="vCancelar">Cancelar</button>
+        <button id="vSalvar">Salvar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(mask);
+
+  mask.querySelector("#vCancelar").onclick = ()=> mask.remove();
+  mask.querySelector("#vSalvar").onclick = ()=>{
+    const raw = mask.querySelector("#verbaValor").value;
+    const v = parseNumeroBR(raw);
+    if(chave==="outros_proventos") folhaState.valoresFixos.outros_proventos = v;
+    else folhaState.valoresFixos.outros_descontos = v;
+    mask.remove();
+    recalcularFolha_();
+  };
+}
+
+/************* Holerite (Print/PDF) *************/
+function preencherHoleritePrint_(){
+  const f = folhaState.funcionario || {};
+  const a = folhaState.apuracao || {};
+  const c = folhaState.calculado || {};
+  const p = folhaState.periodo || {};
+
+  const comp = document.getElementById("folhaCompetencia").value || "";
+  document.getElementById("hpCompetencia").textContent = comp;
+  document.getElementById("hpPeriodo").textContent = `${p.iniBR} até ${p.fimBR}`;
+
+  document.getElementById("hpFuncionario").innerHTML = `
+    <b>Empregado</b><br>
+    Nome: <b>${f.nome||""}</b><br>
+    CPF: ${f.cpf||""} • PIS: ${f.pis||""}<br>
+    Cargo: ${f.cargo||""} • Setor: ${f.setor||""}<br>
+    Admissão: ${f.data_admissao||""}
+  `;
+
+  document.getElementById("hpResumo").innerHTML = `
+    <b>Apuração</b><br>
+    Total trabalhado: <b>${horas(a.totalMin)}</b><br>
+    Crédito: <b>${horas(a.creditoMin)}</b><br>
+    Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b>
+  `;
+
+  const linhas = [];
+  const provs = folhaState.verbas.proventos.map(v=>({grupo:"P", item:v}));
+  const descs = folhaState.verbas.descontos.map(v=>({grupo:"D", item:v}));
+
+  function getLinha(item, grupo){
+    let ref="", val=0;
+    if(item.key==="salario_base") val=c.salarioBase;
+    if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
+    if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
+    if(item.key==="outros_proventos") val=c.outrosProv;
+
+    if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
+    if(item.key==="inss") val=c.inss;
+    if(item.key==="irrf") val=c.irrf;
+    if(item.key==="vt"){ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt;}
+    if(item.key==="outros_descontos") val=c.outrosDesc;
+
+    return `<tr>
+      <td>${item.label}</td>
+      <td style="text-align:center">${ref||""}</td>
+      <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
+      <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
+    </tr>`;
+  }
+
+  const tbody = provs.map(x=>getLinha(x.item,"P")).join("") + descs.map(x=>getLinha(x.item,"D")).join("");
+  document.getElementById("hpTabela").innerHTML = tbody;
+
+  document.getElementById("hpTotais").innerHTML = `
+    <b>Totais</b><br>
+    Bruto: <b>${moeda(c.bruto)}</b><br>
+    Descontos: <b>${moeda(c.descontos)}</b>
+  `;
+
+  document.getElementById("hpBases").innerHTML = `
+    <b>Bases</b><br>
+    Base IR: <b>${moeda(c.base_ir)}</b><br>
+    Base FGTS: <b>${moeda(c.base_fgts)}</b><br>
+    Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
+  `;
+
+  document.getElementById("hpLiquido").innerHTML = `
+    <b>Líquido</b><br>
+    <span style="font-size:16px"><b>${moeda(c.liquido)}</b></span>
+  `;
+}
+
+function imprimirHolerite(){
+  if(!folhaState.calculado){
+    alert("Calcule a folha antes de imprimir.");
+    return;
+  }
+  preencherHoleritePrint_();
+  window.print();
+}
+
+async function gerarPDFHolerite(){
+  if(!folhaState.calculado){
+    alert("Calcule a folha antes de gerar PDF.");
+    return;
+  }
+
+  preencherHoleritePrint_();
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p","mm","a4");
+
+  doc.setFontSize(12);
+  doc.text("HOLERITE / RECIBO DE PAGAMENTO", 105, 12, {align:"center"});
+
+  const f = folhaState.funcionario || {};
+  const p = folhaState.periodo || {};
+  const comp = document.getElementById("folhaCompetencia").value || "";
+
+  doc.setFontSize(9);
+  doc.text(`Competência: ${comp}`, 14, 20);
+  doc.text(`Período: ${p.iniBR} até ${p.fimBR}`, 14, 25);
+
+  doc.text(`Nome: ${f.nome||""}`, 14, 32);
+  doc.text(`CPF: ${f.cpf||""}   PIS: ${f.pis||""}`, 14, 37);
+  doc.text(`Cargo: ${f.cargo||""}   Setor: ${f.setor||""}`, 14, 42);
+
+  const tabela = document.querySelector("#tabelaFolha");
+  if(tabela){
+    doc.autoTable({ startY: 48, html: tabela, styles:{ fontSize: 8 }});
+  } else {
+    doc.text("Tabela não encontrada. Calcule a folha novamente.", 14, 55);
+  }
+
+  const c = folhaState.calculado || {};
+  const y = (doc.lastAutoTable?.finalY || 120) + 8;
+
+  doc.setFontSize(9);
+  doc.text(`Base IR: ${moeda(c.base_ir)}`, 14, y);
+  doc.text(`Base FGTS: ${moeda(c.base_fgts)}  |  Guia FGTS (8%): ${moeda(c.fgts_guia)}`, 14, y+5);
+
+  doc.text("Assinatura do empregado: ________________________________", 14, y+18);
+
+  doc.save(`holerite_${(f.nome||"funcionario").replaceAll(" ","_")}_${comp||"periodo"}.pdf`);
+}
+
+/************* Inicial (opcional) *************/
+// se quiser, pode setar data início/fim automaticamente
+
 </script>
 </body>
 </html>
-
-
