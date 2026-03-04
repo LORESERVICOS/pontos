@@ -744,4 +744,961 @@ async function gerarComprovante(tipo){
   }
 
   const r = (res && res.status === "ok" ? (res.dia || {}) : {});
-  const hora
+    const hora = (typeof formataHoraCelula === "function")
+    ? formataHoraCelula(r[tipo] || "")
+    : (r[tipo] || "");
+
+  const geoKey = ({
+    entrada: "geoEntrada",
+    saidaAlmoco: "geoSaidaAlmoco",
+    retornoAlmoco: "geoRetornoAlmoco",
+    saida: "geoSaida"
+  })[tipo] || ("geo" + capitalize(tipo));
+
+  const geo = r[geoKey] || "";
+
+  doc.setFontSize(14);
+  doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
+  doc.setFontSize(11);
+  doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
+  doc.text(`PIS: ${users[currentUser]?.pis || ""}`,14,36);
+  doc.text(`Data: ${hoje}`,14,42);
+  doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
+  doc.text(`Horário: ${hora || "-"}`,14,54);
+  doc.text(`Geolocalização: ${geo || "-"}`,14,60);
+
+  doc.save(`comprovante_${tipo}_${hoje.replaceAll("/","-")}.pdf`);
+}
+
+/************* AJUSTE *************/
+function campo(valor, c, adminView = true, dBR = ""){
+  const valorFmt = formataHoraCelula(valor);
+  const vazio = !valorFmt || valorFmt === "-";
+  const evento = dadosAtual[c+"_evento"];
+
+  const cellId = (dBR ? `cell_${dBR}_${c}` : "");
+  const wrapOpen = cellId ? `<span id="${cellId}">` : `<span>`;
+  const wrapClose = `</span>`;
+
+  const u = document.getElementById("funcionarioSelect")?.value || "";
+  const d = dBR || dataAtualRel;
+
+  if(!vazio && !evento){
+    if(adminView){
+      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
+      return wrapOpen + valorFmt + btn + wrapClose;
+    }
+    return wrapOpen + valorFmt + wrapClose;
+  }
+
+  if(evento){
+    if(adminView){
+      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
+      return wrapOpen + evento + btn + wrapClose;
+    }
+    return wrapOpen + evento + wrapClose;
+  }
+
+  if(adminView){
+    return wrapOpen + `<button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">➕ Ajustar</button>` + wrapClose;
+  }
+  return wrapOpen + "" + wrapClose;
+}
+
+function atualizarLinhaUI_(u, dBR, dateObj){
+  const reg = periodoCache[dBR] || {};
+  const calc = calcularLinhaDia_(u, reg, dateObj);
+
+  ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(c=>{
+    const span = document.getElementById(`cell_${dBR}_${c}`);
+    if(!span) return;
+    dadosAtual = reg;
+    span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
+  });
+
+  const tdTotal = document.getElementById(`total_${dBR}`);
+  if(tdTotal){
+    tdTotal.className = "verde";
+    tdTotal.textContent = fmt(calc.totalMin);
+  }
+
+  const tdEsc = document.getElementById(`escala_${dBR}`);
+  if(tdEsc){
+    tdEsc.textContent = formataEscala(getEscalaDoDia_(u, dateObj) || "");
+  }
+
+  const tdCred = document.getElementById(`credito_${dBR}`);
+  if(tdCred){
+    tdCred.className = calc.destaqueCredito ? "credito-excedente" : "verde";
+    tdCred.textContent = (calc.creditoMin > 0 ? fmt(calc.creditoMin) : "");
+  }
+}
+
+async function abrirAjuste(u,d,c){
+  const atual = (periodoCache[d] || {});
+
+  let popup = document.createElement("div");
+  popup.className = "modalMask";
+  popup.innerHTML = `
+    <div class="modalCard">
+      <h3>Ajustar ${c}</h3>
+      <label>Horas</label>
+      <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}">
+      <label>Justificar</label>
+      <select id="selectJustificacao">
+        <option value="">--Escolha--</option>
+        ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")===j?'selected':''}>${j}</option>`).join("")}
+      </select>
+      <div class="modalActions">
+        <button class="btn-sec" id="cancelBtn">Cancelar</button>
+        <button id="okBtn">Salvar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
+
+  popup.querySelector("#okBtn").onclick = async ()=>{
+    const hRaw = popup.querySelector("#inputHoras").value.trim();
+    const h = normalizaHoraInput(hRaw);
+    const ev = popup.querySelector("#selectJustificacao").value;
+
+    if(hRaw && !h){ alert("Hora inválida. Use HH:MM (ex: 08:00)."); return; }
+
+    const patch = {};
+
+    if(ev === "Nenhum"){
+      patch[c+"_evento"] = "";
+      patch[c+"_editado"] = false;
+
+      const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
+      if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; }
+
+      periodoCache[d] = periodoCache[d] || {};
+      periodoCache[d][c+"_evento"] = "";
+      periodoCache[d][c+"_editado"] = false;
+
+      popup.remove();
+      atualizarLinhaUI_(u, d, parseBRtoDate_(d));
+      return;
+    }
+
+    if(h){
+      patch[c] = h;
+      patch[c+"_evento"] = "";
+      patch[c+"_editado"] = true;
+      patch.atestadoHorasMin = "";
+    } else if(ev){
+      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
+        patch[campoNome] = "-";
+        patch[campoNome+"_evento"] = ev;
+        patch[campoNome+"_editado"] = true;
+      });
+      patch.atestadoHorasMin = "";
+    }
+
+    const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
+    if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; }
+
+    periodoCache[d] = periodoCache[d] || {};
+    Object.keys(patch).forEach(k=>{ periodoCache[d][k] = patch[k]; });
+
+    popup.remove();
+    atualizarLinhaUI_(u, d, parseBRtoDate_(d));
+  };
+}
+
+/************* ADMIN – LISTA *************/
+function preencherFuncionarios(){
+  const select=document.getElementById("funcionarioSelect");
+  select.innerHTML="<option value=''>Selecionar Funcionário</option>";
+  Object.keys(users).forEach(u=>{
+    if(users[u].role==="operacional"){
+      const option=document.createElement("option");
+      option.value=u;
+      option.textContent=users[u].nomeCompleto || u;
+      select.appendChild(option);
+    }
+  });
+}
+
+/************* RELATÓRIO (getPeriodo) *************/
+async function gerarRelatorioMensal(){
+  const u = document.getElementById("funcionarioSelect").value;
+  const dataInicioEl = document.getElementById("dataInicio");
+  const dataFimEl = document.getElementById("dataFim");
+  const tipo = document.getElementById("tipoRelatorio").value;
+
+  if(!u || !dataInicioEl.value) return;
+
+  const inicio = parseInputDateLocal(dataInicioEl.value);
+  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
+  if(!inicio || !fim){ alert("Preencha corretamente as datas."); return; }
+
+  const periodoInicioStr = dateToBR_(inicio);
+  const periodoFimStr = dateToBR_(fim);
+
+  let resPeriodo;
+  try{
+    resPeriodo = await apiPost({
+      tipo: "getPeriodo",
+      usuario_login: u,
+      dataInicio: periodoInicioStr,
+      dataFim: periodoFimStr
+    });
+  }catch(e){
+    alert("Erro ao carregar período: " + e);
+    return;
+  }
+
+  if(!resPeriodo || resPeriodo.status !== "ok"){
+    alert(resPeriodo?.message || "Erro ao carregar período");
+    return;
+  }
+
+  periodoCache = resPeriodo.registros || {};
+  periodoUser = u;
+  periodoInicioKey = periodoInicioStr;
+  periodoFimKey = periodoFimStr;
+
+  let html = "";
+  html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
+  html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
+  html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
+
+  html += `<table id="tabelaRelatorio"><tr>
+    <th>Data</th>
+    <th>Dia</th>
+    <th>Entrada</th>
+    <th>Saída Almoço</th>
+    <th>Retorno</th>
+    <th>Saída</th>
+    <th>Total</th>
+    <th>Escala</th>
+    <th>Crédito</th>`;
+
+  if(tipo==="comGeo"){
+    html += `<th>Geo Entrada</th>
+             <th>Geo Saída Almoço</th>
+             <th>Geo Retorno</th>
+             <th>Geo Saída</th>`;
+  }
+  html += `</tr>`;
+
+  let somaTotalMin = 0;
+  let somaCreditoMin = 0;
+
+  let currentDate = new Date(inicio);
+
+  while(currentDate <= fim){
+    const dBR = dateToBR_(currentDate);
+
+    dadosAtual = periodoCache[dBR] || {};
+    dataAtualRel = dBR;
+
+    const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
+
+    somaTotalMin += calc.totalMin;
+    somaCreditoMin += (calc.creditoMin || 0);
+
+    const escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
+
+    const dd = String(currentDate.getDate()).padStart(2,"0");
+    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
+    const ddmm = `${dd}/${mm}`;
+    const isFeriadoLista = feriados.includes(ddmm);
+    const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, currentDate));
+    const temAlgumaMarcacao =
+      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
+
+    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
+    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !dadosAtual.entrada_evento){
+      conteudoEntrada = "FOLGA";
+      conteudoSaidaAlm = "FOLGA";
+      conteudoRetorno  = "FOLGA";
+      conteudoSaida    = "FOLGA";
+    } else {
+      conteudoEntrada   = campo(dadosAtual.entrada,"entrada", true, dBR);
+      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco", true, dBR);
+      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco", true, dBR);
+      conteudoSaida     = campo(dadosAtual.saida,"saida", true, dBR);
+    }
+
+    const totalTxt = fmt(calc.totalMin);
+    const credTxt  = (calc.creditoMin > 0 ? fmt(calc.creditoMin) : "");
+    const credClass = calc.destaqueCredito ? "credito-excedente" : "verde";
+
+    html += `<tr>
+      <td>${dBR}</td>
+      <td>${calc.nomeDia}</td>
+      <td>${conteudoEntrada}</td>
+      <td>${conteudoSaidaAlm}</td>
+      <td>${conteudoRetorno}</td>
+      <td>${conteudoSaida}</td>
+
+      <td id="total_${dBR}" class="verde">${totalTxt}</td>
+      <td id="escala_${dBR}">${escExibir}</td>
+      <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
+
+    if(tipo==="comGeo"){
+      html+=`<td>${dadosAtual.geoEntrada||""}</td>
+             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
+             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
+             <td>${dadosAtual.geoSaida||""}</td>`;
+    }
+
+    html += `</tr>`;
+
+    currentDate.setDate(currentDate.getDate()+1);
+  }
+
+  html += `<tr>
+    <th colspan="6">TOTAL</th>
+    <th class="verde">${fmt(somaTotalMin)}</th>
+    <th></th>
+    <th class="verde">${fmt(somaCreditoMin)}</th>`;
+
+  if(tipo==="comGeo"){
+    html += `<th colspan="4"></th>`;
+  }
+
+  html += `</tr></table>
+    <p>Assinatura do Funcionário: _____________________</p>`;
+
+  document.getElementById("cartaoFuncionario").innerHTML = html;
+
+  // se folha aberta, atualiza preview
+  if(!document.getElementById("folhaBox").classList.contains("hidden")){
+    preencherTopoFolha_();
+  }
+}
+
+/************* EXPORTAÇÕES (suas originais) *************/
+function gerarExcel(){
+  const tabelaOriginal = document.querySelector("#tabelaRelatorio");
+  if(!tabelaOriginal){
+    alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
+    return;
+  }
+
+  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const tabela = tabelaOriginal.cloneNode(true);
+
+  if(!opt){
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML = "";
+    });
+  } else {
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
+
+  const wb = XLSX.utils.book_new();
+  const linhas = [];
+  const trs = tabela.querySelectorAll("tr");
+
+  trs.forEach(tr=>{
+    const row = [];
+    tr.querySelectorAll("th,td").forEach(cell=>{
+      row.push((cell.innerText || cell.textContent || "").trim());
+    });
+    linhas.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(linhas);
+  XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
+  XLSX.writeFile(wb, "cartao_ponto.xlsx");
+}
+
+async function gerarPDFAdmin(){
+  const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
+
+  doc.setFontSize(12);
+  doc.text("RELATÓRIO DE PONTO",105,10,{align:"center"});
+
+  doc.setFontSize(10);
+  const u = document.getElementById("funcionarioSelect").value;
+  if(!u){ alert("Selecione o funcionário"); return; }
+  doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
+  doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
+
+  const tabela=document.querySelector("#tabelaRelatorio");
+  if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
+
+  const clone = tabela.cloneNode(true);
+
+  if(!opt){
+    [...clone.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML="";
+    });
+  } else {
+    [...clone.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
+
+  doc.autoTable({startY:30,html:clone});
+  doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
+  doc.save("cartao_ponto.pdf");
+}
+
+/************* CADASTRO FUNCIONÁRIO *************/
+function abrirCadastroFuncionario(){
+  document.getElementById("modalFuncionario").classList.remove("hidden");
+}
+function fecharCadastroFuncionario(){
+  document.getElementById("modalFuncionario").classList.add("hidden");
+}
+async function salvarFuncionario(){
+  alert("Seu cadastro/edição ainda depende do endpoint 'salvarUsuario' no Apps Script. Se quiser, eu adiciono também.");
+}
+
+/************* ESCALA MENSAL (em memória) *************/
+function abrirEscalaMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return alert("Selecione um funcionário");
+  const conteudo=document.getElementById("conteudoEscala");
+  conteudo.innerHTML="";
+  users[u].escalaMensal = users[u].escalaMensal || {};
+  for(let i=1;i<=31;i++){
+    const val = users[u].escalaMensal[i]||"";
+    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
+  }
+  document.getElementById("modalEscala").classList.remove("hidden");
+}
+function fecharEscalaMensal(){
+  document.getElementById("modalEscala").classList.add("hidden");
+}
+function salvarEscalaMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return;
+  users[u].escalaMensal = users[u].escalaMensal || {};
+  for(let i=1;i<=31;i++){
+    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
+  }
+  fecharEscalaMensal();
+  alert("Escala mensal salva (em memória).");
+}
+
+/* =====================================================================
+   ✅ FOLHA + VERBAS EDITÁVEIS + HOLERITE + FGTS
+   ===================================================================== */
+
+let folhaState = {
+  funcionario: {},
+  periodo: { iniBR:"", fimBR:"", ini:null, fim:null },
+  apuracao: { totalMin:0, creditoMin:0, he50_min:0, he100_min:0, faltas_min:0 },
+  verbas: {
+    proventos: [
+      { key:"salario_base", label:"Salário Base", tipo:"fixo" },
+      { key:"he50", label:"Hora extra 50%", tipo:"calc" },
+      { key:"he100", label:"Hora extra 100%", tipo:"calc" },
+      { key:"outros_proventos", label:"Outros Proventos", tipo:"fixo" }
+    ],
+    descontos: [
+      { key:"faltas", label:"Faltas/Atrasos", tipo:"calc" },
+      { key:"inss", label:"INSS", tipo:"calc" },
+      { key:"irrf", label:"IRRF", tipo:"calc" },
+      { key:"vt", label:"Vale Transporte", tipo:"calc" },
+      { key:"outros_descontos", label:"Outros Descontos", tipo:"fixo" }
+    ]
+  },
+  valoresFixos: {
+    outros_proventos: 0,
+    outros_descontos: 0
+  }
+};
+
+function toggleFolha(){
+  const box = document.getElementById("folhaBox");
+  box.classList.toggle("hidden");
+  if(!box.classList.contains("hidden")){
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    const comp = document.getElementById("folhaCompetencia");
+    if(comp && !comp.value) comp.value = ym;
+    preencherTopoFolha_();
+    document.getElementById("folhaMsg").textContent = "Selecione funcionário e período no Cartão de Ponto, depois clique Carregar / Calcular.";
+  }
+}
+
+function preencherTopoFolha_(){
+  const u = document.getElementById("funcionarioSelect").value;
+  document.getElementById("folhaFuncionarioNome").value = u ? (users[u]?.nomeCompleto || u) : "";
+}
+
+function parseNumeroBR(v){
+  if(v === null || v === undefined || v === "") return 0;
+  if(typeof v === "number") return v;
+  const s = String(v).trim().replace(/\./g,"").replace(",",".").replace(/[^\d.-]/g,"");
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+function simNao(v){
+  const s = String(v||"").trim().toUpperCase();
+  return (s==="SIM" || s==="S" || s==="TRUE" || s==="1");
+}
+function round2(n){ return Math.round((Number(n||0)+Number.EPSILON)*100)/100; }
+function moeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+function horas(min){ return fmt(min); }
+
+function calcINSS2026(salario){
+  const teto = 8475.55;
+  const base = Math.min(Math.max(0, salario), teto);
+  const faixas = [
+    { ate: 1621.00, aliq: 0.075 },
+    { ate: 2902.84, aliq: 0.09  },
+    { ate: 4354.27, aliq: 0.12  },
+    { ate: 8475.55, aliq: 0.14  }
+  ];
+  let restante = base, prev = 0, inss = 0;
+  for(const f of faixas){
+    const faixaValor = Math.max(0, Math.min(restante, f.ate - prev));
+    inss += faixaValor * f.aliq;
+    restante -= faixaValor;
+    prev = f.ate;
+    if(restante <= 0) break;
+  }
+  return round2(inss);
+}
+
+function calcIRRFBase2025(baseCalculo){
+  const b = Math.max(0, baseCalculo);
+  const faixas = [
+    { ate: 2428.80, aliq: 0.0,   ded: 0.00 },
+    { ate: 2826.65, aliq: 0.075, ded: 182.16 },
+    { ate: 3751.05, aliq: 0.15,  ded: 394.16 },
+    { ate: 4664.68, aliq: 0.225, ded: 675.49 },
+    { ate: Infinity, aliq: 0.275, ded: 908.73 }
+  ];
+  const f = faixas.find(x => b <= x.ate) || faixas[faixas.length-1];
+  return Math.max(0, round2((b * f.aliq) - f.ded));
+}
+
+function aplicaRedutorIRRF2026(rendTributavel, irAntes){
+  const r = Math.max(0, rendTributavel);
+  if(r <= 5000.00) return 0;
+  let reducao = 0;
+  if(r > 5000.00 && r <= 7350.00){
+    reducao = 978.62 - (0.133145 * r);
+    if(reducao < 0) reducao = 0;
+  }
+  return Math.max(0, round2(irAntes - reducao));
+}
+
+function competenciaToRange(ym){
+  const [y,m] = String(ym||"").split("-").map(Number);
+  const ini = new Date(y,(m||1)-1,1);
+  const fim = new Date(y,(m||1),0);
+  return {ini, fim};
+}
+
+async function carregarFolha(){
+  const msg = document.getElementById("folhaMsg");
+  msg.textContent = "";
+
+  const u = document.getElementById("funcionarioSelect").value;
+  if(!u){ msg.textContent = "Selecione um funcionário no Cartão de Ponto."; return; }
+
+  const di = document.getElementById("dataInicio").value;
+  const df = document.getElementById("dataFim").value || di;
+  if(!di){ msg.textContent = "Selecione a data início no Cartão de Ponto."; return; }
+
+  // escala atualizada
+  const escRes = await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u });
+  if(escRes?.status === "ok" && escRes.escala){
+    users[u] = users[u] || {};
+    users[u].escalaSemanal = escRes.escala;
+  }
+
+  // cadastro completo
+  const cad = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
+  if(!cad || cad.status !== "ok"){ msg.textContent = cad?.message || "Erro ao buscar cadastro."; return; }
+  const f = cad.funcionario || {};
+  folhaState.funcionario = f;
+
+  // valores fixos iniciais
+  folhaState.valoresFixos.outros_proventos = parseNumeroBR(f.outros_proventos_padrao);
+  folhaState.valoresFixos.outros_descontos = parseNumeroBR(f.outros_descontos_padrao);
+
+  const ini = parseInputDateLocal(di);
+  const fim = parseInputDateLocal(df);
+  const iniBR = dateToBR_(ini);
+  const fimBR = dateToBR_(fim);
+
+  folhaState.periodo = { iniBR, fimBR, ini, fim };
+
+  // período (PONTOS)
+  const periodo = await apiPost({
+    tipo:"getPeriodo",
+    usuario_login:u,
+    dataInicio: iniBR,
+    dataFim: fimBR
+  });
+  if(!periodo || periodo.status !== "ok"){ msg.textContent = periodo?.message || "Erro ao buscar período."; return; }
+
+  const registros = periodo.registros || {};
+
+  let somaTotalMin = 0;
+  let somaCreditoMin = 0;
+  let he50_min = 0;
+  let he100_min = 0;
+  let faltas_min = 0;
+
+  let d = new Date(ini);
+  while(d <= fim){
+    const dBR = dateToBR_(d);
+    const diaObj = registros[dBR] || {};
+    const calc = calcularLinhaDia_(u, diaObj, d);
+    somaTotalMin += calc.totalMin;
+    somaCreditoMin += (calc.creditoMin || 0);
+
+    const ddmm = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+    const ehFeriadoLista = feriados.includes(ddmm);
+    const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
+
+    if((ehFeriadoLista || folgaProgramada) && calc.totalMin > 0){
+      he100_min += calc.totalMin;
+    }else{
+      he50_min += (calc.creditoMin || 0);
+      const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
+      faltas_min += faltaDia;
+    }
+
+    d.setDate(d.getDate()+1);
+  }
+
+  folhaState.apuracao = {
+    totalMin: somaTotalMin,
+    creditoMin: somaCreditoMin,
+    he50_min,
+    he100_min,
+    faltas_min
+  };
+
+  recalcularFolha_();
+}
+
+function recalcularFolha_(){
+  const f = folhaState.funcionario || {};
+  const a = folhaState.apuracao || {};
+  const {iniBR,fimBR,ini,fim} = folhaState.periodo || {};
+
+  const salarioBase = parseNumeroBR(f.salario_base);
+  const horasMensais = parseNumeroBR(f.horas_mensais) || 220;
+
+  let depIR = 0;
+  if(f.dep_ir !== "" && f.dep_ir != null) depIR = parseNumeroBR(f.dep_ir);
+  else depIR = parseNumeroBR(f.dep_menor14) + parseNumeroBR(f.dep_maior14);
+  depIR = Math.max(0, Math.floor(depIR));
+
+  const vtUsa = simNao(f.vt_usa);
+  let vtPercent = parseNumeroBR(f.vt_percent);
+  if(!vtUsa) vtPercent = 0;
+  if(vtUsa && !vtPercent) vtPercent = 6;
+
+  const pensao = parseNumeroBR(f.pensao_alimenticia);
+  const prevCompl = parseNumeroBR(f.prev_complementar);
+
+  const outrosProv = Number(folhaState.valoresFixos.outros_proventos || 0);
+  const outrosDesc = Number(folhaState.valoresFixos.outros_descontos || 0);
+
+  const valorHora = salarioBase / horasMensais;
+
+  const he50_val = (a.he50_min/60) * valorHora * 1.5;
+  const he100_val = (a.he100_min/60) * valorHora * 2.0;
+  const faltas_val = (a.faltas_min/60) * valorHora;
+
+  const bruto = salarioBase + he50_val + he100_val + outrosProv;
+  const inss = calcINSS2026(bruto);
+
+  const dedDep = depIR * 189.59;
+  const descSimpl = 607.20;
+  const dedLegais = inss + dedDep + pensao + prevCompl;
+  const dedUsada = Math.max(dedLegais, descSimpl);
+
+  const base_ir = Math.max(0, bruto - dedUsada);
+  const irAntes = calcIRRFBase2025(base_ir);
+  const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
+
+  const vt = (Math.max(0, Math.min(6, vtPercent)) / 100) * salarioBase;
+
+  const descontos = faltas_val + inss + irrf + vt + outrosDesc;
+  const liquido = bruto - descontos;
+
+  // ✅ FGTS
+  const base_fgts = bruto;           // simplificado (base FGTS normalmente remuneração do mês)
+  const fgts_guia = round2(base_fgts * 0.08);
+
+  // guarda resumo calculado para holerite
+  folhaState.calculado = {
+    salarioBase, horasMensais, valorHora,
+    depIR, vtUsa, vtPercent,
+    outrosProv, outrosDesc,
+    he50_val, he100_val, faltas_val,
+    bruto, inss, base_ir, irrf, vt,
+    descontos, liquido,
+    base_fgts, fgts_guia,
+    dedDep, dedUsada
+  };
+
+  renderFolha_();
+}
+
+function renderLinhaVerba_(grupo, item){
+  const a = folhaState.apuracao;
+  const c = folhaState.calculado;
+
+  let ref = "";
+  let val = 0;
+
+  if(item.key === "salario_base"){ val = c.salarioBase; }
+  if(item.key === "he50"){ ref = horas(a.he50_min); val = c.he50_val; }
+  if(item.key === "he100"){ ref = horas(a.he100_min); val = c.he100_val; }
+  if(item.key === "outros_proventos"){ val = c.outrosProv; }
+
+  if(item.key === "faltas"){ ref = horas(a.faltas_min); val = c.faltas_val; }
+  if(item.key === "inss"){ val = c.inss; }
+  if(item.key === "irrf"){ val = c.irrf; }
+  if(item.key === "vt"){ ref = (c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val = c.vt; }
+  if(item.key === "outros_descontos"){ val = c.outrosDesc; }
+
+  const isEditavel = (item.key === "outros_proventos" || item.key === "outros_descontos");
+  const btn = isEditavel
+    ? ` <button class="mini" onclick="editarVerba('${item.key}')">Editar</button>`
+    : "";
+
+  return `<tr>
+    <td style="text-align:left">${item.label}${btn}</td>
+    <td>${ref || ""}</td>
+    <td>${grupo==="proventos" ? moeda(val) : ""}</td>
+    <td>${grupo==="descontos" ? moeda(val) : ""}</td>
+  </tr>`;
+}
+
+function renderFolha_(){
+  const f = folhaState.funcionario || {};
+  const a = folhaState.apuracao || {};
+  const c = folhaState.calculado || {};
+  const p = folhaState.periodo || {};
+
+  document.getElementById("folhaCadastro").innerHTML = `
+    <b>Cadastro (FUNCIONARIOS)</b><br>
+    Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>
+    Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>
+    Salário base: <b>${f.salario_base||""}</b> • Horas mensais: <b>${c.horasMensais||""}</b> • Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b><br>
+    Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa ? (c.vtPercent||6) : 0}%</b>
+  `;
+
+  const linhasProv = folhaState.verbas.proventos.map(v=>renderLinhaVerba_("proventos", v)).join("");
+  const linhasDesc = folhaState.verbas.descontos.map(v=>renderLinhaVerba_("descontos", v)).join("");
+
+  document.getElementById("folhaResultado").innerHTML = `
+    <b>Apuração do período (PONTOS)</b><br>
+    Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>
+    Total trabalhado: <b>${horas(a.totalMin)}</b> • Crédito: <b>${horas(a.creditoMin)}</b><br><br>
+
+    <table id="tabelaFolha">
+      <tr>
+        <th style="text-align:left">Descrição</th>
+        <th>Ref.</th>
+        <th>Proventos</th>
+        <th>Descontos</th>
+      </tr>
+
+      ${linhasProv}
+      <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
+      ${linhasDesc}
+
+      <tr>
+        <th style="text-align:left">TOTAL</th>
+        <th></th>
+        <th>${moeda(c.bruto)}</th>
+        <th>${moeda(c.descontos)}</th>
+      </tr>
+      <tr>
+        <th style="text-align:left">LÍQUIDO A RECEBER</th>
+        <th></th>
+        <th colspan="2">${moeda(c.liquido)}</th>
+      </tr>
+    </table>
+
+    <p class="muted" style="margin-top:8px">
+      Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
+    </p>
+  `;
+
+  preencherHoleritePrint_();
+}
+
+function editarVerba(chave){
+  const atual = (chave==="outros_proventos")
+    ? folhaState.valoresFixos.outros_proventos
+    : folhaState.valoresFixos.outros_descontos;
+
+  const titulo = (chave==="outros_proventos") ? "Outros Proventos" : "Outros Descontos";
+
+  const mask = document.createElement("div");
+  mask.className = "modalMask";
+  mask.innerHTML = `
+    <div class="modalCard">
+      <h3>Editar verba: ${titulo}</h3>
+      <div class="muted">Informe o valor em R$ (ex.: 150,00). Ao salvar, o cálculo é refeito automaticamente.</div>
+      <label>Valor</label>
+      <input id="verbaValor" placeholder="0,00" value="${String(atual||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}">
+      <div class="modalActions">
+        <button class="btn-sec" id="vCancelar">Cancelar</button>
+        <button id="vSalvar">Salvar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(mask);
+
+  mask.querySelector("#vCancelar").onclick = ()=> mask.remove();
+  mask.querySelector("#vSalvar").onclick = ()=>{
+    const raw = mask.querySelector("#verbaValor").value;
+    const v = parseNumeroBR(raw);
+    if(chave==="outros_proventos") folhaState.valoresFixos.outros_proventos = v;
+    else folhaState.valoresFixos.outros_descontos = v;
+    mask.remove();
+    recalcularFolha_();
+  };
+}
+
+/************* Holerite (Print/PDF) *************/
+function preencherHoleritePrint_(){
+  const f = folhaState.funcionario || {};
+  const a = folhaState.apuracao || {};
+  const c = folhaState.calculado || {};
+  const p = folhaState.periodo || {};
+
+  const comp = document.getElementById("folhaCompetencia").value || "";
+  document.getElementById("hpCompetencia").textContent = comp;
+  document.getElementById("hpPeriodo").textContent = `${p.iniBR} até ${p.fimBR}`;
+
+  document.getElementById("hpFuncionario").innerHTML = `
+    <b>Empregado</b><br>
+    Nome: <b>${f.nome||""}</b><br>
+    CPF: ${f.cpf||""} • PIS: ${f.pis||""}<br>
+    Cargo: ${f.cargo||""} • Setor: ${f.setor||""}<br>
+    Admissão: ${f.data_admissao||""}
+  `;
+
+  document.getElementById("hpResumo").innerHTML = `
+    <b>Apuração</b><br>
+    Total trabalhado: <b>${horas(a.totalMin)}</b><br>
+    Crédito: <b>${horas(a.creditoMin)}</b><br>
+    Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b>
+  `;
+
+  const linhas = [];
+  const provs = folhaState.verbas.proventos.map(v=>({grupo:"P", item:v}));
+  const descs = folhaState.verbas.descontos.map(v=>({grupo:"D", item:v}));
+
+  function getLinha(item, grupo){
+    let ref="", val=0;
+    if(item.key==="salario_base") val=c.salarioBase;
+    if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
+    if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
+    if(item.key==="outros_proventos") val=c.outrosProv;
+
+    if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
+    if(item.key==="inss") val=c.inss;
+    if(item.key==="irrf") val=c.irrf;
+    if(item.key==="vt"){ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt;}
+    if(item.key==="outros_descontos") val=c.outrosDesc;
+
+    return `<tr>
+      <td>${item.label}</td>
+      <td style="text-align:center">${ref||""}</td>
+      <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
+      <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
+    </tr>`;
+  }
+
+  const tbody = provs.map(x=>getLinha(x.item,"P")).join("") + descs.map(x=>getLinha(x.item,"D")).join("");
+  document.getElementById("hpTabela").innerHTML = tbody;
+
+  document.getElementById("hpTotais").innerHTML = `
+    <b>Totais</b><br>
+    Bruto: <b>${moeda(c.bruto)}</b><br>
+    Descontos: <b>${moeda(c.descontos)}</b>
+  `;
+
+  document.getElementById("hpBases").innerHTML = `
+    <b>Bases</b><br>
+    Base IR: <b>${moeda(c.base_ir)}</b><br>
+    Base FGTS: <b>${moeda(c.base_fgts)}</b><br>
+    Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
+  `;
+
+  document.getElementById("hpLiquido").innerHTML = `
+    <b>Líquido</b><br>
+    <span style="font-size:16px"><b>${moeda(c.liquido)}</b></span>
+  `;
+}
+
+function imprimirHolerite(){
+  if(!folhaState.calculado){
+    alert("Calcule a folha antes de imprimir.");
+    return;
+  }
+  preencherHoleritePrint_();
+  window.print();
+}
+
+async function gerarPDFHolerite(){
+  if(!folhaState.calculado){
+    alert("Calcule a folha antes de gerar PDF.");
+    return;
+  }
+
+  preencherHoleritePrint_();
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p","mm","a4");
+
+  doc.setFontSize(12);
+  doc.text("HOLERITE / RECIBO DE PAGAMENTO", 105, 12, {align:"center"});
+
+  const f = folhaState.funcionario || {};
+  const p = folhaState.periodo || {};
+  const comp = document.getElementById("folhaCompetencia").value || "";
+
+  doc.setFontSize(9);
+  doc.text(`Competência: ${comp}`, 14, 20);
+  doc.text(`Período: ${p.iniBR} até ${p.fimBR}`, 14, 25);
+
+  doc.text(`Nome: ${f.nome||""}`, 14, 32);
+  doc.text(`CPF: ${f.cpf||""}   PIS: ${f.pis||""}`, 14, 37);
+  doc.text(`Cargo: ${f.cargo||""}   Setor: ${f.setor||""}`, 14, 42);
+
+  const tabela = document.querySelector("#tabelaFolha");
+  if(tabela){
+    doc.autoTable({ startY: 48, html: tabela, styles:{ fontSize: 8 }});
+  } else {
+    doc.text("Tabela não encontrada. Calcule a folha novamente.", 14, 55);
+  }
+
+  const c = folhaState.calculado || {};
+  const y = (doc.lastAutoTable?.finalY || 120) + 8;
+
+  doc.setFontSize(9);
+  doc.text(`Base IR: ${moeda(c.base_ir)}`, 14, y);
+  doc.text(`Base FGTS: ${moeda(c.base_fgts)}  |  Guia FGTS (8%): ${moeda(c.fgts_guia)}`, 14, y+5);
+
+  doc.text("Assinatura do empregado: ________________________________", 14, y+18);
+
+  doc.save(`holerite_${(f.nome||"funcionario").replaceAll(" ","_")}_${comp||"periodo"}.pdf`);
+}
+
+/************* Inicial (opcional) *************/
+// se quiser, pode setar data início/fim automaticamente
+
+</script>
+</body>
+</html>
