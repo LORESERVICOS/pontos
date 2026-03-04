@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <title>Relógio de Ponto Eletrônico</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+
 <style>
   body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;margin:0}
   header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
@@ -18,7 +20,6 @@
   th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
   th{background:#f1f5f9}
   .verde{color:green;font-weight:bold;}
-  .vermelho{color:red;font-weight:bold;}
   input,select{padding:4px 6px;margin:2px 0;}
 
   @media (max-width:768px){
@@ -30,19 +31,14 @@
     table td::before{content:attr(data-label);font-weight:600}
   }
 
-  .credito-excedente{
-    background:#0f5132;
-    color:#ffffff;
-    font-weight:600;
-  }
-
-  /* ✅ estilos adicionais folha */
+  .credito-excedente{background:#0f5132;color:#fff;font-weight:600;}
   .muted{color:#475569;font-size:13px}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
   .row > div{min-width:220px}
   .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-top:10px}
 </style>
 </head>
+
 <body>
 <header>
   Bem-vindo, <span id="nomeUsuario"></span>
@@ -76,10 +72,11 @@
 <div id="adminSection" class="hidden">
   <div class="card" style="max-width:1200px">
     <h2>Relatório – Cartão de Ponto</h2>
+
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
     <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button>
 
-    <!-- ✅ NOVO BOTÃO: FOLHA (somente admin pois fica dentro do adminSection) -->
+    <!-- ✅ NOVO BOTÃO: FOLHA -->
     <button onclick="toggleFolha()">Folha de Pagamento</button>
     <br><br>
 
@@ -97,7 +94,7 @@
 
     <div id="cartaoFuncionario"></div>
 
-    <!-- ✅ FOLHA DE PAGAMENTO (novo bloco) -->
+    <!-- ✅ FOLHA DE PAGAMENTO -->
     <div id="folhaBox" class="hidden" style="margin-top:18px">
       <hr>
       <h2>Folha de Pagamento (CLT) – pelo período selecionado</h2>
@@ -131,70 +128,26 @@
 <!-- MODAL CADASTRO FUNCIONARIO -->
 <div id="modalFuncionario" class="card hidden" style="max-width:500px">
   <h3>Cadastro / Edição de Funcionário</h3>
-
-  <label>Código Funcionário:<br>
-    <input id="novoCodigo" placeholder="Código">
-  </label><br>
-
-  <label>Nome Funcionário:<br>
-    <input id="novoNome" placeholder="Nome completo">
-  </label><br>
-
-  <label>Usuário (login):<br>
-    <input id="novoUser" placeholder="Usuário">
-  </label><br>
-
-  <label>Senha:<br>
-    <input id="novoPass" type="password" placeholder="Senha">
-  </label><br>
-
-  <label>Cargo:<br>
-    <input id="novoCargo" placeholder="Cargo/Função">
-  </label><br>
-
-  <label>PIS:<br>
-    <input id="novoPis" placeholder="PIS">
-  </label><br>
-
-  <label>Depto/Setor:<br>
-    <input id="novoSetor" placeholder="Departamento / Setor">
-  </label><br>
-
-  <label>Local de Trabalho:<br>
-    <input id="novoLocal" placeholder="Local de trabalho">
-  </label><br>
+  <label>Código Funcionário:<br><input id="novoCodigo" placeholder="Código"></label><br>
+  <label>Nome Funcionário:<br><input id="novoNome" placeholder="Nome completo"></label><br>
+  <label>Usuário (login):<br><input id="novoUser" placeholder="Usuário"></label><br>
+  <label>Senha:<br><input id="novoPass" type="password" placeholder="Senha"></label><br>
+  <label>Cargo:<br><input id="novoCargo" placeholder="Cargo/Função"></label><br>
+  <label>PIS:<br><input id="novoPis" placeholder="PIS"></label><br>
+  <label>Depto/Setor:<br><input id="novoSetor" placeholder="Departamento / Setor"></label><br>
+  <label>Local de Trabalho:<br><input id="novoLocal" placeholder="Local de trabalho"></label><br>
 
   <p><strong>Escala padrão semanal do funcionário</strong><br>
     Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
   </p>
 
-  <label>Segunda-feira:<br>
-    <input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Terça-feira:<br>
-    <input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Quarta-feira:<br>
-    <input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Quinta-feira:<br>
-    <input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Sexta-feira:<br>
-    <input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00">
-  </label><br>
-
-  <label>Sábado:<br>
-    <input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00">
-  </label><br>
-
-  <label>Domingo:<br>
-    <input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA">
-  </label><br><br>
+  <label>Segunda-feira:<br><input id="escSeg" placeholder="HH:MM ou FOLGA" value="08:00"></label><br>
+  <label>Terça-feira:<br><input id="escTer" placeholder="HH:MM ou FOLGA" value="08:00"></label><br>
+  <label>Quarta-feira:<br><input id="escQua" placeholder="HH:MM ou FOLGA" value="08:00"></label><br>
+  <label>Quinta-feira:<br><input id="escQui" placeholder="HH:MM ou FOLGA" value="08:00"></label><br>
+  <label>Sexta-feira:<br><input id="escSex" placeholder="HH:MM ou FOLGA" value="08:00"></label><br>
+  <label>Sábado:<br><input id="escSab" placeholder="HH:MM ou FOLGA" value="04:00"></label><br>
+  <label>Domingo:<br><input id="escDom" placeholder="HH:MM ou FOLGA" value="FOLGA"></label><br><br>
 
   <button onclick="salvarFuncionario()">Salvar</button>
   <button onclick="fecharCadastroFuncionario()">Cancelar</button>
@@ -211,23 +164,20 @@
 
 <script>
 /************* CONFIG *************/
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec"; // <- troque pela sua URL do Deploy
 
 let users = {};
 let currentUser = null;
 let currentUserObj = null;
 
-// estado global usado no relatório
 let dadosAtual = {};
 let dataAtualRel = "";
 
-// cache do período
 let periodoCache = {};
 let periodoUser = "";
 let periodoInicioKey = "";
 let periodoFimKey = "";
 
-// feriados dd/mm (ajuste se quiser)
 const feriados = ["01/01","07/09","25/12"];
 
 const justificativas = [
@@ -337,10 +287,9 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-// pega escala do dia (mensal sobrescreve semanal)
 function getEscalaDoDia_(u, dateObj){
   const diaNum = dateObj.getDate();
-  const weekday = dateObj.getDay(); // 0..6
+  const weekday = dateObj.getDay();
   const escSem = (users[u] && users[u].escalaSemanal) || {};
   const escMensal = (users[u] && users[u].escalaMensal) || {};
   return (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
@@ -415,6 +364,7 @@ async function carregarUsuariosAdmin(){
   try{
     const res = await apiPost({ tipo:"listarUsuarios" });
     if(res.status !== "ok") return;
+
     (res.usuarios || []).forEach(u=>{
       const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
       if(!loginKey) return;
@@ -452,7 +402,7 @@ async function registrar(tipo){
   const data = dateToBR_(agora);
 
   if(!navigator.geolocation){
-    alert("⚠️ Sem geolocalização neste dispositivo/navegador. O ponto será registrado mesmo assim.");
+    alert("⚠️ Sem geolocalização. O ponto será registrado mesmo assim.");
     return salvarRegistro(tipo, hora, data, "Não suportada");
   }
 
@@ -460,7 +410,7 @@ async function registrar(tipo){
     if(navigator.permissions?.query){
       const st = await navigator.permissions.query({ name: "geolocation" });
       if(st.state === "denied"){
-        alert("⚠️ Geolocalização BLOQUEADA no navegador. O ponto será registrado mesmo assim (sem localização).");
+        alert("⚠️ Geolocalização BLOQUEADA. O ponto será registrado mesmo assim (sem localização).");
         return salvarRegistro(tipo, hora, data, "Permissão negada");
       }
     }
@@ -597,6 +547,7 @@ function calcularLinhaDia_(u, regDia, dateObj){
   let totalMin = 0;
   if(!eventoDia){
     const temEnt = !!ent, temSAl = !!sAl, temRet = !!ret, temSai = !!sai;
+
     if(temEnt && temSAl && temRet && temSai){
       totalMin = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
     } else if(temEnt && temSai && !temSAl && !temRet){
@@ -644,7 +595,6 @@ function calcularLinhaDia_(u, regDia, dateObj){
 async function gerarComprovante(tipo){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-
   const hoje = new Date().toLocaleDateString("pt-BR");
 
   let res;
@@ -656,9 +606,7 @@ async function gerarComprovante(tipo){
   }
 
   const r = (res && res.status === "ok" ? (res.dia || {}) : {});
-  const hora = (typeof formataHoraCelula === "function")
-    ? formataHoraCelula(r[tipo] || "")
-    : (r[tipo] || "");
+  const hora = formataHoraCelula(r[tipo] || "");
 
   const geoKey = ({
     entrada: "geoEntrada",
@@ -839,7 +787,7 @@ function preencherFuncionarios(){
   });
 }
 
-/************* RELATÓRIO (1 chamada getPeriodo) *************/
+/************* RELATÓRIO (getPeriodo) *************/
 async function gerarRelatorioMensal(){
   const u = document.getElementById("funcionarioSelect").value;
   const dataInicioEl = document.getElementById("dataInicio");
@@ -965,7 +913,6 @@ async function gerarRelatorioMensal(){
     }
 
     html += `</tr>`;
-
     currentDate.setDate(currentDate.getDate()+1);
   }
 
@@ -984,44 +931,134 @@ async function gerarRelatorioMensal(){
 
   document.getElementById("cartaoFuncionario").innerHTML = html;
 
-  // ✅ se a folha estiver aberta, atualiza o nome/preview
   if(!document.getElementById("folhaBox").classList.contains("hidden")){
     preencherTopoFolha_();
   }
 }
 
-/************* EXPORTAÇÕES *************/
-function gerarExcel(){ /* (seu código original aqui) */ alert("⚠️ Cole aqui sua função original gerarExcel() (não alterei)."); }
-async function gerarPDFAdmin(){ /* (seu código original aqui) */ alert("⚠️ Cole aqui sua função original gerarPDFAdmin() (não alterei)."); }
+/************* EXPORTAÇÕES CARTÃO *************/
+function gerarExcel(){
+  const tabelaOriginal = document.querySelector("#tabelaRelatorio");
+  if(!tabelaOriginal){
+    alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
+    return;
+  }
+
+  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const tabela = tabelaOriginal.cloneNode(true);
+
+  if(!opt){
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML = "";
+    });
+  } else {
+    [...tabela.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
+
+  const wb = XLSX.utils.book_new();
+  const linhas = [];
+  const trs = tabela.querySelectorAll("tr");
+
+  trs.forEach(tr=>{
+    const row = [];
+    tr.querySelectorAll("th,td").forEach(cell=>{
+      row.push((cell.innerText || cell.textContent || "").trim());
+    });
+    linhas.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(linhas);
+  XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
+  XLSX.writeFile(wb, "cartao_ponto.xlsx");
+}
+
+async function gerarPDFAdmin(){
+  const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF('p','mm','a4');
+
+  doc.setFontSize(12);
+  doc.text("RELATÓRIO DE PONTO",105,10,{align:"center"});
+
+  doc.setFontSize(10);
+  const u = document.getElementById("funcionarioSelect").value;
+  if(!u){ alert("Selecione o funcionário"); return; }
+  doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
+  doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
+
+  const tabela=document.querySelector("#tabelaRelatorio");
+  if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
+
+  const clone = tabela.cloneNode(true);
+
+  if(!opt){
+    [...clone.querySelectorAll("td")].forEach(td=>{
+      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML="";
+    });
+  } else {
+    [...clone.querySelectorAll("td")].forEach(td=>{
+      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
+    });
+  }
+
+  doc.autoTable({startY:30,html:clone});
+  doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
+  doc.save("cartao_ponto.pdf");
+}
 
 /************* CADASTRO FUNCIONÁRIO *************/
-function abrirCadastroFuncionario(){ document.getElementById("modalFuncionario").classList.remove("hidden"); }
-function fecharCadastroFuncionario(){ document.getElementById("modalFuncionario").classList.add("hidden"); }
-async function salvarFuncionario(){ alert("Seu cadastro/edição ainda depende do endpoint 'salvarUsuario' no Apps Script. Se quiser, eu adiciono também."); }
+function abrirCadastroFuncionario(){
+  document.getElementById("modalFuncionario").classList.remove("hidden");
+}
+function fecharCadastroFuncionario(){
+  document.getElementById("modalFuncionario").classList.add("hidden");
+}
+async function salvarFuncionario(){
+  alert("Seu cadastro/edição ainda depende do endpoint 'salvarUsuario' no Apps Script. Se quiser, eu adiciono também.");
+}
 
-/************* ESCALA MENSAL *************/
-function abrirEscalaMensal(){ /* (seu código original aqui) */ alert("⚠️ Cole aqui sua função original abrirEscalaMensal() (não alterei)."); }
-function fecharEscalaMensal(){ document.getElementById("modalEscala").classList.add("hidden"); }
-function salvarEscalaMensal(){ /* (seu código original aqui) */ alert("⚠️ Cole aqui sua função original salvarEscalaMensal() (não alterei)."); }
+/************* ESCALA MENSAL (em memória) *************/
+function abrirEscalaMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return alert("Selecione um funcionário");
+  const conteudo=document.getElementById("conteudoEscala");
+  conteudo.innerHTML="";
+  users[u].escalaMensal = users[u].escalaMensal || {};
+  for(let i=1;i<=31;i++){
+    const val = users[u].escalaMensal[i]||"";
+    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
+  }
+  document.getElementById("modalEscala").classList.remove("hidden");
+}
+function fecharEscalaMensal(){
+  document.getElementById("modalEscala").classList.add("hidden");
+}
+function salvarEscalaMensal(){
+  const u=document.getElementById("funcionarioSelect").value;
+  if(!u) return;
+  users[u].escalaMensal = users[u].escalaMensal || {};
+  for(let i=1;i<=31;i++){
+    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
+  }
+  fecharEscalaMensal();
+  alert("Escala mensal salva (em memória).");
+}
 
 /* =====================================================================
-   ✅ NOVO: FOLHA DE PAGAMENTO (ADMIN) – NÃO REMOVE NADA DO SEU SISTEMA
-   - Busca cadastro completo: tipo="getFuncionarioFull"
-   - Usa pontos: tipo="getPeriodo"
-   - Usa escala: tipo="getEscalaFuncionario"
+   ✅ FOLHA DE PAGAMENTO (ADMIN) – CHAMA getFuncionarioFull + getPeriodo
    ===================================================================== */
-
 function toggleFolha(){
   const box = document.getElementById("folhaBox");
   box.classList.toggle("hidden");
   if(!box.classList.contains("hidden")){
-    // competência padrão = mês atual
     const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
     const comp = document.getElementById("folhaCompetencia");
     if(comp && !comp.value) comp.value = ym;
     preencherTopoFolha_();
-    document.getElementById("folhaMsg").textContent = "Selecione funcionário e gere o relatório do período (ou clique Carregar/Calcular).";
+    document.getElementById("folhaMsg").textContent = "Selecione funcionário e período no cartão de ponto e clique Carregar/Calcular.";
   }
 }
 
@@ -1046,7 +1083,6 @@ function moeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",
 function horas(min){ return fmt(min); }
 
 function calcINSS2026(salario){
-  // ⚠️ modelo – ajuste anual
   const teto = 8475.55;
   const base = Math.min(Math.max(0, salario), teto);
   const faixas = [
@@ -1067,7 +1103,6 @@ function calcINSS2026(salario){
 }
 
 function calcIRRFBase2025(baseCalculo){
-  // ⚠️ modelo – ajuste anual
   const b = Math.max(0, baseCalculo);
   const faixas = [
     { ate: 2428.80, aliq: 0.0,   ded: 0.00 },
@@ -1081,7 +1116,6 @@ function calcIRRFBase2025(baseCalculo){
 }
 
 function aplicaRedutorIRRF2026(rendTributavel, irAntes){
-  // ⚠️ modelo – ajuste anual
   const r = Math.max(0, rendTributavel);
   if(r <= 5000.00) return 0;
   let reducao = 0;
@@ -1103,26 +1137,31 @@ async function carregarFolha(){
   const dataFimEl = document.getElementById("dataFim").value || dataInicioEl;
   if(!dataInicioEl){ msg.textContent = "Selecione a data início no Cartão de Ponto."; return; }
 
-  // ✅ garante escala atualizada (para folga/escala no cálculo)
+  // escala atualizada (para crédito/folga)
   const escRes = await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u });
   if(escRes?.status === "ok" && escRes.escala){
     users[u] = users[u] || {};
     users[u].escalaSemanal = escRes.escala;
   }
 
-  // cadastro completo
+  // ✅ CADASTRO COMPLETO
   const cad = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
   if(!cad || cad.status !== "ok"){ msg.textContent = cad?.message || "Erro ao buscar cadastro."; return; }
   const f = cad.funcionario || {};
 
-  // período (usa seu endpoint existente)
-  const periodo = await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio: dateToBR_(parseInputDateLocal(dataInicioEl)), dataFim: dateToBR_(parseInputDateLocal(dataFimEl)) });
-  if(!periodo || periodo.status !== "ok"){ msg.textContent = periodo?.message || "Erro ao buscar período."; return; }
-  const registros = periodo.registros || {};
-
-  // monta intervalos
+  // ✅ PERÍODO (PONTOS)
   const ini = parseInputDateLocal(dataInicioEl);
   const fim = parseInputDateLocal(dataFimEl);
+
+  const periodo = await apiPost({
+    tipo:"getPeriodo",
+    usuario_login:u,
+    dataInicio: dateToBR_(ini),
+    dataFim: dateToBR_(fim)
+  });
+
+  if(!periodo || periodo.status !== "ok"){ msg.textContent = periodo?.message || "Erro ao buscar período."; return; }
+  const registros = periodo.registros || {};
 
   let somaTotalMin = 0;
   let somaCreditoMin = 0;
@@ -1140,15 +1179,14 @@ async function carregarFolha(){
     somaTotalMin += calc.totalMin;
     somaCreditoMin += (calc.creditoMin || 0);
 
-    // classifica crédito em 50% (normal) ou 100% (feriado/folga)
     const ddmm = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
     const ehFeriadoLista = feriados.includes(ddmm);
     const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
+
     if((ehFeriadoLista || folgaProgramada) && calc.totalMin > 0){
       he100_min += calc.totalMin;
-    }else{
+    } else {
       he50_min += (calc.creditoMin || 0);
-      // faltas só em dia normal (não feriado/folga)
       const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
       faltas_min += faltaDia;
     }
@@ -1156,7 +1194,7 @@ async function carregarFolha(){
     d.setDate(d.getDate()+1);
   }
 
-  // ======= dados cadastro =======
+  // ======= cadastro =======
   const salarioBase = parseNumeroBR(f.salario_base);
   const horasMensais = parseNumeroBR(f.horas_mensais) || 220;
 
@@ -1189,8 +1227,8 @@ async function carregarFolha(){
   const bruto = salarioBase + he50_val + he100_val + outrosProv;
   const inss = calcINSS2026(bruto);
 
-  const dedDep = depIR * 189.59;     // ⚠️ modelo – ajuste anual
-  const descSimpl = 607.20;          // ⚠️ modelo – ajuste anual
+  const dedDep = depIR * 189.59;
+  const descSimpl = 607.20;
   const dedLegais = inss + dedDep + pensao + prevCompl;
   const dedUsada = Math.max(dedLegais, descSimpl);
 
@@ -1244,4 +1282,3 @@ async function carregarFolha(){
 </script>
 </body>
 </html>
-
