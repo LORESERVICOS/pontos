@@ -349,7 +349,17 @@ function fmt(m){
   const mm = String(abs%60).padStart(2,"0");
   return `${h}:${mm}`;
 }
+function isFeriado_(dateObj){
+  const dd = String(dateObj.getDate()).padStart(2,"0");
+  const mm = String(dateObj.getMonth()+1).padStart(2,"0");
+  return feriados.includes(`${dd}/${mm}`);
+}
 
+function getEscalaDomingoMin_(u){
+  // domingo = 0
+  const escDom = (users[u]?.escalaSemanal?.[0]) || "FOLGA";
+  return cargaEscalaMin(escDom);
+}
 function formataHoraCelula(valor){
   if (!valor) return "";
   if (valor instanceof Date) {
@@ -985,9 +995,9 @@ async function gerarRelatorioMensal(){
              <th>Geo Saída</th>`;
   }
   html += `</tr>`;
-
-  let somaTotalMin = 0;
-  let somaCreditoMin = 0;
+let somaTotalMin = 0;        // total trabalhado (como já está hoje)
+let somaCreditoMin = 0;
+let somaPrevistoMin = 0;     // ✅ novo: total “que deve aparecer”
 
   let currentDate = new Date(inicio);
 
@@ -998,9 +1008,20 @@ async function gerarRelatorioMensal(){
     dataAtualRel = dBR;
 
     const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
+const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
+somaTotalMin += calc.totalMin;
+somaCreditoMin += (calc.creditoMin || 0);
+    const ehDomingo = (currentDate.getDay() === 0);
+const ehFeriado = isFeriado_(currentDate);
 
-    somaTotalMin += calc.totalMin;
-    somaCreditoMin += (calc.creditoMin || 0);
+// ✅ regra que você pediu:
+// - se for domingo OU feriado: somar carga do domingo
+// - senão: somar o total trabalhado do dia
+if(ehDomingo || ehFeriado){
+  somaPrevistoMin += getEscalaDomingoMin_(u);
+} else {
+  somaPrevistoMin += (calc.totalMin || 0);
+}
 
     const escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
 
@@ -1054,10 +1075,11 @@ async function gerarRelatorioMensal(){
   }
 
   html += `<tr>
-    <th colspan="6">TOTAL</th>
-    <th class="verde">${fmt(somaTotalMin)}</th>
-    <th></th>
-    <th class="verde">${fmt(somaCreditoMin)}</th>`;
+   html += `<tr>
+  <th colspan="6">TOTAL</th>
+  <th class="verde">${fmt(somaPrevistoMin)}</th>
+  <th></th>
+  <th class="verde">${fmt(somaCreditoMin)}</th>`;
 
   if(tipo==="comGeo"){
     html += `<th colspan="4"></th>`;
@@ -1832,6 +1854,7 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
 
 
 
