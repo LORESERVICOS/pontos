@@ -120,7 +120,7 @@
   </div>
 </div>
 
-<!-- MODAL CADASTRO FUNCIONARIO (ATUALIZADO COM TODOS OS INPUTS) -->
+<!-- MODAL CADASTRO FUNCIONARIO -->
 <div id="modalFuncionario" class="card hidden" style="max-width:560px">
   <h3>Cadastro / Edição de Funcionário</h3>
 
@@ -254,7 +254,7 @@
 
 <script>
 /************* CONFIG *************/
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
+const WEBAPP_URL = "COLE_AQUI_SUA_URL_DO_WEBAPP_EXEC";
 
 /************* ESTADO *************/
 let users = {};
@@ -440,7 +440,6 @@ async function gerarRelatorioMensal(){
   const periodo = await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio:iniBR, dataFim:fimBR });
   if(periodo.status !== "ok"){ alert(periodo.message||"Erro"); return; }
 
-  // só exibe resumo aqui (seu relatório completo pode ficar como estava)
   const regs = periodo.registros || {};
   let totalMin = 0;
   Object.keys(regs).forEach(d=>{
@@ -466,10 +465,6 @@ function parseNumeroBR(v){
   const s = String(v).trim().replace(/\./g,"").replace(",",".").replace(/[^\d.-]/g,"");
   const n = Number(s);
   return isNaN(n) ? 0 : n;
-}
-function simNao(v){
-  const s = String(v||"").trim().toUpperCase();
-  return (s==="SIM" || s==="S" || s==="TRUE" || s==="1");
 }
 function round2(n){ return Math.round((Number(n||0)+Number.EPSILON)*100)/100; }
 function moeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
@@ -505,20 +500,18 @@ async function carregarFolha(){
   const df = document.getElementById("dataFim").value || di;
   if(!di){ msg.textContent="Selecione data início."; return; }
 
-  // cadastro completo
   const cad = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
   if(cad.status !== "ok"){ msg.textContent = cad.message || "Erro cadastro"; return; }
   const f = cad.funcionario || {};
 
-  // período
   const ini = parseInputDateLocal(di);
   const fim = parseInputDateLocal(df);
   const iniBR = dateToBR_(ini);
   const fimBR = dateToBR_(fim);
+
   const periodo = await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio:iniBR, dataFim:fimBR });
   if(periodo.status !== "ok"){ msg.textContent=periodo.message||"Erro período"; return; }
 
-  // apuração simples: total trabalhado (considera entrada/saida)
   const regs = periodo.registros || {};
   let totalMin = 0;
   Object.keys(regs).forEach(d=>{
@@ -557,7 +550,7 @@ async function carregarFolha(){
   `;
 }
 
-/************* CADASTRO / EDIÇÃO (BUSCA + NÃO ENVIA VAZIOS) *************/
+/************* CADASTRO / EDIÇÃO *************/
 function limparModalFuncionario_(){
   const set = (id, v="") => (document.getElementById(id).value = v);
 
@@ -617,13 +610,12 @@ function preencherModalFuncionario_(f){
   set("novoOutrosProv", f.outros_proventos_padrao || "");
   set("novoOutrosDesc", f.outros_descontos_padrao || "");
 
-  const admISO = brToISODate_(f.data_admissao || "");
-  set("novoAdmissao", admISO);
+  set("novoAdmissao", brToISODate_(f.data_admissao || ""));
 
   const vt = String(f.vt_usa || "").trim().toLowerCase();
-  if(vt === "sim" || vt==="s" || vt==="true" || vt==="1") set("novoVTUsa","sim");
-  else if(vt === "nao" || vt==="não" || vt==="n" || vt==="false" || vt==="0") set("novoVTUsa","nao");
-  else set("novoVTUsa","");
+  if(vt === "sim" || vt==="s" || vt==="true" || vt==="1") document.getElementById("novoVTUsa").value = "sim";
+  else if(vt === "nao" || vt==="não" || vt==="n" || vt==="false" || vt==="0") document.getElementById("novoVTUsa").value = "nao";
+  else document.getElementById("novoVTUsa").value = "";
 
   set("escSeg", formataEscala(f.escSeg || "08:00"));
   set("escTer", formataEscala(f.escTer || f.escSeg || "08:00"));
@@ -639,7 +631,7 @@ async function abrirCadastroFuncionario(){
   document.getElementById("modalFuncionario").classList.remove("hidden");
 
   const u = document.getElementById("funcionarioSelect")?.value || "";
-  if(!u) return; // novo cadastro
+  if(!u) return;
 
   const res = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
   if(res?.status === "ok" && res.funcionario){
@@ -689,7 +681,6 @@ async function salvarFuncionario(){
 
     role: "operacional",
 
-    // escala sempre envia
     escSeg: document.getElementById("escSeg").value.trim(),
     escTer: document.getElementById("escTer").value.trim(),
     escQua: document.getElementById("escQua").value.trim(),
@@ -704,7 +695,6 @@ async function salvarFuncionario(){
     if(vv) raw[k] = vv;
   });
 
-  // ✅ remove vazios (não apaga nada na planilha)
   const funcionario = montarObjetoSemVazios_(raw);
 
   const res = await apiPost({ tipo:"salvarUsuario", funcionario });
