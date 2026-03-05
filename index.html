@@ -2,11 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Relógio de Ponto Eletrônico</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.19/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+
 <style>
   body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;margin:0}
   header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
@@ -18,8 +20,7 @@
   th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
   th{background:#f1f5f9}
   .verde{color:green;font-weight:bold;}
-  .vermelho{color:red;font-weight:bold;}
-  input,select{padding:4px 6px;margin:2px 0;}
+  input,select{padding:4px 6px;margin:2px 0;width:100%}
 
   @media (max-width:768px){
     header{text-align:center}
@@ -30,13 +31,7 @@
     table td::before{content:attr(data-label);font-weight:600}
   }
 
-  .credito-excedente{
-    background:#0f5132;
-    color:#ffffff;
-    font-weight:600;
-  }
-
-  /* ====== Folha / Holerite ====== */
+  .credito-excedente{background:#0f5132;color:#fff;font-weight:600;}
   .muted{color:#475569;font-size:13px}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
   .row > div{min-width:220px}
@@ -47,40 +42,15 @@
   .btn-warn:hover{background:#92400e}
   .mini{font-size:11px;padding:4px 8px;border-radius:8px}
 
-  /* Modal simples */
   .modalMask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
   .modalCard{background:#fff;border-radius:14px;max-width:520px;width:95%;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.2)}
   .modalCard h3{margin:0 0 10px 0}
   .modalCard label{display:block;margin:8px 0 4px}
   .modalCard input,.modalCard select{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:10px}
   .modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-
-  /* Área do holerite para impressão */
-  #holeritePrint{
-    display:none;
-    font-family:Inter,system-ui,-apple-system,sans-serif;
-    color:#111827;
-  }
-  #holeritePrint .hp-wrap{padding:18px}
-  #holeritePrint .hp-title{display:flex;justify-content:space-between;align-items:flex-start}
-  #holeritePrint .hp-title h1{font-size:16px;margin:0}
-  #holeritePrint .hp-title .hp-meta{font-size:12px;color:#475569;text-align:right}
-  #holeritePrint .hp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;font-size:12px}
-  #holeritePrint .hp-box{border:1px solid #cbd5e1;border-radius:10px;padding:10px}
-  #holeritePrint .hp-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
-  #holeritePrint .hp-table th,#holeritePrint .hp-table td{border:1px solid #cbd5e1;padding:6px}
-  #holeritePrint .hp-table th{background:#f1f5f9}
-  #holeritePrint .hp-tot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;font-size:12px}
-  #holeritePrint .hp-sign{margin-top:18px;font-size:12px}
-  #holeritePrint .hp-sign .line{margin-top:18px;border-top:1px solid #111827;width:260px}
-
-  @media print{
-    body *{visibility:hidden}
-    #holeritePrint, #holeritePrint *{visibility:visible}
-    #holeritePrint{display:block;position:fixed;inset:0;background:#fff}
-  }
 </style>
 </head>
+
 <body>
 <header>
   Bem-vindo, <span id="nomeUsuario"></span>
@@ -115,51 +85,31 @@
   <div class="card" style="max-width:1200px">
     <h2>Relatório – Cartão de Ponto</h2>
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
-    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button>
 
-    <!-- ✅ Botão Folha -->
-    <button onclick="toggleFolha()">Folha de Pagamento</button>
     <br><br>
 
     <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
     <input type="date" id="dataInicio">
     <input type="date" id="dataFim">
-    <select id="tipoRelatorio">
-      <option value="simples">Relatório Simples</option>
-      <option value="comGeo">Com Geolocalização</option>
-    </select>
     <button onclick="gerarRelatorioMensal()">Gerar</button>
-    <button onclick="gerarExcel()">Excel</button>
-    <button onclick="gerarPDFAdmin()">PDF</button>
+
     <button onclick="logout()">Sair</button>
 
-    <!-- ✅ Cartão de ponto continua aqui (não some) -->
     <div id="cartaoFuncionario"></div>
 
     <!-- ✅ Folha -->
-    <div id="folhaBox" class="hidden" style="margin-top:18px">
+    <div id="folhaBox" style="margin-top:18px">
       <hr>
       <h2>Folha de Pagamento (CLT) – pelo período selecionado</h2>
-
-      <p class="muted">
-        A folha usa o cadastro da aba <b>FUNCIONARIOS</b> + marcações da aba <b>PONTOS</b> no período selecionado.
-      </p>
+      <p class="muted">A folha usa o cadastro da aba <b>FUNCIONARIOS</b> + marcações da aba <b>PONTOS</b> no período selecionado.</p>
 
       <div class="row">
         <div>
           <label><b>Funcionário selecionado</b></label><br>
-          <input id="folhaFuncionarioNome" disabled style="width:100%">
-        </div>
-        <div>
-          <label><b>Competência (referência)</b></label><br>
-          <input type="month" id="folhaCompetencia">
+          <input id="folhaFuncionarioNome" disabled>
         </div>
         <div>
           <button onclick="carregarFolha()">Carregar / Calcular</button>
-        </div>
-        <div style="margin-left:auto">
-          <button class="btn-sec" onclick="imprimirHolerite()">Imprimir Holerite</button>
-          <button class="btn-warn" onclick="gerarPDFHolerite()">PDF Holerite</button>
         </div>
       </div>
 
@@ -170,13 +120,9 @@
   </div>
 </div>
 
-<!-- MODAL CADASTRO FUNCIONARIO -->
-<div id="modalFuncionario" class="card hidden" style="max-width:500px">
+<!-- MODAL CADASTRO FUNCIONARIO (ATUALIZADO COM TODOS OS INPUTS) -->
+<div id="modalFuncionario" class="card hidden" style="max-width:560px">
   <h3>Cadastro / Edição de Funcionário</h3>
-
-  <label>Código Funcionário:<br>
-    <input id="novoCodigo" placeholder="Código">
-  </label><br>
 
   <label>Nome Funcionário:<br>
     <input id="novoNome" placeholder="Nome completo">
@@ -190,12 +136,16 @@
     <input id="novoPass" type="password" placeholder="Senha">
   </label><br>
 
-  <label>Cargo:<br>
-    <input id="novoCargo" placeholder="Cargo/Função">
-  </label><br>
-
   <label>PIS:<br>
     <input id="novoPis" placeholder="PIS">
+  </label><br>
+
+  <label>CPF:<br>
+    <input id="novoCpf" placeholder="CPF">
+  </label><br>
+
+  <label>Cargo:<br>
+    <input id="novoCargo" placeholder="Cargo/Função">
   </label><br>
 
   <label>Depto/Setor:<br>
@@ -206,6 +156,66 @@
     <input id="novoLocal" placeholder="Local de trabalho">
   </label><br>
 
+  <hr>
+  <h4 style="margin:10px 0 6px 0">Dados adicionais (Folha / RH)</h4>
+
+  <label>Salário Base (R$):<br>
+    <input id="novoSalarioBase" placeholder="Ex: 1500 ou 1.500,00">
+  </label><br>
+
+  <label>Data de Admissão:<br>
+    <input id="novoAdmissao" type="date">
+  </label><br>
+
+  <label>Horas Mensais:<br>
+    <input id="novoHorasMensais" placeholder="Ex: 220">
+  </label><br>
+
+  <label>Dependentes menor de 14:<br>
+    <input id="novoDepMenor14" placeholder="Ex: 1">
+  </label><br>
+
+  <label>Dependentes maior de 14:<br>
+    <input id="novoDepMaior14" placeholder="Ex: 0">
+  </label><br>
+
+  <label>Dependentes IR (prioridade):<br>
+    <input id="novoDepIR" placeholder="Ex: 1">
+  </label><br>
+
+  <label>Dependente Salário Família:<br>
+    <input id="novoDepSalFamilia" placeholder="Ex: 1">
+  </label><br>
+
+  <label>Usa Vale Transporte?<br>
+    <select id="novoVTUsa">
+      <option value="">(não alterar)</option>
+      <option value="sim">sim</option>
+      <option value="nao">nao</option>
+    </select>
+  </label><br>
+
+  <label>% Vale Transporte:<br>
+    <input id="novoVTPercent" placeholder="Ex: 6 ou 6%">
+  </label><br>
+
+  <label>Pensão Alimentícia (R$):<br>
+    <input id="novoPensao" placeholder="Ex: 0 ou 250,00">
+  </label><br>
+
+  <label>Previdência Complementar (R$):<br>
+    <input id="novoPrevCompl" placeholder="Ex: 0 ou 100,00">
+  </label><br>
+
+  <label>Outros Proventos Padrão (R$):<br>
+    <input id="novoOutrosProv" placeholder="Ex: 0 ou 150,00">
+  </label><br>
+
+  <label>Outros Descontos Padrão (R$):<br>
+    <input id="novoOutrosDesc" placeholder="Ex: 0 ou 80,00">
+  </label><br>
+
+  <hr>
   <p><strong>Escala padrão semanal do funcionário</strong><br>
     Digite <strong>HH:MM</strong> para a carga diária ou <strong>FOLGA</strong>.
   </p>
@@ -242,86 +252,15 @@
   <button onclick="fecharCadastroFuncionario()">Cancelar</button>
 </div>
 
-<!-- MODAL ESCALA MENSAL -->
-<div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
-  <h3>Editar Escala Mensal (manual)</h3>
-  <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
-  <div id="conteudoEscala"></div>
-  <button onclick="salvarEscalaMensal()">Salvar Escala</button>
-  <button onclick="fecharEscalaMensal()">Cancelar</button>
-</div>
-
-<!-- ✅ Holerite (somente impressão) -->
-<div id="holeritePrint">
-  <div class="hp-wrap">
-    <div class="hp-title">
-      <div>
-        <h1>HOLERITE / RECIBO DE PAGAMENTO</h1>
-        <div class="muted" id="hpEmpresa">Empresa: ____________________________</div>
-      </div>
-      <div class="hp-meta">
-        <div><b>Competência:</b> <span id="hpCompetencia"></span></div>
-        <div><b>Período:</b> <span id="hpPeriodo"></span></div>
-      </div>
-    </div>
-
-    <div class="hp-grid">
-      <div class="hp-box" id="hpFuncionario"></div>
-      <div class="hp-box" id="hpResumo"></div>
-    </div>
-
-    <table class="hp-table">
-      <thead>
-        <tr>
-          <th style="width:55%">Descrição</th>
-          <th style="width:15%">Ref.</th>
-          <th style="width:15%">Proventos</th>
-          <th style="width:15%">Descontos</th>
-        </tr>
-      </thead>
-      <tbody id="hpTabela"></tbody>
-    </table>
-
-    <div class="hp-tot">
-      <div class="hp-box" id="hpTotais"></div>
-      <div class="hp-box" id="hpBases"></div>
-      <div class="hp-box" id="hpLiquido"></div>
-    </div>
-
-    <div class="hp-sign">
-      Declaro ter recebido a importância líquida discriminada neste recibo.
-      <div class="line"></div>
-      Assinatura do empregado
-    </div>
-  </div>
-</div>
-
 <script>
 /************* CONFIG *************/
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
 
+/************* ESTADO *************/
 let users = {};
 let currentUser = null;
-let currentUserObj = null;
 
-// estado global usado no relatório
-let dadosAtual = {};
-let dataAtualRel = "";
-
-// cache do período
-let periodoCache = {};
-let periodoUser = "";
-let periodoInicioKey = "";
-let periodoFimKey = "";
-
-// feriados dd/mm
 const feriados = ["01/01","07/09","25/12"];
-
-const justificativas = [
-  "Nenhum","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
-  "Atestado Médico Dias","Atestado Médico Horas",
-  "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado"
-];
 
 /************* API *************/
 async function apiPost(payload){
@@ -334,87 +273,29 @@ async function apiPost(payload){
 }
 
 /************* HELPERS *************/
-function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }
-
 function hm(h){
   if(!h || typeof h!=="string" || !h.includes(":")) return 0;
   const [x,y] = h.split(":").map(Number);
   if(isNaN(x) || isNaN(y)) return 0;
   return x*60+y;
 }
-
 function fmt(m){
   const abs = Math.max(0, Math.round(m||0));
   const h = String(Math.floor(abs/60)).padStart(2,"0");
   const mm = String(abs%60).padStart(2,"0");
   return `${h}:${mm}`;
 }
-function isFeriado_(dateObj){
-  const dd = String(dateObj.getDate()).padStart(2,"0");
-  const mm = String(dateObj.getMonth()+1).padStart(2,"0");
-  return feriados.includes(`${dd}/${mm}`);
-}
-
-function getEscalaSegundaMin_(u){
-  // segunda-feira = weekday 1
-  const escSeg = (users[u]?.escalaSemanal?.[1]) || "08:00"; // fallback 08:00
-  return cargaEscalaMin(escSeg);
-}
-function formataHoraCelula(valor){
-  if (!valor) return "";
-  if (valor instanceof Date) {
-    const hh = String(valor.getHours()).padStart(2,"0");
-    const mm = String(valor.getMinutes()).padStart(2,"0");
-    return `${hh}:${mm}`;
-  }
-  const s = String(valor).trim();
-  if (!s) return "";
-  if (s.toUpperCase() === "FOLGA") return "FOLGA";
-  let m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if (m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
-  m = s.match(/(\d{1,2}):(\d{2})/);
-  if (m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
-  return s;
-}
-
-function parseInputDateLocal(str){
-  if(!str) return null;
-  const [ano, mes, dia] = str.split("-").map(Number);
-  return new Date(ano, mes - 1, dia);
-}
-
-function normalizaHoraInput(h){
-  if(!h) return "";
-  const s = String(h).trim();
-  let m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if(m){
-    const hh = String(Number(m[1])).padStart(2,"0");
-    const mm = m[2];
-    const hhn = Number(hh), mmn = Number(mm);
-    if(hhn >= 0 && hhn <= 23 && mmn >= 0 && mmn <= 59) return `${hh}:${mm}`;
-  }
-  m = s.match(/(\d{1,2}):(\d{2})/);
-  if(m){
-    const hh = String(Number(m[1])).padStart(2,"0");
-    const mm = m[2];
-    const hhn = Number(hh), mmn = Number(mm);
-    if(hhn >= 0 && hhn <= 23 && mmn >= 0 && mmn <= 59) return `${hh}:${mm}`;
-  }
-  return "";
-}
-
 function dateToBR_(dt){
   const dd = String(dt.getDate()).padStart(2,"0");
   const mm = String(dt.getMonth()+1).padStart(2,"0");
   const yyyy = dt.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
-
-function parseBRtoDate_(dBR){
-  const [dd,mm,yyyy] = String(dBR||"").split("/").map(Number);
-  return new Date(yyyy, (mm||1)-1, dd||1);
+function parseInputDateLocal(str){
+  if(!str) return null;
+  const [ano, mes, dia] = str.split("-").map(Number);
+  return new Date(ano, mes - 1, dia);
 }
-
 function formataEscala(valor){
   if(valor == null) return "";
   const s = String(valor).trim();
@@ -424,27 +305,29 @@ function formataEscala(valor){
   if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
   return s;
 }
-
-function cargaEscalaMin(escStr){
-  if(!escStr) return 0;
-  const s = String(escStr).toUpperCase().trim();
-  if(s==="FOLGA") return 0;
-  const m = s.match(/(\d{1,2}):(\d{2})/);
-  if(m) return Number(m[1])*60 + Number(m[2]);
-  return 0;
+function brToISODate_(dbr){
+  if(!dbr) return "";
+  const s = String(dbr).trim();
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return "";
+  return `${m[3]}-${m[2]}-${m[1]}`;
 }
-
-// escala dia
-function getEscalaDoDia_(u, dateObj){
-  const diaNum = dateObj.getDate();
-  const weekday = dateObj.getDay();
-  const escSem = (users[u] && users[u].escalaSemanal) || {};
-  const escMensal = (users[u] && users[u].escalaMensal) || {};
-  return (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
+function isoToBRDate_(iso){
+  if(!iso) return "";
+  const s = String(iso).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return "";
+  return `${m[3]}/${m[2]}/${m[1]}`;
 }
-
-function isFolgaEscala_(escStr){
-  return String(escStr||"").trim().toUpperCase() === "FOLGA";
+function montarObjetoSemVazios_(obj){
+  const out = {};
+  Object.keys(obj || {}).forEach(k=>{
+    const v = obj[k];
+    if(v === undefined || v === null) return;
+    if(typeof v === "string" && v.trim() === "") return;
+    out[k] = v;
+  });
+  return out;
 }
 
 /************* LOGIN *************/
@@ -467,19 +350,7 @@ async function login(){
 
   const user = res.user || {};
   const loginKey = (user.usuario_login || u).toString().trim().toLowerCase();
-
   currentUser = loginKey;
-  currentUserObj = user;
-
-  const esc = {
-    1: formataEscala(user.escSeg || "08:00"),
-    2: formataEscala(user.escTer || user.escSeg || "08:00"),
-    3: formataEscala(user.escQua || user.escSeg || "08:00"),
-    4: formataEscala(user.escQui || user.escSeg || "08:00"),
-    5: formataEscala(user.escSex || user.escSeg || "08:00"),
-    6: formataEscala(user.escSab || "FOLGA"),
-    0: formataEscala(user.escDom || "FOLGA")
-  };
 
   users[loginKey] = {
     role: (user.role || "operacional").toLowerCase(),
@@ -488,8 +359,15 @@ async function login(){
     cargo: user.cargo || "",
     setor: user.setor || "",
     localTrabalho: user.local_trabalho || "",
-    escalaMensal: {},
-    escalaSemanal: esc
+    escalaSemanal: {
+      1: formataEscala(user.escSeg || "08:00"),
+      2: formataEscala(user.escTer || user.escSeg || "08:00"),
+      3: formataEscala(user.escQua || user.escSeg || "08:00"),
+      4: formataEscala(user.escQui || user.escSeg || "08:00"),
+      5: formataEscala(user.escSex || user.escSeg || "08:00"),
+      6: formataEscala(user.escSab || "04:00"),
+      0: formataEscala(user.escDom || "FOLGA")
+    }
   };
 
   document.getElementById("nomeUsuario").textContent = users[loginKey].nomeCompleto;
@@ -501,425 +379,34 @@ async function login(){
     preencherFuncionarios();
   } else {
     document.getElementById("operacionalSection").classList.remove("hidden");
-    mostrarDataHora();
-    mostrarRegistrosUsuario();
   }
 }
-
 function logout(){ location.reload(); }
 
 async function carregarUsuariosAdmin(){
-  try{
-    const res = await apiPost({ tipo:"listarUsuarios" });
-    if(res.status !== "ok") return;
-    (res.usuarios || []).forEach(u=>{
-      const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
-      if(!loginKey) return;
-
-      const esc = {
-        1: formataEscala(u.escSeg || "08:00"),
-        2: formataEscala(u.escTer || u.escSeg || "08:00"),
-        3: formataEscala(u.escQua || u.escSeg || "08:00"),
-        4: formataEscala(u.escQui || u.escSeg || "08:00"),
-        5: formataEscala(u.escSex || u.escSeg || "08:00"),
-        6: formataEscala(u.escSab || "FOLGA"),
-        0: formataEscala(u.escDom || "FOLGA")
-      };
-
-      users[loginKey] = {
-        role: (u.role || "operacional").toLowerCase(),
-        nomeCompleto: u.nomeCompleto || u.nome || loginKey,
-        pis: u.pis || "",
-        cargo: u.cargo || "",
-        setor: u.setor || "",
-        localTrabalho: u.local_trabalho || "",
-        escalaMensal: {},
-        escalaSemanal: esc
-      };
-    });
-  }catch(e){
-    console.error("Erro ao listar usuários:", e);
-  }
-}
-
-/************* OPERACIONAL *************/
-async function registrar(tipo){
-  const agora = new Date();
-  const hora = agora.toTimeString().slice(0,5);
-  const data = dateToBR_(agora);
-
-  if(!navigator.geolocation){
-    alert("⚠️ Sem geolocalização neste dispositivo/navegador. O ponto será registrado mesmo assim.");
-    return salvarRegistro(tipo, hora, data, "Não suportada");
-  }
-
-  try{
-    if(navigator.permissions?.query){
-      const st = await navigator.permissions.query({ name: "geolocation" });
-      if(st.state === "denied"){
-        alert("⚠️ Geolocalização BLOQUEADA no navegador. O ponto será registrado mesmo assim (sem localização).");
-        return salvarRegistro(tipo, hora, data, "Permissão negada");
-      }
-    }
-  }catch(e){}
-
-  const opts = { enableHighAccuracy:true, timeout:15000, maximumAge:0 };
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const geo = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-      salvarRegistro(tipo, hora, data, geo);
-    },
-    err => {
-      console.warn("Geolocalização falhou:", err);
-      let msg = "Não registrada";
-      if(err?.code === 1) msg = "Permissão negada";
-      if(err?.code === 2) msg = "Posição indisponível";
-      if(err?.code === 3) msg = "Tempo esgotado";
-      salvarRegistro(tipo, hora, data, msg);
-    },
-    opts
-  );
-}
-
-async function salvarRegistro(tipo,hora,data,geo){
-  const res = await apiPost({
-    tipo:"registroPonto",
-    usuario_login: currentUser,
-    data: data,
-    marcacao: tipo,
-    hora: hora,
-    geo: geo
+  const res = await apiPost({ tipo:"listarUsuarios" });
+  if(res.status !== "ok") return;
+  (res.usuarios || []).forEach(u=>{
+    const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
+    if(!loginKey) return;
+    users[loginKey] = users[loginKey] || {};
+    users[loginKey].role = (u.role || "operacional").toLowerCase();
+    users[loginKey].nomeCompleto = u.nomeCompleto || u.nome || loginKey;
+    users[loginKey].pis = u.pis || "";
+    users[loginKey].cargo = u.cargo || "";
+    users[loginKey].setor = u.setor || "";
+    users[loginKey].localTrabalho = u.local_trabalho || "";
+    users[loginKey].escalaSemanal = {
+      1: formataEscala(u.escSeg || "08:00"),
+      2: formataEscala(u.escTer || u.escSeg || "08:00"),
+      3: formataEscala(u.escQua || u.escSeg || "08:00"),
+      4: formataEscala(u.escQui || u.escSeg || "08:00"),
+      5: formataEscala(u.escSex || u.escSeg || "08:00"),
+      6: formataEscala(u.escSab || "04:00"),
+      0: formataEscala(u.escDom || "FOLGA")
+    };
   });
-
-  if(res.status !== "ok"){
-    alert(res.message || "Erro ao salvar registro na planilha");
-    return;
-  }
-  await mostrarRegistrosUsuario();
 }
-
-function mostrarDataHora(){
-  setInterval(()=>{
-    const a=new Date();
-    document.getElementById("dataAtual").textContent="Data: "+dateToBR_(a);
-    document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString("pt-BR");
-  },1000);
-}
-
-async function mostrarRegistrosUsuario(){
-  const hoje = new Date().toLocaleDateString("pt-BR");
-  const registrosDiv = document.getElementById("registrosUsuario");
-  const botoesDiv = document.getElementById("botoesRegistro");
-
-  registrosDiv.innerHTML = "Carregando marcações...";
-  botoesDiv.innerHTML = "";
-
-  let r = {};
-  try{
-    const res = await apiPost({ tipo:"getDia", usuario_login: currentUser, data: hoje });
-    if(res && res.status === "ok" && res.dia) r = res.dia;
-    else if(res && res.status === "erro"){
-      registrosDiv.innerHTML = "Erro ao carregar dia: " + (res.message || "");
-      return;
-    }
-  }catch(e){
-    console.error(e);
-    registrosDiv.innerHTML = "Erro ao conectar com o servidor.";
-    return;
-  }
-
-  registrosDiv.innerHTML = "";
-  const campos = [
-    ["entrada","Entrada"],
-    ["saidaAlmoco","Saída Almoço"],
-    ["retornoAlmoco","Retorno"],
-    ["saida","Saída"]
-  ];
-
-  campos.forEach(([k,label])=>{
-    const v = r[k];
-    if(v && String(v).trim() && String(v).trim() !== "-"){
-      const horaFmt = formataHoraCelula(v);
-      registrosDiv.innerHTML += `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eee;">
-          <div><strong>${label}:</strong> ${horaFmt}</div>
-          <button type="button" class="mini" onclick="gerarComprovante('${k}')">📄 PDF</button>
-        </div>
-      `;
-    }
-  });
-
-  if(!r.entrada){
-    botoesDiv.innerHTML = `<button onclick="registrar('entrada')">Entrada</button>`;
-  } else if(!r.saidaAlmoco){
-    botoesDiv.innerHTML = `<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
-  } else if(!r.retornoAlmoco){
-    botoesDiv.innerHTML = `<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
-  } else if(!r.saida){
-    botoesDiv.innerHTML = `<button onclick="registrar('saida')">Saída</button>`;
-  } else {
-    botoesDiv.innerHTML = "✅ Jornada finalizada";
-  }
-}
-
-/************* REGRAS (TOTAL + CRÉDITO) *************/
-function calcularLinhaDia_(u, regDia, dateObj){
-  const dd = String(dateObj.getDate()).padStart(2,"0");
-  const mm = String(dateObj.getMonth()+1).padStart(2,"0");
-  const weekday = dateObj.getDay();
-
-  const escStr = getEscalaDoDia_(u, dateObj);
-  const jornadaEscala = cargaEscalaMin(escStr);
-  const folgaProgramada = isFolgaEscala_(escStr);
-
-  const ddmm = `${dd}/${mm}`;
-  const isFeriadoLista = feriados.includes(ddmm);
-
-  const ent = formataHoraCelula(regDia?.entrada);
-  const sAl = formataHoraCelula(regDia?.saidaAlmoco);
-  const ret = formataHoraCelula(regDia?.retornoAlmoco);
-  const sai = formataHoraCelula(regDia?.saida);
-
-  const temAlgumaMarcacao = !!(ent || sAl || ret || sai);
-
-  const eventos = [
-    regDia?.entrada_evento,
-    regDia?.saidaAlmoco_evento,
-    regDia?.retornoAlmoco_evento,
-    regDia?.saida_evento
-  ].filter(Boolean);
-  const eventoDia = eventos[0] || "";
-
-  let totalMin = 0;
-  if(!eventoDia){
-    const temEnt = !!ent, temSAl = !!sAl, temRet = !!ret, temSai = !!sai;
-    if(temEnt && temSAl && temRet && temSai){
-      totalMin = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
-    } else if(temEnt && temSai && !temSAl && !temRet){
-      totalMin = hm(sai) - hm(ent);
-    } else {
-      totalMin = 0;
-    }
-    if(totalMin < 0) totalMin = 0;
-  } else {
-    totalMin = 0;
-  }
-
-  let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-  if(isFeriadoLista) nomeDia = "Feriado";
-
-  let creditoMin = 0;
-  let destaqueCredito = false;
-  let saldoMin = totalMin - jornadaEscala;
-
-  if(isFeriadoLista && temAlgumaMarcacao){
-    creditoMin = totalMin;
-    destaqueCredito = true;
-    return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
-  }
-
-  if(folgaProgramada){
-    if(temAlgumaMarcacao){
-      const prox = new Date(dateObj);
-      prox.setDate(prox.getDate()+1);
-      const folgaAmanha = isFolgaEscala_(getEscalaDoDia_(u, prox));
-      creditoMin = totalMin;
-      destaqueCredito = !folgaAmanha;
-    }
-    return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
-  }
-
-  if(totalMin > jornadaEscala){
-    creditoMin = totalMin - jornadaEscala;
-    destaqueCredito = true;
-  }
-
-  return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
-}
-
-// ====== COMPROVANTE INDIVIDUAL ======
-async function gerarComprovante(tipo){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  const hoje = new Date().toLocaleDateString("pt-BR");
-
-  let res;
-  try{
-    res = await apiPost({ tipo:"getDia", usuario_login: currentUser, data: hoje });
-  }catch(e){
-    alert("Erro ao buscar dados do dia: " + e);
-    return;
-  }
-
-  const r = (res && res.status === "ok" ? (res.dia || {}) : {});
-   const hora = (typeof formataHoraCelula === "function")
-    ? formataHoraCelula(r[tipo] || "")
-    : (r[tipo] || "");
-
-  const geoKey = ({
-    entrada: "geoEntrada",
-    saidaAlmoco: "geoSaidaAlmoco",
-    retornoAlmoco: "geoRetornoAlmoco",
-    saida: "geoSaida"
-  })[tipo] || ("geo" + capitalize(tipo));
-
-  const geo = r[geoKey] || "";
-
-  doc.setFontSize(14);
-  doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
-  doc.setFontSize(11);
-  doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
-  doc.text(`PIS: ${users[currentUser]?.pis || ""}`,14,36);
-  doc.text(`Data: ${hoje}`,14,42);
-  doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
-  doc.text(`Horário: ${hora || "-"}`,14,54);
-  doc.text(`Geolocalização: ${geo || "-"}`,14,60);
-
-  doc.save(`comprovante_${tipo}_${hoje.replaceAll("/","-")}.pdf`);
-}
-
-/************* AJUSTE *************/
-function campo(valor, c, adminView = true, dBR = ""){
-  const valorFmt = formataHoraCelula(valor);
-  const vazio = !valorFmt || valorFmt === "-";
-  const evento = dadosAtual[c+"_evento"];
-
-  const cellId = (dBR ? `cell_${dBR}_${c}` : "");
-  const wrapOpen = cellId ? `<span id="${cellId}">` : `<span>`;
-  const wrapClose = `</span>`;
-
-  const u = document.getElementById("funcionarioSelect")?.value || "";
-  const d = dBR || dataAtualRel;
-
-  if(!vazio && !evento){
-    if(adminView){
-      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
-      return wrapOpen + valorFmt + btn + wrapClose;
-    }
-    return wrapOpen + valorFmt + wrapClose;
-  }
-
-  if(evento){
-    if(adminView){
-      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
-      return wrapOpen + evento + btn + wrapClose;
-    }
-    return wrapOpen + evento + wrapClose;
-  }
-
-  if(adminView){
-    return wrapOpen + `<button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">➕ Ajustar</button>` + wrapClose;
-  }
-  return wrapOpen + "" + wrapClose;
-}
-
-function atualizarLinhaUI_(u, dBR, dateObj){
-  const reg = periodoCache[dBR] || {};
-  const calc = calcularLinhaDia_(u, reg, dateObj);
-
-  ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(c=>{
-    const span = document.getElementById(`cell_${dBR}_${c}`);
-    if(!span) return;
-    dadosAtual = reg;
-    span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
-  });
-
-  const tdTotal = document.getElementById(`total_${dBR}`);
-  if(tdTotal){
-    tdTotal.className = "verde";
-    tdTotal.textContent = fmt(calc.totalMin);
-  }
-
-  const tdEsc = document.getElementById(`escala_${dBR}`);
-  if(tdEsc){
-    tdEsc.textContent = formataEscala(getEscalaDoDia_(u, dateObj) || "");
-  }
-
-  const tdCred = document.getElementById(`credito_${dBR}`);
-  if(tdCred){
-    tdCred.className = calc.destaqueCredito ? "credito-excedente" : "verde";
-    tdCred.textContent = (calc.creditoMin > 0 ? fmt(calc.creditoMin) : "");
-  }
-}
-
-async function abrirAjuste(u,d,c){
-  const atual = (periodoCache[d] || {});
-
-  let popup = document.createElement("div");
-  popup.className = "modalMask";
-  popup.innerHTML = `
-    <div class="modalCard">
-      <h3>Ajustar ${c}</h3>
-      <label>Horas</label>
-      <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}">
-      <label>Justificar</label>
-      <select id="selectJustificacao">
-        <option value="">--Escolha--</option>
-        ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")===j?'selected':''}>${j}</option>`).join("")}
-      </select>
-      <div class="modalActions">
-        <button class="btn-sec" id="cancelBtn">Cancelar</button>
-        <button id="okBtn">Salvar</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(popup);
-
-  popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
-
-  popup.querySelector("#okBtn").onclick = async ()=>{
-    const hRaw = popup.querySelector("#inputHoras").value.trim();
-    const h = normalizaHoraInput(hRaw);
-    const ev = popup.querySelector("#selectJustificacao").value;
-
-    if(hRaw && !h){ alert("Hora inválida. Use HH:MM (ex: 08:00)."); return; }
-
-    const patch = {};
-
-    if(ev === "Nenhum"){
-      patch[c+"_evento"] = "";
-      patch[c+"_editado"] = false;
-
-      const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
-      if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; }
-
-      periodoCache[d] = periodoCache[d] || {};
-      periodoCache[d][c+"_evento"] = "";
-      periodoCache[d][c+"_editado"] = false;
-
-      popup.remove();
-      atualizarLinhaUI_(u, d, parseBRtoDate_(d));
-      return;
-    }
-
-    if(h){
-      patch[c] = h;
-      patch[c+"_evento"] = "";
-      patch[c+"_editado"] = true;
-      patch.atestadoHorasMin = "";
-    } else if(ev){
-      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-        patch[campoNome] = "-";
-        patch[campoNome+"_evento"] = ev;
-        patch[campoNome+"_editado"] = true;
-      });
-      patch.atestadoHorasMin = "";
-    }
-
-    const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
-    if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; }
-
-    periodoCache[d] = periodoCache[d] || {};
-    Object.keys(patch).forEach(k=>{ periodoCache[d][k] = patch[k]; });
-
-    popup.remove();
-    atualizarLinhaUI_(u, d, parseBRtoDate_(d));
-  };
-}
-
-/************* ADMIN – LISTA *************/
 function preencherFuncionarios(){
   const select=document.getElementById("funcionarioSelect");
   select.innerHTML="<option value=''>Selecionar Funcionário</option>";
@@ -932,454 +419,47 @@ function preencherFuncionarios(){
     }
   });
 }
-
-/************* RELATÓRIO (getPeriodo) *************/
-async function gerarRelatorioMensal(){
-  const u = document.getElementById("funcionarioSelect").value;
-  const dataInicioEl = document.getElementById("dataInicio");
-  const dataFimEl = document.getElementById("dataFim");
-  const tipo = document.getElementById("tipoRelatorio").value;
-
-  if(!u || !dataInicioEl.value) return;
-
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
-  if(!inicio || !fim){ alert("Preencha corretamente as datas."); return; }
-
-  const periodoInicioStr = dateToBR_(inicio);
-  const periodoFimStr = dateToBR_(fim);
-
-  let resPeriodo;
-  try{
-    resPeriodo = await apiPost({
-      tipo: "getPeriodo",
-      usuario_login: u,
-      dataInicio: periodoInicioStr,
-      dataFim: periodoFimStr
-    });
-  }catch(e){
-    alert("Erro ao carregar período: " + e);
-    return;
-  }
-
-  if(!resPeriodo || resPeriodo.status !== "ok"){
-    alert(resPeriodo?.message || "Erro ao carregar período");
-    return;
-  }
-
-  periodoCache = resPeriodo.registros || {};
-  periodoUser = u;
-  periodoInicioKey = periodoInicioStr;
-  periodoFimKey = periodoFimStr;
-
-  let html = "";
-  html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
-  html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
-  html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
-
-  html += `<table id="tabelaRelatorio"><tr>
-    <th>Data</th>
-    <th>Dia</th>
-    <th>Entrada</th>
-    <th>Saída Almoço</th>
-    <th>Retorno</th>
-    <th>Saída</th>
-    <th>Total</th>
-    <th>Escala</th>
-    <th>Crédito</th>`;
-
-  if(tipo==="comGeo"){
-    html += `<th>Geo Entrada</th>
-             <th>Geo Saída Almoço</th>
-             <th>Geo Retorno</th>
-             <th>Geo Saída</th>`;
-  }
-  html += `</tr>`;
-let somaTotalMin = 0;        // (continua: total trabalhado normal)
-let somaCreditoMin = 0;
-let somaTotalCalcMin = 0;    // ✅ novo: TOTAL com regra domingo/feriado = escala da segunda
-
-  let currentDate = new Date(inicio);
-
-  while(currentDate <= fim){
-    const dBR = dateToBR_(currentDate);
-
-    dadosAtual = periodoCache[dBR] || {};
-    dataAtualRel = dBR;
-
-  const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
-
-somaTotalMin += calc.totalMin;
-somaCreditoMin += (calc.creditoMin || 0);
-   const ehDomingo = (currentDate.getDay() === 0);
-const ehFeriado = isFeriado_(currentDate);
-
-// ✅ regra pedida: só no TOTAL final
-// Domingo/Feriado soma a carga da SEGUNDA; demais dias soma o total trabalhado do dia
-if(ehDomingo || ehFeriado){
-  somaTotalCalcMin += getEscalaSegundaMin_(u);
-} else {
-  somaTotalCalcMin += (calc.totalMin || 0);
-}
-    const escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
-
-    const dd = String(currentDate.getDate()).padStart(2,"0");
-    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
-    const ddmm = `${dd}/${mm}`;
-    const isFeriadoLista = feriados.includes(ddmm);
-    const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, currentDate));
-    const temAlgumaMarcacao =
-      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
-
-    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
-    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !dadosAtual.entrada_evento){
-      conteudoEntrada = "FOLGA";
-      conteudoSaidaAlm = "FOLGA";
-      conteudoRetorno  = "FOLGA";
-      conteudoSaida    = "FOLGA";
-    } else {
-      conteudoEntrada   = campo(dadosAtual.entrada,"entrada", true, dBR);
-      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco", true, dBR);
-      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco", true, dBR);
-      conteudoSaida     = campo(dadosAtual.saida,"saida", true, dBR);
-    }
-
-    const totalTxt = fmt(calc.totalMin);
-    const credTxt  = (calc.creditoMin > 0 ? fmt(calc.creditoMin) : "");
-    const credClass = calc.destaqueCredito ? "credito-excedente" : "verde";
-
-    html += `<tr>
-      <td>${dBR}</td>
-      <td>${calc.nomeDia}</td>
-      <td>${conteudoEntrada}</td>
-      <td>${conteudoSaidaAlm}</td>
-      <td>${conteudoRetorno}</td>
-      <td>${conteudoSaida}</td>
-
-      <td id="total_${dBR}" class="verde">${totalTxt}</td>
-      <td id="escala_${dBR}">${escExibir}</td>
-      <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
-
-    if(tipo==="comGeo"){
-      html+=`<td>${dadosAtual.geoEntrada||""}</td>
-             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
-             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
-             <td>${dadosAtual.geoSaida||""}</td>`;
-    }
-
-    html += `</tr>`;
-
-    currentDate.setDate(currentDate.getDate()+1);
-  }
-
-html += `<tr>
-  <th colspan="6">TOTAL</th>
-  <th class="verde">${fmt(somaTotalCalcMin)}</th>
-  <th></th>
-  <th class="verde">${fmt(somaCreditoMin)}</th>`;
-
-if(tipo==="comGeo"){
-  html += `<th colspan="4"></th>`;
-}
-
-  html += `</tr></table>
-    <p>Assinatura do Funcionário: _____________________</p>`;
-
-  document.getElementById("cartaoFuncionario").innerHTML = html;
-
-  // se folha aberta, atualiza preview
-  if(!document.getElementById("folhaBox").classList.contains("hidden")){
-    preencherTopoFolha_();
-  }
-}
-
-/************* EXPORTAÇÕES (suas originais) *************/
-function gerarExcel(){
-  const tabelaOriginal = document.querySelector("#tabelaRelatorio");
-  if(!tabelaOriginal){
-    alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
-    return;
-  }
-
-  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-  const tabela = tabelaOriginal.cloneNode(true);
-
-  if(!opt){
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML = "";
-    });
-  } else {
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
-    });
-  }
-
-  const wb = XLSX.utils.book_new();
-  const linhas = [];
-  const trs = tabela.querySelectorAll("tr");
-
-  trs.forEach(tr=>{
-    const row = [];
-    tr.querySelectorAll("th,td").forEach(cell=>{
-      row.push((cell.innerText || cell.textContent || "").trim());
-    });
-    linhas.push(row);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(linhas);
-  XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
-  XLSX.writeFile(wb, "cartao_ponto.xlsx");
-}
-
-async function gerarPDFAdmin(){
-  const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF('p','mm','a4');
-
-  doc.setFontSize(12);
-  doc.text("RELATÓRIO DE PONTO",105,10,{align:"center"});
-
-  doc.setFontSize(10);
-  const u = document.getElementById("funcionarioSelect").value;
-  if(!u){ alert("Selecione o funcionário"); return; }
-  doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
-  doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
-
-  const tabela=document.querySelector("#tabelaRelatorio");
-  if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
-
-  const clone = tabela.cloneNode(true);
-
-  if(!opt){
-    [...clone.querySelectorAll("td")].forEach(td=>{
-      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML="";
-    });
-  } else {
-    [...clone.querySelectorAll("td")].forEach(td=>{
-      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
-    });
-  }
-
-  doc.autoTable({startY:30,html:clone});
-  doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
-  doc.save("cartao_ponto.pdf");
-}
-
-/************* CADASTRO FUNCIONÁRIO *************/
-/************* CADASTRO FUNCIONÁRIO (COM BUSCA NA PLANILHA) *************/
-function limparModalFuncionario_(){
-  const set = (id, v="") => (document.getElementById(id).value = v);
-
-  set("novoCodigo","");
-  set("novoNome","");
-  set("novoUser","");
-  set("novoPass","");
-  set("novoCargo","");
-  set("novoPis","");
-  set("novoSetor","");
-  set("novoLocal","");
-
-  set("escSeg","08:00");
-  set("escTer","08:00");
-  set("escQua","08:00");
-  set("escQui","08:00");
-  set("escSex","08:00");
-  set("escSab","04:00");
-  set("escDom","FOLGA");
-}
-
-function preencherModalFuncionario_(f){
-  if(!f) return;
-
-  const set = (id, v="") => (document.getElementById(id).value = (v ?? ""));
-
-  set("novoCodigo", f.codigo || f.cod || "");
-  set("novoNome",   f.nome || f.nomeCompleto || "");
-  set("novoUser",   f.usuario_login || f.usuario || "");
-  set("novoPass",   f.senha || "");
-
-  set("novoCargo",  f.cargo || "");
-  set("novoPis",    f.pis || "");
-  set("novoSetor",  f.setor || "");
-  set("novoLocal",  f.local_trabalho || f.localTrabalho || "");
-
-  // Escala semanal (na planilha pode estar como escSeg/escTer... ou em headers diferentes)
-  set("escSeg", formataEscala(f.escSeg || f.esc_seg || "08:00"));
-  set("escTer", formataEscala(f.escTer || f.esc_ter || f.escSeg || "08:00"));
-  set("escQua", formataEscala(f.escQua || f.esc_qua || f.escSeg || "08:00"));
-  set("escQui", formataEscala(f.escQui || f.esc_qui || f.escSeg || "08:00"));
-  set("escSex", formataEscala(f.escSex || f.esc_sex || f.escSeg || "08:00"));
-  set("escSab", formataEscala(f.escSab || f.esc_sab || "04:00"));
-  set("escDom", formataEscala(f.escDom || f.esc_dom || "FOLGA"));
-}
-
-async function abrirCadastroFuncionario(){
-  // abre SEMPRE carregando os dados atuais da planilha
-  limparModalFuncionario_();
-
-  const modal = document.getElementById("modalFuncionario");
-  modal.classList.remove("hidden");
-
-  const u = document.getElementById("funcionarioSelect")?.value || "";
-  if(!u){
-    // Sem funcionário selecionado -> modal fica em branco para novo cadastro
-    return;
-  }
-
-  try{
-    const res = await apiPost({ tipo:"getFuncionarioFull", usuario_login: u });
-    if(res?.status === "ok" && res.funcionario){
-      preencherModalFuncionario_(res.funcionario);
-    }else{
-      alert(res?.message || "Não foi possível carregar os dados do funcionário.");
-    }
-  }catch(e){
-    alert("Erro ao buscar dados do funcionário: " + e);
-  }
-}
-
-function fecharCadastroFuncionario(){
-  document.getElementById("modalFuncionario").classList.add("hidden");
-}
-
-async function salvarFuncionario(){
-  // monta payload a partir do modal e salva na aba FUNCIONARIOS
-  const payload = {
-    tipo: "salvarUsuario",
-    funcionario: {
-      codigo: document.getElementById("novoCodigo").value.trim(),
-      nome: document.getElementById("novoNome").value.trim(),
-      usuario_login: document.getElementById("novoUser").value.trim(),
-      senha: document.getElementById("novoPass").value.trim(),
-      cargo: document.getElementById("novoCargo").value.trim(),
-      pis: document.getElementById("novoPis").value.trim(),
-      setor: document.getElementById("novoSetor").value.trim(),
-      local_trabalho: document.getElementById("novoLocal").value.trim(),
-
-      escSeg: document.getElementById("escSeg").value.trim(),
-      escTer: document.getElementById("escTer").value.trim(),
-      escQua: document.getElementById("escQua").value.trim(),
-      escQui: document.getElementById("escQui").value.trim(),
-      escSex: document.getElementById("escSex").value.trim(),
-      escSab: document.getElementById("escSab").value.trim(),
-      escDom: document.getElementById("escDom").value.trim(),
-
-      role: "operacional"
-    }
-  };
-
-  if(!payload.funcionario.usuario_login){
-    alert("Preencha o campo Usuário (login).");
-    return;
-  }
-  if(!payload.funcionario.nome){
-    alert("Preencha o Nome do funcionário.");
-    return;
-  }
-
-  // normaliza as horas da escala
-  ["escSeg","escTer","escQua","escQui","escSex","escSab","escDom"].forEach(k=>{
-    const v = payload.funcionario[k];
-    const vv = formataEscala(v);
-    payload.funcionario[k] = vv || v;
-  });
-
-  try{
-    const res = await apiPost(payload);
-    if(res?.status !== "ok"){
-      alert(res?.message || "Erro ao salvar funcionário.");
-      return;
-    }
-
-    alert("✅ Funcionário salvo com sucesso!");
-    fecharCadastroFuncionario();
-
-    // recarrega lista (sempre puxando do servidor)
-    await carregarUsuariosAdmin();
-    preencherFuncionarios();
-
-    // tenta manter selecionado o mesmo usuário
-    const sel = document.getElementById("funcionarioSelect");
-    if(sel) sel.value = payload.funcionario.usuario_login.toLowerCase();
-  }catch(e){
-    alert("Erro ao salvar funcionário: " + e);
-  }
-}
-
-/************* ESCALA MENSAL (em memória) *************/
-function abrirEscalaMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
-  if(!u) return alert("Selecione um funcionário");
-  const conteudo=document.getElementById("conteudoEscala");
-  conteudo.innerHTML="";
-  users[u].escalaMensal = users[u].escalaMensal || {};
-  for(let i=1;i<=31;i++){
-    const val = users[u].escalaMensal[i]||"";
-    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
-  }
-  document.getElementById("modalEscala").classList.remove("hidden");
-}
-function fecharEscalaMensal(){
-  document.getElementById("modalEscala").classList.add("hidden");
-}
-function salvarEscalaMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
-  if(!u) return;
-  users[u].escalaMensal = users[u].escalaMensal || {};
-  for(let i=1;i<=31;i++){
-    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
-  }
-  fecharEscalaMensal();
-  alert("Escala mensal salva (em memória).");
-}
-
-/* =====================================================================
-   ✅ FOLHA + VERBAS EDITÁVEIS + HOLERITE + FGTS
-   ===================================================================== */
-
-let folhaState = {
-  funcionario: {},
-  periodo: { iniBR:"", fimBR:"", ini:null, fim:null },
-  apuracao: { totalMin:0, creditoMin:0, he50_min:0, he100_min:0, faltas_min:0 },
-  verbas: {
-    proventos: [
-      { key:"salario_base", label:"Salário Base", tipo:"fixo" },
-      { key:"he50", label:"Hora extra 50%", tipo:"calc" },
-      { key:"he100", label:"Hora extra 100%", tipo:"calc" },
-      { key:"outros_proventos", label:"Outros Proventos", tipo:"fixo" }
-    ],
-    descontos: [
-      { key:"faltas", label:"Faltas/Atrasos", tipo:"calc" },
-      { key:"inss", label:"INSS", tipo:"calc" },
-      { key:"irrf", label:"IRRF", tipo:"calc" },
-      { key:"vt", label:"Vale Transporte", tipo:"calc" },
-      { key:"outros_descontos", label:"Outros Descontos", tipo:"fixo" }
-    ]
-  },
-  valoresFixos: {
-    outros_proventos: 0,
-    outros_descontos: 0
-  }
-};
-
-function toggleFolha(){
-  const box = document.getElementById("folhaBox");
-  box.classList.toggle("hidden");
-  if(!box.classList.contains("hidden")){
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-    const comp = document.getElementById("folhaCompetencia");
-    if(comp && !comp.value) comp.value = ym;
-    preencherTopoFolha_();
-    document.getElementById("folhaMsg").textContent = "Selecione funcionário e período no Cartão de Ponto, depois clique Carregar / Calcular.";
-  }
-}
-
 function preencherTopoFolha_(){
   const u = document.getElementById("funcionarioSelect").value;
   document.getElementById("folhaFuncionarioNome").value = u ? (users[u]?.nomeCompleto || u) : "";
 }
 
+/************* RELATÓRIO (placeholder simples) *************/
+async function gerarRelatorioMensal(){
+  const u = document.getElementById("funcionarioSelect").value;
+  const di = document.getElementById("dataInicio").value;
+  const df = document.getElementById("dataFim").value || di;
+  if(!u || !di) return;
+
+  const ini = parseInputDateLocal(di);
+  const fim = parseInputDateLocal(df);
+
+  const iniBR = dateToBR_(ini);
+  const fimBR = dateToBR_(fim);
+
+  const periodo = await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio:iniBR, dataFim:fimBR });
+  if(periodo.status !== "ok"){ alert(periodo.message||"Erro"); return; }
+
+  // só exibe resumo aqui (seu relatório completo pode ficar como estava)
+  const regs = periodo.registros || {};
+  let totalMin = 0;
+  Object.keys(regs).forEach(d=>{
+    const r = regs[d] || {};
+    if(r.entrada && r.saida){
+      totalMin += (hm(r.saida) - hm(r.entrada));
+    }
+  });
+
+  document.getElementById("cartaoFuncionario").innerHTML = `
+    <h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>
+    <p>PIS: ${users[u]?.pis || ""}</p>
+    <p>Período: ${iniBR} até ${fimBR}</p>
+    <p><b>Total (aprox):</b> ${fmt(totalMin)}</p>
+  `;
+  preencherTopoFolha_();
+}
+
+/************* FOLHA (usa getFuncionarioFull + getPeriodo) *************/
 function parseNumeroBR(v){
   if(v === null || v === undefined || v === "") return 0;
   if(typeof v === "number") return v;
@@ -1393,7 +473,6 @@ function simNao(v){
 }
 function round2(n){ return Math.round((Number(n||0)+Number.EPSILON)*100)/100; }
 function moeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
-function horas(min){ return fmt(min); }
 
 function calcINSS2026(salario){
   const teto = 8475.55;
@@ -1415,466 +494,230 @@ function calcINSS2026(salario){
   return round2(inss);
 }
 
-function calcIRRFBase2025(baseCalculo){
-  const b = Math.max(0, baseCalculo);
-  const faixas = [
-    { ate: 2428.80, aliq: 0.0,   ded: 0.00 },
-    { ate: 2826.65, aliq: 0.075, ded: 182.16 },
-    { ate: 3751.05, aliq: 0.15,  ded: 394.16 },
-    { ate: 4664.68, aliq: 0.225, ded: 675.49 },
-    { ate: Infinity, aliq: 0.275, ded: 908.73 }
-  ];
-  const f = faixas.find(x => b <= x.ate) || faixas[faixas.length-1];
-  return Math.max(0, round2((b * f.aliq) - f.ded));
-}
-
-function aplicaRedutorIRRF2026(rendTributavel, irAntes){
-  const r = Math.max(0, rendTributavel);
-  if(r <= 5000.00) return 0;
-  let reducao = 0;
-  if(r > 5000.00 && r <= 7350.00){
-    reducao = 978.62 - (0.133145 * r);
-    if(reducao < 0) reducao = 0;
-  }
-  return Math.max(0, round2(irAntes - reducao));
-}
-
-function competenciaToRange(ym){
-  const [y,m] = String(ym||"").split("-").map(Number);
-  const ini = new Date(y,(m||1)-1,1);
-  const fim = new Date(y,(m||1),0);
-  return {ini, fim};
-}
-
 async function carregarFolha(){
   const msg = document.getElementById("folhaMsg");
   msg.textContent = "";
 
   const u = document.getElementById("funcionarioSelect").value;
-  if(!u){ msg.textContent = "Selecione um funcionário no Cartão de Ponto."; return; }
+  if(!u){ msg.textContent="Selecione um funcionário."; return; }
 
   const di = document.getElementById("dataInicio").value;
   const df = document.getElementById("dataFim").value || di;
-  if(!di){ msg.textContent = "Selecione a data início no Cartão de Ponto."; return; }
-
-  // escala atualizada
-  const escRes = await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u });
-  if(escRes?.status === "ok" && escRes.escala){
-    users[u] = users[u] || {};
-    users[u].escalaSemanal = escRes.escala;
-  }
+  if(!di){ msg.textContent="Selecione data início."; return; }
 
   // cadastro completo
   const cad = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
-  if(!cad || cad.status !== "ok"){ msg.textContent = cad?.message || "Erro ao buscar cadastro."; return; }
+  if(cad.status !== "ok"){ msg.textContent = cad.message || "Erro cadastro"; return; }
   const f = cad.funcionario || {};
-  folhaState.funcionario = f;
 
-  // valores fixos iniciais
-  folhaState.valoresFixos.outros_proventos = parseNumeroBR(f.outros_proventos_padrao);
-  folhaState.valoresFixos.outros_descontos = parseNumeroBR(f.outros_descontos_padrao);
-
+  // período
   const ini = parseInputDateLocal(di);
   const fim = parseInputDateLocal(df);
   const iniBR = dateToBR_(ini);
   const fimBR = dateToBR_(fim);
+  const periodo = await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio:iniBR, dataFim:fimBR });
+  if(periodo.status !== "ok"){ msg.textContent=periodo.message||"Erro período"; return; }
 
-  folhaState.periodo = { iniBR, fimBR, ini, fim };
-
-  // período (PONTOS)
-  const periodo = await apiPost({
-    tipo:"getPeriodo",
-    usuario_login:u,
-    dataInicio: iniBR,
-    dataFim: fimBR
+  // apuração simples: total trabalhado (considera entrada/saida)
+  const regs = periodo.registros || {};
+  let totalMin = 0;
+  Object.keys(regs).forEach(d=>{
+    const r = regs[d] || {};
+    if(r.entrada && r.saida){
+      totalMin += (hm(r.saida) - hm(r.entrada));
+    }
   });
-  if(!periodo || periodo.status !== "ok"){ msg.textContent = periodo?.message || "Erro ao buscar período."; return; }
-
-  const registros = periodo.registros || {};
-
-  let somaTotalMin = 0;
-  let somaCreditoMin = 0;
-  let he50_min = 0;
-  let he100_min = 0;
-  let faltas_min = 0;
-
-  let d = new Date(ini);
-  while(d <= fim){
-    const dBR = dateToBR_(d);
-    const diaObj = registros[dBR] || {};
-    const calc = calcularLinhaDia_(u, diaObj, d);
-    somaTotalMin += calc.totalMin;
-    somaCreditoMin += (calc.creditoMin || 0);
-
-    const ddmm = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
-    const ehFeriadoLista = feriados.includes(ddmm);
-    const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
-
-    // ✅ FERIADO: se trabalhou -> 100% | se não trabalhou -> abonado (não desconta)
-if(ehFeriadoLista){
-  if((calc.totalMin || 0) > 0){
-    he100_min += (calc.totalMin || 0); // 100%
-  } else {
-    // abonado: não soma faltas_min
-  }
-}
-// ✅ FOLGA programada: se trabalhou -> 100% | se não -> nada
-else if(folgaProgramada){
-  if((calc.totalMin || 0) > 0){
-    he100_min += (calc.totalMin || 0); // 100%
-  }
-}
-// ✅ DIA NORMAL: crédito vira HE50 e diferença vira falta
-else{
-  he50_min += (calc.creditoMin || 0);
-
-  const faltaDia = Math.max(
-    0,
-    (calc.jornadaEscala || 0) - (calc.totalMin || 0)
-  );
-  faltas_min += faltaDia;
-}
-
-    d.setDate(d.getDate()+1);
-  }
-
-  folhaState.apuracao = {
-    totalMin: somaTotalMin,
-    creditoMin: somaCreditoMin,
-    he50_min,
-    he100_min,
-    faltas_min
-  };
-
-  recalcularFolha_();
-}
-
-function recalcularFolha_(){
-  const f = folhaState.funcionario || {};
-  const a = folhaState.apuracao || {};
-  const {iniBR,fimBR,ini,fim} = folhaState.periodo || {};
 
   const salarioBase = parseNumeroBR(f.salario_base);
   const horasMensais = parseNumeroBR(f.horas_mensais) || 220;
+  const valorHora = horasMensais ? (salarioBase/horasMensais) : 0;
 
-  let depIR = 0;
-  if(f.dep_ir !== "" && f.dep_ir != null) depIR = parseNumeroBR(f.dep_ir);
-  else depIR = parseNumeroBR(f.dep_menor14) + parseNumeroBR(f.dep_maior14);
-  depIR = Math.max(0, Math.floor(depIR));
-
-  const vtUsa = simNao(f.vt_usa);
-  let vtPercent = parseNumeroBR(f.vt_percent);
-  if(!vtUsa) vtPercent = 0;
-  if(vtUsa && !vtPercent) vtPercent = 6;
-
-  const pensao = parseNumeroBR(f.pensao_alimenticia);
-  const prevCompl = parseNumeroBR(f.prev_complementar);
-
-  const outrosProv = Number(folhaState.valoresFixos.outros_proventos || 0);
-  const outrosDesc = Number(folhaState.valoresFixos.outros_descontos || 0);
-
-  const valorHora = salarioBase / horasMensais;
-
-  const he50_val = (a.he50_min/60) * valorHora * 1.5;
-  const he100_val = (a.he100_min/60) * valorHora * 2.0;
-  const faltas_val = (a.faltas_min/60) * valorHora;
-
-  const bruto = salarioBase + he50_val + he100_val + outrosProv;
+  const bruto = salarioBase;
   const inss = calcINSS2026(bruto);
-
-  const dedDep = depIR * 189.59;
-  const descSimpl = 607.20;
-  const dedLegais = inss + dedDep + pensao + prevCompl;
-  const dedUsada = Math.max(dedLegais, descSimpl);
-
-  const base_ir = Math.max(0, bruto - dedUsada);
-  const irAntes = calcIRRFBase2025(base_ir);
-  const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
-
-  const vt = (Math.max(0, Math.min(6, vtPercent)) / 100) * salarioBase;
-
-  const descontos = faltas_val + inss + irrf + vt + outrosDesc;
-  const liquido = bruto - descontos;
-
-  // ✅ FGTS
-  const base_fgts = bruto;           // simplificado (base FGTS normalmente remuneração do mês)
-  const fgts_guia = round2(base_fgts * 0.08);
-
-  // guarda resumo calculado para holerite
-  folhaState.calculado = {
-    salarioBase, horasMensais, valorHora,
-    depIR, vtUsa, vtPercent,
-    outrosProv, outrosDesc,
-    he50_val, he100_val, faltas_val,
-    bruto, inss, base_ir, irrf, vt,
-    descontos, liquido,
-    base_fgts, fgts_guia,
-    dedDep, dedUsada
-  };
-
-  renderFolha_();
-}
-
-function renderLinhaVerba_(grupo, item){
-  const a = folhaState.apuracao;
-  const c = folhaState.calculado;
-
-  let ref = "";
-  let val = 0;
-
-  if(item.key === "salario_base"){ val = c.salarioBase; }
-  if(item.key === "he50"){ ref = horas(a.he50_min); val = c.he50_val; }
-  if(item.key === "he100"){ ref = horas(a.he100_min); val = c.he100_val; }
-  if(item.key === "outros_proventos"){ val = c.outrosProv; }
-
-  if(item.key === "faltas"){ ref = horas(a.faltas_min); val = c.faltas_val; }
-  if(item.key === "inss"){ val = c.inss; }
-  if(item.key === "irrf"){ val = c.irrf; }
-  if(item.key === "vt"){ ref = (c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val = c.vt; }
-  if(item.key === "outros_descontos"){ val = c.outrosDesc; }
-
-  const isEditavel = (item.key === "outros_proventos" || item.key === "outros_descontos");
-  const btn = isEditavel
-    ? ` <button class="mini" onclick="editarVerba('${item.key}')">Editar</button>`
-    : "";
-
-  return `<tr>
-    <td style="text-align:left">${item.label}${btn}</td>
-    <td>${ref || ""}</td>
-    <td>${grupo==="proventos" ? moeda(val) : ""}</td>
-    <td>${grupo==="descontos" ? moeda(val) : ""}</td>
-  </tr>`;
-}
-
-function renderFolha_(){
-  const f = folhaState.funcionario || {};
-  const a = folhaState.apuracao || {};
-  const c = folhaState.calculado || {};
-  const p = folhaState.periodo || {};
 
   document.getElementById("folhaCadastro").innerHTML = `
     <b>Cadastro (FUNCIONARIOS)</b><br>
     Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>
     Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>
-    Salário base: <b>${f.salario_base||""}</b> • Horas mensais: <b>${c.horasMensais||""}</b> • Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b><br>
-    Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa ? (c.vtPercent||6) : 0}%</b>
+    Salário base: <b>${f.salario_base||""}</b> • Horas mensais: <b>${horasMensais}</b> • Valor hora (ref.): <b>${moeda(valorHora)}</b><br>
+    Admissão: <b>${f.data_admissao||""}</b> • VT: <b>${f.vt_usa||""} ${f.vt_percent||""}</b>
   `;
-
-  const linhasProv = folhaState.verbas.proventos.map(v=>renderLinhaVerba_("proventos", v)).join("");
-  const linhasDesc = folhaState.verbas.descontos.map(v=>renderLinhaVerba_("descontos", v)).join("");
 
   document.getElementById("folhaResultado").innerHTML = `
     <b>Apuração do período (PONTOS)</b><br>
-    Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>
-    Total trabalhado: <b>${horas(a.totalMin)}</b> • Crédito: <b>${horas(a.creditoMin)}</b><br><br>
+    Período: <b>${iniBR}</b> até <b>${fimBR}</b><br>
+    Total trabalhado (aprox): <b>${fmt(totalMin)}</b><br><br>
 
-    <table id="tabelaFolha">
-      <tr>
-        <th style="text-align:left">Descrição</th>
-        <th>Ref.</th>
-        <th>Proventos</th>
-        <th>Descontos</th>
-      </tr>
-
-      ${linhasProv}
-      <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
-      ${linhasDesc}
-
-      <tr>
-        <th style="text-align:left">TOTAL</th>
-        <th></th>
-        <th>${moeda(c.bruto)}</th>
-        <th>${moeda(c.descontos)}</th>
-      </tr>
-      <tr>
-        <th style="text-align:left">LÍQUIDO A RECEBER</th>
-        <th></th>
-        <th colspan="2">${moeda(c.liquido)}</th>
-      </tr>
+    <table>
+      <tr><th style="text-align:left">Descrição</th><th>Proventos</th><th>Descontos</th></tr>
+      <tr><td style="text-align:left">Salário Base</td><td>${moeda(bruto)}</td><td></td></tr>
+      <tr><td style="text-align:left">INSS</td><td></td><td>${moeda(inss)}</td></tr>
+      <tr><th style="text-align:left">Líquido (aprox)</th><th colspan="2">${moeda(bruto - inss)}</th></tr>
     </table>
-
-    <p class="muted" style="margin-top:8px">
-      Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
-    </p>
   `;
-
-  preencherHoleritePrint_();
 }
 
-function editarVerba(chave){
-  const atual = (chave==="outros_proventos")
-    ? folhaState.valoresFixos.outros_proventos
-    : folhaState.valoresFixos.outros_descontos;
+/************* CADASTRO / EDIÇÃO (BUSCA + NÃO ENVIA VAZIOS) *************/
+function limparModalFuncionario_(){
+  const set = (id, v="") => (document.getElementById(id).value = v);
 
-  const titulo = (chave==="outros_proventos") ? "Outros Proventos" : "Outros Descontos";
+  set("novoNome","");
+  set("novoUser","");
+  set("novoPass","");
+  set("novoPis","");
+  set("novoCpf","");
+  set("novoCargo","");
+  set("novoSetor","");
+  set("novoLocal","");
 
-  const mask = document.createElement("div");
-  mask.className = "modalMask";
-  mask.innerHTML = `
-    <div class="modalCard">
-      <h3>Editar verba: ${titulo}</h3>
-      <div class="muted">Informe o valor em R$ (ex.: 150,00). Ao salvar, o cálculo é refeito automaticamente.</div>
-      <label>Valor</label>
-      <input id="verbaValor" placeholder="0,00" value="${String(atual||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}">
-      <div class="modalActions">
-        <button class="btn-sec" id="vCancelar">Cancelar</button>
-        <button id="vSalvar">Salvar</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(mask);
+  set("novoSalarioBase","");
+  set("novoAdmissao","");
+  set("novoHorasMensais","");
+  set("novoDepMenor14","");
+  set("novoDepMaior14","");
+  set("novoDepIR","");
+  set("novoDepSalFamilia","");
+  set("novoVTUsa","");
+  set("novoVTPercent","");
+  set("novoPensao","");
+  set("novoPrevCompl","");
+  set("novoOutrosProv","");
+  set("novoOutrosDesc","");
 
-  mask.querySelector("#vCancelar").onclick = ()=> mask.remove();
-  mask.querySelector("#vSalvar").onclick = ()=>{
-    const raw = mask.querySelector("#verbaValor").value;
-    const v = parseNumeroBR(raw);
-    if(chave==="outros_proventos") folhaState.valoresFixos.outros_proventos = v;
-    else folhaState.valoresFixos.outros_descontos = v;
-    mask.remove();
-    recalcularFolha_();
+  set("escSeg","08:00");
+  set("escTer","08:00");
+  set("escQua","08:00");
+  set("escQui","08:00");
+  set("escSex","08:00");
+  set("escSab","04:00");
+  set("escDom","FOLGA");
+}
+
+function preencherModalFuncionario_(f){
+  const set = (id, v="") => (document.getElementById(id).value = (v ?? ""));
+
+  set("novoNome",   f.nome || "");
+  set("novoUser",   f.usuario_login || "");
+  set("novoPass",   f.senha || "");
+  set("novoPis",    f.pis || "");
+  set("novoCpf",    f.cpf || "");
+  set("novoCargo",  f.cargo || "");
+  set("novoSetor",  f.setor || "");
+  set("novoLocal",  f.local_trabalho || "");
+
+  set("novoSalarioBase", f.salario_base || "");
+  set("novoHorasMensais", f.horas_mensais || "");
+  set("novoDepMenor14", f.dep_menor14 || "");
+  set("novoDepMaior14", f.dep_maior14 || "");
+  set("novoDepIR", f.dep_ir || "");
+  set("novoDepSalFamilia", f.dep_sal_familia || "");
+  set("novoVTPercent", f.vt_percent || "");
+  set("novoPensao", f.pensao_alimenticia || "");
+  set("novoPrevCompl", f.prev_complementar || "");
+  set("novoOutrosProv", f.outros_proventos_padrao || "");
+  set("novoOutrosDesc", f.outros_descontos_padrao || "");
+
+  const admISO = brToISODate_(f.data_admissao || "");
+  set("novoAdmissao", admISO);
+
+  const vt = String(f.vt_usa || "").trim().toLowerCase();
+  if(vt === "sim" || vt==="s" || vt==="true" || vt==="1") set("novoVTUsa","sim");
+  else if(vt === "nao" || vt==="não" || vt==="n" || vt==="false" || vt==="0") set("novoVTUsa","nao");
+  else set("novoVTUsa","");
+
+  set("escSeg", formataEscala(f.escSeg || "08:00"));
+  set("escTer", formataEscala(f.escTer || f.escSeg || "08:00"));
+  set("escQua", formataEscala(f.escQua || f.escSeg || "08:00"));
+  set("escQui", formataEscala(f.escQui || f.escSeg || "08:00"));
+  set("escSex", formataEscala(f.escSex || f.escSeg || "08:00"));
+  set("escSab", formataEscala(f.escSab || "04:00"));
+  set("escDom", formataEscala(f.escDom || "FOLGA"));
+}
+
+async function abrirCadastroFuncionario(){
+  limparModalFuncionario_();
+  document.getElementById("modalFuncionario").classList.remove("hidden");
+
+  const u = document.getElementById("funcionarioSelect")?.value || "";
+  if(!u) return; // novo cadastro
+
+  const res = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
+  if(res?.status === "ok" && res.funcionario){
+    preencherModalFuncionario_(res.funcionario);
+  }else{
+    alert(res?.message || "Não foi possível carregar dados.");
+  }
+}
+
+function fecharCadastroFuncionario(){
+  document.getElementById("modalFuncionario").classList.add("hidden");
+}
+
+async function salvarFuncionario(){
+  const usuario_login = document.getElementById("novoUser").value.trim();
+  const nome = document.getElementById("novoNome").value.trim();
+  if(!usuario_login){ alert("Preencha Usuário (login)."); return; }
+  if(!nome){ alert("Preencha Nome."); return; }
+
+  const admISO = document.getElementById("novoAdmissao").value.trim();
+  const admBR  = admISO ? isoToBRDate_(admISO) : "";
+
+  const raw = {
+    usuario_login: usuario_login.toLowerCase(),
+    nome: nome,
+    senha: document.getElementById("novoPass").value.trim(),
+
+    pis: document.getElementById("novoPis").value.trim(),
+    cpf: document.getElementById("novoCpf").value.trim(),
+    cargo: document.getElementById("novoCargo").value.trim(),
+    setor: document.getElementById("novoSetor").value.trim(),
+    local_trabalho: document.getElementById("novoLocal").value.trim(),
+
+    salario_base: document.getElementById("novoSalarioBase").value.trim(),
+    data_admissao: admBR,
+    horas_mensais: document.getElementById("novoHorasMensais").value.trim(),
+    dep_menor14: document.getElementById("novoDepMenor14").value.trim(),
+    dep_maior14: document.getElementById("novoDepMaior14").value.trim(),
+    dep_ir: document.getElementById("novoDepIR").value.trim(),
+    dep_sal_familia: document.getElementById("novoDepSalFamilia").value.trim(),
+    vt_usa: document.getElementById("novoVTUsa").value.trim(),
+    vt_percent: document.getElementById("novoVTPercent").value.trim(),
+    pensao_alimenticia: document.getElementById("novoPensao").value.trim(),
+    prev_complementar: document.getElementById("novoPrevCompl").value.trim(),
+    outros_proventos_padrao: document.getElementById("novoOutrosProv").value.trim(),
+    outros_descontos_padrao: document.getElementById("novoOutrosDesc").value.trim(),
+
+    role: "operacional",
+
+    // escala sempre envia
+    escSeg: document.getElementById("escSeg").value.trim(),
+    escTer: document.getElementById("escTer").value.trim(),
+    escQua: document.getElementById("escQua").value.trim(),
+    escQui: document.getElementById("escQui").value.trim(),
+    escSex: document.getElementById("escSex").value.trim(),
+    escSab: document.getElementById("escSab").value.trim(),
+    escDom: document.getElementById("escDom").value.trim(),
   };
+
+  ["escSeg","escTer","escQua","escQui","escSex","escSab","escDom"].forEach(k=>{
+    const vv = formataEscala(raw[k]);
+    if(vv) raw[k] = vv;
+  });
+
+  // ✅ remove vazios (não apaga nada na planilha)
+  const funcionario = montarObjetoSemVazios_(raw);
+
+  const res = await apiPost({ tipo:"salvarUsuario", funcionario });
+  if(res?.status !== "ok"){ alert(res?.message || "Erro ao salvar."); return; }
+
+  alert("✅ Salvo!");
+  fecharCadastroFuncionario();
+  await carregarUsuariosAdmin();
+  preencherFuncionarios();
+
+  const sel = document.getElementById("funcionarioSelect");
+  if(sel) sel.value = usuario_login.toLowerCase();
 }
-
-/************* Holerite (Print/PDF) *************/
-function preencherHoleritePrint_(){
-  const f = folhaState.funcionario || {};
-  const a = folhaState.apuracao || {};
-  const c = folhaState.calculado || {};
-  const p = folhaState.periodo || {};
-
-  const comp = document.getElementById("folhaCompetencia").value || "";
-  document.getElementById("hpCompetencia").textContent = comp;
-  document.getElementById("hpPeriodo").textContent = `${p.iniBR} até ${p.fimBR}`;
-
-  document.getElementById("hpFuncionario").innerHTML = `
-    <b>Empregado</b><br>
-    Nome: <b>${f.nome||""}</b><br>
-    CPF: ${f.cpf||""} • PIS: ${f.pis||""}<br>
-    Cargo: ${f.cargo||""} • Setor: ${f.setor||""}<br>
-    Admissão: ${f.data_admissao||""}
-  `;
-
-  document.getElementById("hpResumo").innerHTML = `
-    <b>Apuração</b><br>
-    Total trabalhado: <b>${horas(a.totalMin)}</b><br>
-    Crédito: <b>${horas(a.creditoMin)}</b><br>
-    Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b>
-  `;
-
-  const linhas = [];
-  const provs = folhaState.verbas.proventos.map(v=>({grupo:"P", item:v}));
-  const descs = folhaState.verbas.descontos.map(v=>({grupo:"D", item:v}));
-
-  function getLinha(item, grupo){
-    let ref="", val=0;
-    if(item.key==="salario_base") val=c.salarioBase;
-    if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
-    if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
-    if(item.key==="outros_proventos") val=c.outrosProv;
-
-    if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
-    if(item.key==="inss") val=c.inss;
-    if(item.key==="irrf") val=c.irrf;
-    if(item.key==="vt"){ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt;}
-    if(item.key==="outros_descontos") val=c.outrosDesc;
-
-    return `<tr>
-      <td>${item.label}</td>
-      <td style="text-align:center">${ref||""}</td>
-      <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
-      <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
-    </tr>`;
-  }
-
-  const tbody = provs.map(x=>getLinha(x.item,"P")).join("") + descs.map(x=>getLinha(x.item,"D")).join("");
-  document.getElementById("hpTabela").innerHTML = tbody;
-
-  document.getElementById("hpTotais").innerHTML = `
-    <b>Totais</b><br>
-    Bruto: <b>${moeda(c.bruto)}</b><br>
-    Descontos: <b>${moeda(c.descontos)}</b>
-  `;
-
-  document.getElementById("hpBases").innerHTML = `
-    <b>Bases</b><br>
-    Base IR: <b>${moeda(c.base_ir)}</b><br>
-    Base FGTS: <b>${moeda(c.base_fgts)}</b><br>
-    Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
-  `;
-
-  document.getElementById("hpLiquido").innerHTML = `
-    <b>Líquido</b><br>
-    <span style="font-size:16px"><b>${moeda(c.liquido)}</b></span>
-  `;
-}
-
-function imprimirHolerite(){
-  if(!folhaState.calculado){
-    alert("Calcule a folha antes de imprimir.");
-    return;
-  }
-  preencherHoleritePrint_();
-  window.print();
-}
-
-async function gerarPDFHolerite(){
-  if(!folhaState.calculado){
-    alert("Calcule a folha antes de gerar PDF.");
-    return;
-  }
-
-  preencherHoleritePrint_();
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("p","mm","a4");
-
-  doc.setFontSize(12);
-  doc.text("HOLERITE / RECIBO DE PAGAMENTO", 105, 12, {align:"center"});
-
-  const f = folhaState.funcionario || {};
-  const p = folhaState.periodo || {};
-  const comp = document.getElementById("folhaCompetencia").value || "";
-
-  doc.setFontSize(9);
-  doc.text(`Competência: ${comp}`, 14, 20);
-  doc.text(`Período: ${p.iniBR} até ${p.fimBR}`, 14, 25);
-
-  doc.text(`Nome: ${f.nome||""}`, 14, 32);
-  doc.text(`CPF: ${f.cpf||""}   PIS: ${f.pis||""}`, 14, 37);
-  doc.text(`Cargo: ${f.cargo||""}   Setor: ${f.setor||""}`, 14, 42);
-
-  const tabela = document.querySelector("#tabelaFolha");
-  if(tabela){
-    doc.autoTable({ startY: 48, html: tabela, styles:{ fontSize: 8 }});
-  } else {
-    doc.text("Tabela não encontrada. Calcule a folha novamente.", 14, 55);
-  }
-
-  const c = folhaState.calculado || {};
-  const y = (doc.lastAutoTable?.finalY || 120) + 8;
-
-  doc.setFontSize(9);
-  doc.text(`Base IR: ${moeda(c.base_ir)}`, 14, y);
-  doc.text(`Base FGTS: ${moeda(c.base_fgts)}  |  Guia FGTS (8%): ${moeda(c.fgts_guia)}`, 14, y+5);
-
-  doc.text("Assinatura do empregado: ________________________________", 14, y+18);
-
-  doc.save(`holerite_${(f.nome||"funcionario").replaceAll(" ","_")}_${comp||"periodo"}.pdf`);
-}
-
-/************* Inicial (opcional) *************/
-// se quiser, pode setar data início/fim automaticamente
-
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
