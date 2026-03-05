@@ -355,10 +355,10 @@ function isFeriado_(dateObj){
   return feriados.includes(`${dd}/${mm}`);
 }
 
-function getEscalaDomingoMin_(u){
-  // domingo = 0
-  const escDom = (users[u]?.escalaSemanal?.[0]) || "FOLGA";
-  return cargaEscalaMin(escDom);
+function getEscalaSegundaMin_(u){
+  // segunda-feira = weekday 1
+  const escSeg = (users[u]?.escalaSemanal?.[1]) || "08:00"; // fallback 08:00
+  return cargaEscalaMin(escSeg);
 }
 function formataHoraCelula(valor){
   if (!valor) return "";
@@ -1854,6 +1854,7 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
 
 
 
