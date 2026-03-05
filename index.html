@@ -1147,14 +1147,144 @@ async function gerarPDFAdmin(){
 }
 
 /************* CADASTRO FUNCIONÁRIO *************/
-function abrirCadastroFuncionario(){
-  document.getElementById("modalFuncionario").classList.remove("hidden");
+/************* CADASTRO FUNCIONÁRIO (COM BUSCA NA PLANILHA) *************/
+function limparModalFuncionario_(){
+  const set = (id, v="") => (document.getElementById(id).value = v);
+
+  set("novoCodigo","");
+  set("novoNome","");
+  set("novoUser","");
+  set("novoPass","");
+  set("novoCargo","");
+  set("novoPis","");
+  set("novoSetor","");
+  set("novoLocal","");
+
+  set("escSeg","08:00");
+  set("escTer","08:00");
+  set("escQua","08:00");
+  set("escQui","08:00");
+  set("escSex","08:00");
+  set("escSab","04:00");
+  set("escDom","FOLGA");
 }
+
+function preencherModalFuncionario_(f){
+  if(!f) return;
+
+  const set = (id, v="") => (document.getElementById(id).value = (v ?? ""));
+
+  set("novoCodigo", f.codigo || f.cod || "");
+  set("novoNome",   f.nome || f.nomeCompleto || "");
+  set("novoUser",   f.usuario_login || f.usuario || "");
+  set("novoPass",   f.senha || "");
+
+  set("novoCargo",  f.cargo || "");
+  set("novoPis",    f.pis || "");
+  set("novoSetor",  f.setor || "");
+  set("novoLocal",  f.local_trabalho || f.localTrabalho || "");
+
+  // Escala semanal (na planilha pode estar como escSeg/escTer... ou em headers diferentes)
+  set("escSeg", formataEscala(f.escSeg || f.esc_seg || "08:00"));
+  set("escTer", formataEscala(f.escTer || f.esc_ter || f.escSeg || "08:00"));
+  set("escQua", formataEscala(f.escQua || f.esc_qua || f.escSeg || "08:00"));
+  set("escQui", formataEscala(f.escQui || f.esc_qui || f.escSeg || "08:00"));
+  set("escSex", formataEscala(f.escSex || f.esc_sex || f.escSeg || "08:00"));
+  set("escSab", formataEscala(f.escSab || f.esc_sab || "04:00"));
+  set("escDom", formataEscala(f.escDom || f.esc_dom || "FOLGA"));
+}
+
+async function abrirCadastroFuncionario(){
+  // abre SEMPRE carregando os dados atuais da planilha
+  limparModalFuncionario_();
+
+  const modal = document.getElementById("modalFuncionario");
+  modal.classList.remove("hidden");
+
+  const u = document.getElementById("funcionarioSelect")?.value || "";
+  if(!u){
+    // Sem funcionário selecionado -> modal fica em branco para novo cadastro
+    return;
+  }
+
+  try{
+    const res = await apiPost({ tipo:"getFuncionarioFull", usuario_login: u });
+    if(res?.status === "ok" && res.funcionario){
+      preencherModalFuncionario_(res.funcionario);
+    }else{
+      alert(res?.message || "Não foi possível carregar os dados do funcionário.");
+    }
+  }catch(e){
+    alert("Erro ao buscar dados do funcionário: " + e);
+  }
+}
+
 function fecharCadastroFuncionario(){
   document.getElementById("modalFuncionario").classList.add("hidden");
 }
+
 async function salvarFuncionario(){
-  alert("Seu cadastro/edição ainda depende do endpoint 'salvarUsuario' no Apps Script. Se quiser, eu adiciono também.");
+  // monta payload a partir do modal e salva na aba FUNCIONARIOS
+  const payload = {
+    tipo: "salvarUsuario",
+    funcionario: {
+      codigo: document.getElementById("novoCodigo").value.trim(),
+      nome: document.getElementById("novoNome").value.trim(),
+      usuario_login: document.getElementById("novoUser").value.trim(),
+      senha: document.getElementById("novoPass").value.trim(),
+      cargo: document.getElementById("novoCargo").value.trim(),
+      pis: document.getElementById("novoPis").value.trim(),
+      setor: document.getElementById("novoSetor").value.trim(),
+      local_trabalho: document.getElementById("novoLocal").value.trim(),
+
+      escSeg: document.getElementById("escSeg").value.trim(),
+      escTer: document.getElementById("escTer").value.trim(),
+      escQua: document.getElementById("escQua").value.trim(),
+      escQui: document.getElementById("escQui").value.trim(),
+      escSex: document.getElementById("escSex").value.trim(),
+      escSab: document.getElementById("escSab").value.trim(),
+      escDom: document.getElementById("escDom").value.trim(),
+
+      role: "operacional"
+    }
+  };
+
+  if(!payload.funcionario.usuario_login){
+    alert("Preencha o campo Usuário (login).");
+    return;
+  }
+  if(!payload.funcionario.nome){
+    alert("Preencha o Nome do funcionário.");
+    return;
+  }
+
+  // normaliza as horas da escala
+  ["escSeg","escTer","escQua","escQui","escSex","escSab","escDom"].forEach(k=>{
+    const v = payload.funcionario[k];
+    const vv = formataEscala(v);
+    payload.funcionario[k] = vv || v;
+  });
+
+  try{
+    const res = await apiPost(payload);
+    if(res?.status !== "ok"){
+      alert(res?.message || "Erro ao salvar funcionário.");
+      return;
+    }
+
+    alert("✅ Funcionário salvo com sucesso!");
+    fecharCadastroFuncionario();
+
+    // recarrega lista (sempre puxando do servidor)
+    await carregarUsuariosAdmin();
+    preencherFuncionarios();
+
+    // tenta manter selecionado o mesmo usuário
+    const sel = document.getElementById("funcionarioSelect");
+    if(sel) sel.value = payload.funcionario.usuario_login.toLowerCase();
+  }catch(e){
+    alert("Erro ao salvar funcionário: " + e);
+  }
 }
 
 /************* ESCALA MENSAL (em memória) *************/
@@ -1702,5 +1832,6 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
 
 
