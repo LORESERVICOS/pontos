@@ -1510,13 +1510,30 @@ async function carregarFolha(){
     const ehFeriadoLista = feriados.includes(ddmm);
     const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
 
-    if((ehFeriadoLista || folgaProgramada) && calc.totalMin > 0){
-      he100_min += calc.totalMin;
-    }else{
-      he50_min += (calc.creditoMin || 0);
-      const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
-      faltas_min += faltaDia;
-    }
+    // ✅ FERIADO: se trabalhou -> 100% | se não trabalhou -> abonado (não desconta)
+if(ehFeriadoLista){
+  if((calc.totalMin || 0) > 0){
+    he100_min += (calc.totalMin || 0); // 100%
+  } else {
+    // abonado: não soma faltas_min
+  }
+}
+// ✅ FOLGA programada: se trabalhou -> 100% | se não -> nada
+else if(folgaProgramada){
+  if((calc.totalMin || 0) > 0){
+    he100_min += (calc.totalMin || 0); // 100%
+  }
+}
+// ✅ DIA NORMAL: crédito vira HE50 e diferença vira falta
+else{
+  he50_min += (calc.creditoMin || 0);
+
+  const faltaDia = Math.max(
+    0,
+    (calc.jornadaEscala || 0) - (calc.totalMin || 0)
+  );
+  faltas_min += faltaDia;
+}
 
     d.setDate(d.getDate()+1);
   }
@@ -1851,6 +1868,7 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
 
 
 
