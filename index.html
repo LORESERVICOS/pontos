@@ -1072,16 +1072,15 @@ if(ehDomingo || ehFeriado){
     currentDate.setDate(currentDate.getDate()+1);
   }
 
-  html += `<tr>
-   html += `<tr>
+html += `<tr>
   <th colspan="6">TOTAL</th>
-  <th class="verde">${fmt(somaPrevistoMin)}</th>
+  <th class="verde">${fmt(somaTotalCalcMin)}</th>
   <th></th>
   <th class="verde">${fmt(somaCreditoMin)}</th>`;
 
-  if(tipo==="comGeo"){
-    html += `<th colspan="4"></th>`;
-  }
+if(tipo==="comGeo"){
+  html += `<th colspan="4"></th>`;
+}
 
   html += `</tr></table>
     <p>Assinatura do Funcionário: _____________________</p>`;
@@ -1852,6 +1851,7 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
 
 
 
