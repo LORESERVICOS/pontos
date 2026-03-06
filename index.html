@@ -36,7 +36,6 @@
     font-weight:600;
   }
 
-  /* ====== Folha / Holerite ====== */
   .muted{color:#475569;font-size:13px}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
   .row > div{min-width:220px}
@@ -47,7 +46,6 @@
   .btn-warn:hover{background:#92400e}
   .mini{font-size:11px;padding:4px 8px;border-radius:8px}
 
-  /* Modal simples */
   .modalMask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
   .modalCard{background:#fff;border-radius:14px;max-width:520px;width:95%;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.2)}
   .modalCard h3{margin:0 0 10px 0}
@@ -55,7 +53,6 @@
   .modalCard input,.modalCard select{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:10px}
   .modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 
-  /* Área do holerite para impressão */
   #holeritePrint{
     display:none;
     font-family:Inter,system-ui,-apple-system,sans-serif;
@@ -86,7 +83,6 @@
   Bem-vindo, <span id="nomeUsuario"></span>
 </header>
 
-<!-- LOGIN -->
 <div id="loginSection" class="card" style="max-width:400px">
   <h2>Login</h2>
   <input id="username" placeholder="Usuário"><br><br>
@@ -94,7 +90,6 @@
   <button onclick="login()">Entrar</button>
 </div>
 
-<!-- OPERACIONAL -->
 <div id="operacionalSection" class="hidden">
   <div class="card" style="max-width:600px">
     <h2>Registro de Ponto</h2>
@@ -110,14 +105,11 @@
   </div>
 </div>
 
-<!-- ADMIN -->
 <div id="adminSection" class="hidden">
   <div class="card" style="max-width:1200px">
     <h2>Relatório – Cartão de Ponto</h2>
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
     <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button>
-
-    <!-- ✅ Botão Folha -->
     <button onclick="toggleFolha()">Folha de Pagamento</button>
     <br><br>
 
@@ -133,10 +125,8 @@
     <button onclick="gerarPDFAdmin()">PDF</button>
     <button onclick="logout()">Sair</button>
 
-    <!-- ✅ Cartão de ponto continua aqui (não some) -->
     <div id="cartaoFuncionario"></div>
 
-    <!-- ✅ Folha -->
     <div id="folhaBox" class="hidden" style="margin-top:18px">
       <hr>
       <h2>Folha de Pagamento (CLT) – pelo período selecionado</h2>
@@ -170,7 +160,6 @@
   </div>
 </div>
 
-<!-- MODAL CADASTRO FUNCIONARIO -->
 <div id="modalFuncionario" class="card hidden" style="max-width:500px">
   <h3>Cadastro / Edição de Funcionário</h3>
 
@@ -206,7 +195,6 @@
     <input id="novoLocal" placeholder="Local de trabalho">
   </label><br>
 
-  <!-- ✅ NOVOS CAMPOS (sem mexer no layout geral) -->
   <hr>
   <h4 style="margin:10px 0 6px 0">Dados adicionais (Folha / RH)</h4>
 
@@ -306,7 +294,6 @@
   <button onclick="fecharCadastroFuncionario()">Cancelar</button>
 </div>
 
-<!-- MODAL ESCALA MENSAL -->
 <div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
   <h3>Editar Escala Mensal (manual)</h3>
   <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
@@ -315,7 +302,6 @@
   <button onclick="fecharEscalaMensal()">Cancelar</button>
 </div>
 
-<!-- ✅ Holerite (somente impressão) -->
 <div id="holeritePrint">
   <div class="hp-wrap">
     <div class="hp-title">
@@ -361,24 +347,20 @@
 </div>
 
 <script>
-/************* CONFIG *************/
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
 
 let users = {};
 let currentUser = null;
 let currentUserObj = null;
 
-// estado global usado no relatório
 let dadosAtual = {};
 let dataAtualRel = "";
 
-// cache do período
 let periodoCache = {};
 let periodoUser = "";
 let periodoInicioKey = "";
 let periodoFimKey = "";
 
-// feriados dd/mm
 const feriados = ["01/01","07/09","25/12"];
 
 const justificativas = [
@@ -387,7 +369,6 @@ const justificativas = [
   "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado"
 ];
 
-/************* API *************/
 async function apiPost(payload){
   const r = await fetch(WEBAPP_URL, {
     method: "POST",
@@ -397,7 +378,6 @@ async function apiPost(payload){
   return await r.json();
 }
 
-/************* HELPERS *************/
 function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }
 
 function hm(h){
@@ -488,7 +468,6 @@ function cargaEscalaMin(escStr){
   return 0;
 }
 
-// escala dia
 function getEscalaDoDia_(u, dateObj){
   const diaNum = dateObj.getDate();
   const weekday = dateObj.getDay();
@@ -501,7 +480,6 @@ function isFolgaEscala_(escStr){
   return String(escStr||"").trim().toUpperCase() === "FOLGA";
 }
 
-/* ✅ helpers novos (não afetam layout) */
 function brToISODate_(dbr){
   if(!dbr) return "";
   const s = String(dbr).trim();
@@ -509,6 +487,7 @@ function brToISODate_(dbr){
   if(!m) return "";
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
+
 function isoToBRDate_(iso){
   if(!iso) return "";
   const s = String(iso).trim();
@@ -516,6 +495,7 @@ function isoToBRDate_(iso){
   if(!m) return "";
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
+
 function montarObjetoSemVazios_(obj){
   const out = {};
   Object.keys(obj || {}).forEach(k=>{
@@ -527,7 +507,6 @@ function montarObjetoSemVazios_(obj){
   return out;
 }
 
-/************* LOGIN *************/
 async function login(){
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
@@ -540,6 +519,7 @@ async function login(){
     alert("Erro ao conectar com o servidor: " + e);
     return;
   }
+
   if(!res || res.status !== "ok"){
     alert(res && res.message ? res.message : "Usuário ou senha inválidos.");
     return;
@@ -622,7 +602,6 @@ async function carregarUsuariosAdmin(){
   }
 }
 
-/************* OPERACIONAL *************/
 async function registrar(tipo){
   const agora = new Date();
   const hora = agora.toTimeString().slice(0,5);
@@ -743,7 +722,6 @@ async function mostrarRegistrosUsuario(){
   }
 }
 
-/************* REGRAS (TOTAL + CRÉDITO) *************/
 function calcularLinhaDia_(u, regDia, dateObj){
   const dd = String(dateObj.getDate()).padStart(2,"0");
   const mm = String(dateObj.getMonth()+1).padStart(2,"0");
@@ -818,7 +796,6 @@ function calcularLinhaDia_(u, regDia, dateObj){
   return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
 }
 
-// ====== COMPROVANTE INDIVIDUAL ======
 async function gerarComprovante(tipo){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -834,9 +811,7 @@ async function gerarComprovante(tipo){
   }
 
   const r = (res && res.status === "ok" ? (res.dia || {}) : {});
-  const hora = (typeof formataHoraCelula === "function")
-    ? formataHoraCelula(r[tipo] || "")
-    : (r[tipo] || "");
+  const hora = formataHoraCelula(r[tipo] || "");
 
   const geoKey = ({
     entrada: "geoEntrada",
@@ -860,7 +835,6 @@ async function gerarComprovante(tipo){
   doc.save(`comprovante_${tipo}_${hoje.replaceAll("/","-")}.pdf`);
 }
 
-/************* AJUSTE *************/
 function campo(valor, c, adminView = true, dBR = ""){
   const valorFmt = formataHoraCelula(valor);
   const vazio = !valorFmt || valorFmt === "-";
@@ -999,7 +973,6 @@ async function abrirAjuste(u,d,c){
   };
 }
 
-/************* ADMIN – LISTA *************/
 function preencherFuncionarios(){
   const select=document.getElementById("funcionarioSelect");
   select.innerHTML="<option value=''>Selecionar Funcionário</option>";
@@ -1013,7 +986,6 @@ function preencherFuncionarios(){
   });
 }
 
-/************* RELATÓRIO (getPeriodo) *************/
 async function gerarRelatorioMensal(){
   const u = document.getElementById("funcionarioSelect").value;
   const dataInicioEl = document.getElementById("dataInicio");
@@ -1158,13 +1130,11 @@ async function gerarRelatorioMensal(){
 
   document.getElementById("cartaoFuncionario").innerHTML = html;
 
-  // se folha aberta, atualiza preview
   if(!document.getElementById("folhaBox").classList.contains("hidden")){
     preencherTopoFolha_();
   }
 }
 
-/************* EXPORTAÇÕES (suas originais) *************/
 function gerarExcel(){
   const tabelaOriginal = document.querySelector("#tabelaRelatorio");
   if(!tabelaOriginal){
@@ -1236,7 +1206,6 @@ async function gerarPDFAdmin(){
   doc.save("cartao_ponto.pdf");
 }
 
-/************* CADASTRO FUNCIONÁRIO (com busca e sem apagar colunas) *************/
 function limparModalFuncionario_(){
   const set = (id, v="") => { const el=document.getElementById(id); if(el) el.value=v; };
 
@@ -1249,7 +1218,6 @@ function limparModalFuncionario_(){
   set("novoSetor","");
   set("novoLocal","");
 
-  // extras
   set("novoCpf","");
   set("novoSalarioBase","");
   set("novoAdmissao","");
@@ -1288,7 +1256,6 @@ function preencherModalFuncionario_(f){
   set("novoSetor",  f.setor || "");
   set("novoLocal",  f.local_trabalho || f.localTrabalho || "");
 
-  // extras
   set("novoCpf", f.cpf || "");
   set("novoSalarioBase", f.salario_base || "");
   set("novoHorasMensais", f.horas_mensais || "");
@@ -1323,7 +1290,7 @@ async function abrirCadastroFuncionario(){
   document.getElementById("modalFuncionario").classList.remove("hidden");
 
   const u = document.getElementById("funcionarioSelect")?.value || "";
-  if(!u) return; // novo cadastro
+  if(!u) return;
 
   try{
     const res = await apiPost({ tipo:"getFuncionarioFull", usuario_login: u });
@@ -1362,7 +1329,6 @@ async function salvarFuncionario(){
     local_trabalho: document.getElementById("novoLocal").value.trim(),
     role: "operacional",
 
-    // extras (folha)
     cpf: document.getElementById("novoCpf").value.trim(),
     salario_base: document.getElementById("novoSalarioBase").value.trim(),
     data_admissao: admBR,
@@ -1378,7 +1344,6 @@ async function salvarFuncionario(){
     outros_proventos_padrao: document.getElementById("novoOutrosProv").value.trim(),
     outros_descontos_padrao: document.getElementById("novoOutrosDesc").value.trim(),
 
-    // escala (sempre)
     escSeg: document.getElementById("escSeg").value.trim(),
     escTer: document.getElementById("escTer").value.trim(),
     escQua: document.getElementById("escQua").value.trim(),
@@ -1393,7 +1358,6 @@ async function salvarFuncionario(){
     if(vv) raw[k] = vv;
   });
 
-  // ✅ remove vazios => não apaga nada na planilha
   const funcionario = montarObjetoSemVazios_(raw);
 
   try{
@@ -1417,7 +1381,6 @@ async function salvarFuncionario(){
   }
 }
 
-/************* ESCALA MENSAL (em memória) *************/
 function abrirEscalaMensal(){
   const u=document.getElementById("funcionarioSelect").value;
   if(!u) return alert("Selecione um funcionário");
@@ -1430,9 +1393,11 @@ function abrirEscalaMensal(){
   }
   document.getElementById("modalEscala").classList.remove("hidden");
 }
+
 function fecharEscalaMensal(){
   document.getElementById("modalEscala").classList.add("hidden");
 }
+
 function salvarEscalaMensal(){
   const u=document.getElementById("funcionarioSelect").value;
   if(!u) return;
@@ -1443,10 +1408,6 @@ function salvarEscalaMensal(){
   fecharEscalaMensal();
   alert("Escala mensal salva (em memória).");
 }
-
-/* =====================================================================
-   ✅ FOLHA + VERBAS EDITÁVEIS + HOLERITE + FGTS
-   ===================================================================== */
 
 let folhaState = {
   funcionario: {},
@@ -1498,10 +1459,12 @@ function parseNumeroBR(v){
   const n = Number(s);
   return isNaN(n) ? 0 : n;
 }
+
 function simNao(v){
   const s = String(v||"").trim().toUpperCase();
   return (s==="SIM" || s==="S" || s==="TRUE" || s==="1");
 }
+
 function round2(n){ return Math.round((Number(n||0)+Number.EPSILON)*100)/100; }
 function moeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
 function horas(min){ return fmt(min); }
@@ -1550,13 +1513,6 @@ function aplicaRedutorIRRF2026(rendTributavel, irAntes){
   return Math.max(0, round2(irAntes - reducao));
 }
 
-function competenciaToRange(ym){
-  const [y,m] = String(ym||"").split("-").map(Number);
-  const ini = new Date(y,(m||1)-1,1);
-  const fim = new Date(y,(m||1),0);
-  return {ini, fim};
-}
-
 async function carregarFolha(){
   const msg = document.getElementById("folhaMsg");
   msg.textContent = "";
@@ -1568,20 +1524,17 @@ async function carregarFolha(){
   const df = document.getElementById("dataFim").value || di;
   if(!di){ msg.textContent = "Selecione a data início no Cartão de Ponto."; return; }
 
-  // escala atualizada
   const escRes = await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u });
   if(escRes?.status === "ok" && escRes.escala){
     users[u] = users[u] || {};
     users[u].escalaSemanal = escRes.escala;
   }
 
-  // cadastro completo
   const cad = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
   if(!cad || cad.status !== "ok"){ msg.textContent = cad?.message || "Erro ao buscar cadastro."; return; }
   const f = cad.funcionario || {};
   folhaState.funcionario = f;
 
-  // valores fixos iniciais
   folhaState.valoresFixos.outros_proventos = parseNumeroBR(f.outros_proventos_padrao);
   folhaState.valoresFixos.outros_descontos = parseNumeroBR(f.outros_descontos_padrao);
 
@@ -1592,7 +1545,6 @@ async function carregarFolha(){
 
   folhaState.periodo = { iniBR, fimBR, ini, fim };
 
-  // período (PONTOS)
   const periodo = await apiPost({
     tipo:"getPeriodo",
     usuario_login:u,
@@ -1621,31 +1573,25 @@ async function carregarFolha(){
     const ehFeriadoLista = feriados.includes(ddmm);
     const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
 
-   // Feriado: se trabalhou -> HE100 | se não trabalhou -> ABONADO (não soma falta)
-if(ehFeriadoLista){
-  if((calc.totalMin || 0) > 0){
-    he100_min += (calc.totalMin || 0);
-  }
-  // se totalMin == 0 => não faz nada (abonado)
-}
+    if(ehFeriadoLista){
+      if((calc.totalMin || 0) > 0){
+        he100_min += (calc.totalMin || 0);
+      }
+    }
+    else if(folgaProgramada){
+      if((calc.totalMin || 0) > 0){
+        he100_min += (calc.totalMin || 0);
+      }
+    }
+    else{
+      he50_min += (calc.creditoMin || 0);
 
-// Folga programada: se trabalhou -> HE100 | se não -> nada
-else if(folgaProgramada){
-  if((calc.totalMin || 0) > 0){
-    he100_min += (calc.totalMin || 0);
-  }
-}
-
-// Dia normal: crédito vira HE50 e diferença vira falta
-else{
-  he50_min += (calc.creditoMin || 0);
-
-  const faltaDia = Math.max(
-    0,
-    (calc.jornadaEscala || 0) - (calc.totalMin || 0)
-  );
-  faltas_min += faltaDia;
-}
+      const faltaDia = Math.max(
+        0,
+        (calc.jornadaEscala || 0) - (calc.totalMin || 0)
+      );
+      faltas_min += faltaDia;
+    }
 
     d.setDate(d.getDate()+1);
   }
@@ -1844,7 +1790,6 @@ function editarVerba(chave){
   };
 }
 
-/************* Holerite (Print/PDF) *************/
 function preencherHoleritePrint_(){
   const f = folhaState.funcionario || {};
   const a = folhaState.apuracao || {};
@@ -1969,10 +1914,6 @@ async function gerarPDFHolerite(){
 
   doc.save(`holerite_${(f.nome||"funcionario").replaceAll(" ","_")}_${comp||"periodo"}.pdf`);
 }
-
-/************* Inicial (opcional) *************/
-// se quiser, pode setar data início/fim automaticamente
 </script>
 </body>
 </html>
-
