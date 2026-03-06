@@ -1098,7 +1098,6 @@ async function gerarRelatorioMensal(){
       <td>${conteudoSaidaAlm}</td>
       <td>${conteudoRetorno}</td>
       <td>${conteudoSaida}</td>
-
       <td id="total_${dBR}" class="verde">${totalTxt}</td>
       <td id="escala_${dBR}">${escExibir}</td>
       <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
@@ -1217,7 +1216,6 @@ function limparModalFuncionario_(){
   set("novoPis","");
   set("novoSetor","");
   set("novoLocal","");
-
   set("novoCpf","");
   set("novoSalarioBase","");
   set("novoAdmissao","");
@@ -1232,7 +1230,6 @@ function limparModalFuncionario_(){
   set("novoPrevCompl","");
   set("novoOutrosProv","");
   set("novoOutrosDesc","");
-
   set("escSeg","08:00");
   set("escTer","08:00");
   set("escQua","08:00");
@@ -1250,12 +1247,10 @@ function preencherModalFuncionario_(f){
   set("novoNome",   f.nome || f.nomeCompleto || "");
   set("novoUser",   f.usuario_login || f.usuario || "");
   set("novoPass",   f.senha || "");
-
   set("novoCargo",  f.cargo || "");
   set("novoPis",    f.pis || "");
   set("novoSetor",  f.setor || "");
   set("novoLocal",  f.local_trabalho || f.localTrabalho || "");
-
   set("novoCpf", f.cpf || "");
   set("novoSalarioBase", f.salario_base || "");
   set("novoHorasMensais", f.horas_mensais || "");
@@ -1268,7 +1263,6 @@ function preencherModalFuncionario_(f){
   set("novoPrevCompl", f.prev_complementar || "");
   set("novoOutrosProv", f.outros_proventos_padrao || "");
   set("novoOutrosDesc", f.outros_descontos_padrao || "");
-
   set("novoAdmissao", brToISODate_(f.data_admissao || ""));
 
   const vt = String(f.vt_usa || "").trim().toLowerCase();
@@ -1328,7 +1322,6 @@ async function salvarFuncionario(){
     setor: document.getElementById("novoSetor").value.trim(),
     local_trabalho: document.getElementById("novoLocal").value.trim(),
     role: "operacional",
-
     cpf: document.getElementById("novoCpf").value.trim(),
     salario_base: document.getElementById("novoSalarioBase").value.trim(),
     data_admissao: admBR,
@@ -1343,7 +1336,6 @@ async function salvarFuncionario(){
     prev_complementar: document.getElementById("novoPrevCompl").value.trim(),
     outros_proventos_padrao: document.getElementById("novoOutrosProv").value.trim(),
     outros_descontos_padrao: document.getElementById("novoOutrosDesc").value.trim(),
-
     escSeg: document.getElementById("escSeg").value.trim(),
     escTer: document.getElementById("escTer").value.trim(),
     escQua: document.getElementById("escQua").value.trim(),
@@ -1577,19 +1569,13 @@ async function carregarFolha(){
       if((calc.totalMin || 0) > 0){
         he100_min += (calc.totalMin || 0);
       }
-    }
-    else if(folgaProgramada){
+    } else if(folgaProgramada){
       if((calc.totalMin || 0) > 0){
         he100_min += (calc.totalMin || 0);
       }
-    }
-    else{
+    } else {
       he50_min += (calc.creditoMin || 0);
-
-      const faltaDia = Math.max(
-        0,
-        (calc.jornadaEscala || 0) - (calc.totalMin || 0)
-      );
+      const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
       faltas_min += faltaDia;
     }
 
@@ -1689,9 +1675,7 @@ function renderLinhaVerba_(grupo, item){
   if(item.key === "outros_descontos"){ val = c.outrosDesc; }
 
   const isEditavel = (item.key === "outros_proventos" || item.key === "outros_descontos");
-  const btn = isEditavel
-    ? ` <button class="mini" onclick="editarVerba('${item.key}')">Editar</button>`
-    : "";
+  const btn = isEditavel ? ` <button class="mini" onclick="editarVerba('${item.key}')">Editar</button>` : "";
 
   return `<tr>
     <td style="text-align:left">${item.label}${btn}</td>
@@ -1824,7 +1808,6 @@ function preencherHoleritePrint_(){
     if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
     if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
     if(item.key==="outros_proventos") val=c.outrosProv;
-
     if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
     if(item.key==="inss") val=c.inss;
     if(item.key==="irrf") val=c.irrf;
@@ -1891,7 +1874,6 @@ async function gerarPDFHolerite(){
   doc.setFontSize(9);
   doc.text(`Competência: ${comp}`, 14, 20);
   doc.text(`Período: ${p.iniBR} até ${p.fimBR}`, 14, 25);
-
   doc.text(`Nome: ${f.nome||""}`, 14, 32);
   doc.text(`CPF: ${f.cpf||""}   PIS: ${f.pis||""}`, 14, 37);
   doc.text(`Cargo: ${f.cargo||""}   Setor: ${f.setor||""}`, 14, 42);
@@ -1909,7 +1891,6 @@ async function gerarPDFHolerite(){
   doc.setFontSize(9);
   doc.text(`Base IR: ${moeda(c.base_ir)}`, 14, y);
   doc.text(`Base FGTS: ${moeda(c.base_fgts)}  |  Guia FGTS (8%): ${moeda(c.fgts_guia)}`, 14, y+5);
-
   doc.text("Assinatura do empregado: ________________________________", 14, y+18);
 
   doc.save(`holerite_${(f.nome||"funcionario").replaceAll(" ","_")}_${comp||"periodo"}.pdf`);
