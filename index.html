@@ -362,7 +362,7 @@
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
+const WEBAPP_URL = "COLE_AQUI_SUA_URL_DO_WEBAPP";
 
 let users = {};
 let currentUser = null;
@@ -558,6 +558,15 @@ function diaSemMarcacao_(regDia){
     regDia.saida_evento
   );
   return !temHora && !temEvento;
+}
+
+function temRegistroEfetivoNoDia_(regDia){
+  const ent = formataHoraCelula(regDia?.entrada);
+  const sAl = formataHoraCelula(regDia?.saidaAlmoco);
+  const ret = formataHoraCelula(regDia?.retornoAlmoco);
+  const sai = formataHoraCelula(regDia?.saida);
+  const horas = [ent, sAl, ret, sai].filter(v => v && v !== "-" && v !== "FOLGA");
+  return horas.length > 0;
 }
 
 function eventoAutomaticoIntermitente_(u, regDia){
@@ -1188,6 +1197,7 @@ async function gerarRelatorioMensal(){
 
   let somaTotalMin = 0;
   let somaCreditoMin = 0;
+  let quantidadeDiarias = 0;
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
@@ -1200,6 +1210,7 @@ async function gerarRelatorioMensal(){
 
     somaTotalMin += calc.totalMin;
     somaCreditoMin += (calc.creditoMin || 0);
+    if(temRegistroEfetivoNoDia_(dadosAtual)) quantidadeDiarias++;
 
     const escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
 
@@ -1268,6 +1279,7 @@ async function gerarRelatorioMensal(){
   }
 
   html += `</tr></table>
+    <p><b>Quantidade de diárias:</b> ${quantidadeDiarias}</p>
     <p>Assinatura do Funcionário: _____________________</p>`;
 
   document.getElementById("cartaoFuncionario").innerHTML = html;
@@ -1275,6 +1287,15 @@ async function gerarRelatorioMensal(){
   if(!document.getElementById("folhaBox").classList.contains("hidden")){
     preencherTopoFolha_();
   }
+}
+
+function limparIntermitenteDoClonePDF_(tabelaClone){
+  [...tabelaClone.querySelectorAll("td")].forEach(td=>{
+    const txt = (td.textContent || "").trim().toLowerCase();
+    if(txt === "intermitente editar" || txt === "intermitente"){
+      td.innerHTML = "";
+    }
+  });
 }
 
 function gerarExcel(){
@@ -1309,6 +1330,10 @@ function gerarExcel(){
     linhas.push(row);
   });
 
+  const extra = document.querySelector("#cartaoFuncionario p b");
+  const qtdMatch = document.getElementById("cartaoFuncionario").innerText.match(/Quantidade de diárias:\s*(\d+)/i);
+  if(qtdMatch) linhas.push(["Quantidade de diárias", qtdMatch[1]]);
+
   const ws = XLSX.utils.aoa_to_sheet(linhas);
   XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
   XLSX.writeFile(wb, "cartao_ponto.xlsx");
@@ -1341,10 +1366,17 @@ async function gerarPDFAdmin(){
     [...clone.querySelectorAll("td")].forEach(td=>{
       td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
     });
+    limparIntermitenteDoClonePDF_(clone);
   }
 
   doc.autoTable({startY:30,html:clone});
-  doc.text("Assinatura do Funcionário: ______________________",14,doc.lastAutoTable.finalY+10);
+
+  const qtdMatch = document.getElementById("cartaoFuncionario").innerText.match(/Quantidade de diárias:\s*(\d+)/i);
+  const qtdDiarias = qtdMatch ? qtdMatch[1] : "0";
+
+  const yBase = (doc.lastAutoTable?.finalY || 120) + 8;
+  doc.text(`Quantidade de diárias: ${qtdDiarias}`,14,yBase);
+  doc.text("Assinatura do Funcionário: ______________________",14,yBase+10);
   doc.save("cartao_ponto.pdf");
 }
 
@@ -2310,4 +2342,3 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
-
