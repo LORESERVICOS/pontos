@@ -362,7 +362,7 @@
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
+const WEBAPP_URL = "COLE_AQUI_SUA_URL_DO_WEBAPP";
 
 let users = {};
 let currentUser = null;
@@ -382,7 +382,7 @@ const justificativas = [
   "Nenhum","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
   "Atestado Médico Dias","Atestado Médico Horas",
   "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado",
-  "Intermite"
+  "Intermitente"
 ];
 
 async function apiPost(payload){
@@ -562,7 +562,7 @@ function diaSemMarcacao_(regDia){
 
 function eventoAutomaticoIntermitente_(u, regDia){
   if(!isIntermitente_(u)) return "";
-  if(diaSemMarcacao_(regDia)) return "Intermite";
+  if(diaSemMarcacao_(regDia)) return "Intermitente";
   return "";
 }
 
@@ -617,13 +617,15 @@ function calcAdicionalNoturnoMinDia_(regDia){
 }
 
 function getEventoDominanteDia_(regDia){
-  return (
+  const ev = (
     regDia?.entrada_evento ||
     regDia?.saidaAlmoco_evento ||
     regDia?.retornoAlmoco_evento ||
     regDia?.saida_evento ||
     ""
   );
+  if(String(ev).trim().toLowerCase() === "intermite") return "Intermitente";
+  return ev;
 }
 
 async function login(){
@@ -1003,7 +1005,13 @@ function atualizarLinhaUI_(u, dBR, dateObj){
     const span = document.getElementById(`cell_${dBR}_${c}`);
     if(!span) return;
     dadosAtual = reg;
-    span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
+
+    const eventoAuto = eventoAutomaticoIntermitente_(u, reg);
+    if(eventoAuto && !reg[c] && !reg[c+"_evento"]){
+      span.innerHTML = `Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','${c}')">Editar</button>`;
+    } else {
+      span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
+    }
   });
 
   const tdTotal = document.getElementById(`total_${dBR}`);
@@ -1037,7 +1045,11 @@ async function abrirAjuste(u,d,c){
       <label>Justificar</label>
       <select id="selectJustificacao">
         <option value="">--Escolha--</option>
-        ${justificativas.map(j=>`<option value="${j}" ${String(atual[c+"_evento"]||"")===j?'selected':''}>${j}</option>`).join("")}
+        ${justificativas.map(j=>{
+          const evAtual = String(atual[c+"_evento"] || "").trim();
+          const evNorm = evAtual.toLowerCase() === "intermite" ? "Intermitente" : evAtual;
+          return `<option value="${j}" ${evNorm===j?'selected':''}>${j}</option>`;
+        }).join("")}
       </select>
       <div class="modalActions">
         <button class="btn-sec" id="cancelBtn">Cancelar</button>
@@ -1176,7 +1188,6 @@ async function gerarRelatorioMensal(){
 
   let somaTotalMin = 0;
   let somaCreditoMin = 0;
-
   let currentDate = new Date(inicio);
 
   while(currentDate <= fim){
@@ -1204,10 +1215,10 @@ async function gerarRelatorioMensal(){
     const eventoAutoIntermitente = eventoAutomaticoIntermitente_(u, dadosAtual);
 
     if(eventoAutoIntermitente){
-      conteudoEntrada = "Intermite";
-      conteudoSaidaAlm = "Intermite";
-      conteudoRetorno  = "Intermite";
-      conteudoSaida    = "Intermite";
+      conteudoEntrada = `<span id="cell_${dBR}_entrada">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','entrada')">Editar</button></span>`;
+      conteudoSaidaAlm = `<span id="cell_${dBR}_saidaAlmoco">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','saidaAlmoco')">Editar</button></span>`;
+      conteudoRetorno = `<span id="cell_${dBR}_retornoAlmoco">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','retornoAlmoco')">Editar</button></span>`;
+      conteudoSaida = `<span id="cell_${dBR}_saida">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','saida')">Editar</button></span>`;
     } else if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !dadosAtual.entrada_evento){
       conteudoEntrada = "FOLGA";
       conteudoSaidaAlm = "FOLGA";
@@ -1711,7 +1722,7 @@ async function carregarFolha(){
     somaCreditoMin += (calc.creditoMin || 0);
 
     if((calc.totalMin || 0) > 0) diasTrabalhados++;
-    if(eventoDominante === "Intermite" || eventoAutoIntermitente === "Intermite") diasComEventoIntermitente++;
+    if(eventoDominante === "Intermitente" || eventoAutoIntermitente === "Intermitente") diasComEventoIntermitente++;
 
     heNoturno_min += calcAdicionalNoturnoMinDia_(diaObj);
 
@@ -2299,4 +2310,3 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
-
