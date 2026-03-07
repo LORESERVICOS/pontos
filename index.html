@@ -206,6 +206,21 @@
     <input id="novoSalarioBase" placeholder="Ex: 1500 ou 1.500,00">
   </label><br>
 
+  <label>Tipo de Contrato:<br>
+    <select id="novoTipoContrato">
+      <option value="mensal">mensal</option>
+      <option value="intermitente">intermitente</option>
+    </select>
+  </label><br>
+
+  <label>Valor Hora Intermitente (R$):<br>
+    <input id="novoValorHoraIntermitente" placeholder="Ex: 9,31">
+  </label><br>
+
+  <label>% Adicional Noturno:<br>
+    <input id="novoAdicionalNoturnoPercent" placeholder="Ex: 20">
+  </label><br>
+
   <label>Data de Admissão:<br>
     <input id="novoAdmissao" type="date">
   </label><br>
@@ -347,7 +362,7 @@
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
+const WEBAPP_URL = "COLE_AQUI_SUA_URL_DO_WEBAPP";
 
 let users = {};
 let currentUser = null;
@@ -366,7 +381,8 @@ const feriados = ["01/01","07/09","25/12"];
 const justificativas = [
   "Nenhum","Férias","Falta Justificada","Falta Injustificada","Falta Abonada",
   "Atestado Médico Dias","Atestado Médico Horas",
-  "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado"
+  "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado",
+  "Intermite"
 ];
 
 async function apiPost(payload){
@@ -507,6 +523,109 @@ function montarObjetoSemVazios_(obj){
   return out;
 }
 
+function normalizaTipoContrato(v){
+  const s = String(v || "").trim().toLowerCase();
+  return s === "intermitente" ? "intermitente" : "mensal";
+}
+
+function getTipoContratoUsuario_(u){
+  const uo = users[u] || {};
+  return normalizaTipoContrato(
+    uo.tipoContrato ||
+    uo.tipo_contrato ||
+    uo.contrato ||
+    currentUserObj?.tipo_contrato ||
+    "mensal"
+  );
+}
+
+function isIntermitente_(u){
+  return getTipoContratoUsuario_(u) === "intermitente";
+}
+
+function diaSemMarcacao_(regDia){
+  if(!regDia) return true;
+  const temHora = !!(
+    formataHoraCelula(regDia.entrada) ||
+    formataHoraCelula(regDia.saidaAlmoco) ||
+    formataHoraCelula(regDia.retornoAlmoco) ||
+    formataHoraCelula(regDia.saida)
+  );
+  const temEvento = !!(
+    regDia.entrada_evento ||
+    regDia.saidaAlmoco_evento ||
+    regDia.retornoAlmoco_evento ||
+    regDia.saida_evento
+  );
+  return !temHora && !temEvento;
+}
+
+function eventoAutomaticoIntermitente_(u, regDia){
+  if(!isIntermitente_(u)) return "";
+  if(diaSemMarcacao_(regDia)) return "Intermite";
+  return "";
+}
+
+function contarDiasDSRNoPeriodo_(ini, fim){
+  let uteis = 0;
+  let dsr = 0;
+  let d = new Date(ini);
+  while(d <= fim){
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const ddmm = `${dd}/${mm}`;
+    const ehFeriado = feriados.includes(ddmm);
+    const diaSemana = d.getDay();
+    if(diaSemana === 0 || ehFeriado) dsr++;
+    else uteis++;
+    d.setDate(d.getDate()+1);
+  }
+  return { uteis, dsr };
+}
+
+function minutosSobrepostos_(aIni, aFim, bIni, bFim){
+  const ini = Math.max(aIni, bIni);
+  const fim = Math.min(aFim, bFim);
+  return Math.max(0, fim - ini);
+}
+
+function calcAdicionalNoturnoMinDia_(regDia){
+  const ent = formataHoraCelula(regDia?.entrada);
+  const sAl = formataHoraCelula(regDia?.saidaAlmoco);
+  const ret = formataHoraCelula(regDia?.retornoAlmoco);
+  const sai = formataHoraCelula(regDia?.saida);
+
+  if(!ent || !sai) return 0;
+
+  const segmentos = [];
+  if(ent && sAl && ret && sai){
+    segmentos.push([hm(ent), hm(sAl)]);
+    segmentos.push([hm(ret), hm(sai)]);
+  } else if(ent && sai){
+    segmentos.push([hm(ent), hm(sai)]);
+  }
+
+  let total = 0;
+  segmentos.forEach(([ini, fim])=>{
+    let iniAdj = ini;
+    let fimAdj = fim;
+    if(fimAdj < iniAdj) fimAdj += 24*60;
+    total += minutosSobrepostos_(iniAdj, fimAdj, 22*60, 24*60);
+    total += minutosSobrepostos_(iniAdj, fimAdj, 24*60, 29*60);
+  });
+  return total;
+}
+
+function getEventoDominanteDia_(regDia){
+  return (
+    regDia?.entrada_evento ||
+    regDia?.saidaAlmoco_evento ||
+    regDia?.retornoAlmoco_evento ||
+    regDia?.saida_evento ||
+    ""
+  );
+}
+
 async function login(){
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
@@ -548,6 +667,9 @@ async function login(){
     cargo: user.cargo || "",
     setor: user.setor || "",
     localTrabalho: user.local_trabalho || "",
+    tipoContrato: normalizaTipoContrato(user.tipo_contrato || "mensal"),
+    valorHoraIntermitente: user.valor_hora_intermitente || "",
+    adicionalNoturnoPercent: user.adicional_noturno_percent || "",
     escalaMensal: {},
     escalaSemanal: esc
   };
@@ -572,6 +694,7 @@ async function carregarUsuariosAdmin(){
   try{
     const res = await apiPost({ tipo:"listarUsuarios" });
     if(res.status !== "ok") return;
+
     (res.usuarios || []).forEach(u=>{
       const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
       if(!loginKey) return;
@@ -593,6 +716,9 @@ async function carregarUsuariosAdmin(){
         cargo: u.cargo || "",
         setor: u.setor || "",
         localTrabalho: u.local_trabalho || "",
+        tipoContrato: normalizaTipoContrato(u.tipo_contrato || "mensal"),
+        valorHoraIntermitente: u.valor_hora_intermitente || "",
+        adicionalNoturnoPercent: u.adicional_noturno_percent || "",
         escalaMensal: {},
         escalaSemanal: esc
       };
@@ -1075,7 +1201,14 @@ async function gerarRelatorioMensal(){
       dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
 
     let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
-    if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !dadosAtual.entrada_evento){
+    const eventoAutoIntermitente = eventoAutomaticoIntermitente_(u, dadosAtual);
+
+    if(eventoAutoIntermitente){
+      conteudoEntrada = "Intermite";
+      conteudoSaidaAlm = "Intermite";
+      conteudoRetorno  = "Intermite";
+      conteudoSaida    = "Intermite";
+    } else if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !dadosAtual.entrada_evento){
       conteudoEntrada = "FOLGA";
       conteudoSaidaAlm = "FOLGA";
       conteudoRetorno  = "FOLGA";
@@ -1110,7 +1243,6 @@ async function gerarRelatorioMensal(){
     }
 
     html += `</tr>`;
-
     currentDate.setDate(currentDate.getDate()+1);
   }
 
@@ -1218,6 +1350,9 @@ function limparModalFuncionario_(){
   set("novoLocal","");
   set("novoCpf","");
   set("novoSalarioBase","");
+  set("novoTipoContrato","mensal");
+  set("novoValorHoraIntermitente","");
+  set("novoAdicionalNoturnoPercent","20");
   set("novoAdmissao","");
   set("novoHorasMensais","");
   set("novoDepMenor14","");
@@ -1253,6 +1388,9 @@ function preencherModalFuncionario_(f){
   set("novoLocal",  f.local_trabalho || f.localTrabalho || "");
   set("novoCpf", f.cpf || "");
   set("novoSalarioBase", f.salario_base || "");
+  set("novoTipoContrato", normalizaTipoContrato(f.tipo_contrato || "mensal"));
+  set("novoValorHoraIntermitente", f.valor_hora_intermitente || "");
+  set("novoAdicionalNoturnoPercent", f.adicional_noturno_percent || "");
   set("novoHorasMensais", f.horas_mensais || "");
   set("novoDepMenor14", f.dep_menor14 || "");
   set("novoDepMaior14", f.dep_maior14 || "");
@@ -1324,6 +1462,9 @@ async function salvarFuncionario(){
     role: "operacional",
     cpf: document.getElementById("novoCpf").value.trim(),
     salario_base: document.getElementById("novoSalarioBase").value.trim(),
+    tipo_contrato: document.getElementById("novoTipoContrato").value.trim(),
+    valor_hora_intermitente: document.getElementById("novoValorHoraIntermitente").value.trim(),
+    adicional_noturno_percent: document.getElementById("novoAdicionalNoturnoPercent").value.trim(),
     data_admissao: admBR,
     horas_mensais: document.getElementById("novoHorasMensais").value.trim(),
     dep_menor14: document.getElementById("novoDepMenor14").value.trim(),
@@ -1403,8 +1544,9 @@ function salvarEscalaMensal(){
 
 let folhaState = {
   funcionario: {},
+  tipoContrato: "mensal",
   periodo: { iniBR:"", fimBR:"", ini:null, fim:null },
-  apuracao: { totalMin:0, creditoMin:0, he50_min:0, he100_min:0, faltas_min:0 },
+  apuracao: { totalMin:0, creditoMin:0, he50_min:0, he100_min:0, heNoturno_min:0, faltas_min:0, diasTrabalhados:0 },
   verbas: {
     proventos: [
       { key:"salario_base", label:"Salário Base", tipo:"fixo" },
@@ -1526,6 +1668,7 @@ async function carregarFolha(){
   if(!cad || cad.status !== "ok"){ msg.textContent = cad?.message || "Erro ao buscar cadastro."; return; }
   const f = cad.funcionario || {};
   folhaState.funcionario = f;
+  folhaState.tipoContrato = normalizaTipoContrato(f.tipo_contrato || users[u]?.tipoContrato || "mensal");
 
   folhaState.valoresFixos.outros_proventos = parseNumeroBR(f.outros_proventos_padrao);
   folhaState.valoresFixos.outros_descontos = parseNumeroBR(f.outros_descontos_padrao);
@@ -1551,32 +1694,53 @@ async function carregarFolha(){
   let somaCreditoMin = 0;
   let he50_min = 0;
   let he100_min = 0;
+  let heNoturno_min = 0;
   let faltas_min = 0;
+  let diasTrabalhados = 0;
+  let diasComEventoIntermitente = 0;
 
   let d = new Date(ini);
   while(d <= fim){
     const dBR = dateToBR_(d);
     const diaObj = registros[dBR] || {};
     const calc = calcularLinhaDia_(u, diaObj, d);
+    const eventoDominante = getEventoDominanteDia_(diaObj);
+    const eventoAutoIntermitente = eventoAutomaticoIntermitente_(u, diaObj);
+
     somaTotalMin += calc.totalMin;
     somaCreditoMin += (calc.creditoMin || 0);
+
+    if((calc.totalMin || 0) > 0) diasTrabalhados++;
+    if(eventoDominante === "Intermite" || eventoAutoIntermitente === "Intermite") diasComEventoIntermitente++;
+
+    heNoturno_min += calcAdicionalNoturnoMinDia_(diaObj);
 
     const ddmm = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
     const ehFeriadoLista = feriados.includes(ddmm);
     const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
 
-    if(ehFeriadoLista){
-      if((calc.totalMin || 0) > 0){
-        he100_min += (calc.totalMin || 0);
-      }
-    } else if(folgaProgramada){
-      if((calc.totalMin || 0) > 0){
-        he100_min += (calc.totalMin || 0);
+    if(folhaState.tipoContrato === "intermitente"){
+      if(ehFeriadoLista || folgaProgramada){
+        if((calc.totalMin || 0) > 0){
+          he100_min += (calc.totalMin || 0);
+        }
+      } else {
+        he50_min += (calc.creditoMin || 0);
       }
     } else {
-      he50_min += (calc.creditoMin || 0);
-      const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
-      faltas_min += faltaDia;
+      if(ehFeriadoLista){
+        if((calc.totalMin || 0) > 0){
+          he100_min += (calc.totalMin || 0);
+        }
+      } else if(folgaProgramada){
+        if((calc.totalMin || 0) > 0){
+          he100_min += (calc.totalMin || 0);
+        }
+      } else {
+        he50_min += (calc.creditoMin || 0);
+        const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
+        faltas_min += faltaDia;
+      }
     }
 
     d.setDate(d.getDate()+1);
@@ -1587,7 +1751,10 @@ async function carregarFolha(){
     creditoMin: somaCreditoMin,
     he50_min,
     he100_min,
-    faltas_min
+    heNoturno_min,
+    faltas_min,
+    diasTrabalhados,
+    diasComEventoIntermitente
   };
 
   recalcularFolha_();
@@ -1596,6 +1763,7 @@ async function carregarFolha(){
 function recalcularFolha_(){
   const f = folhaState.funcionario || {};
   const a = folhaState.apuracao || {};
+  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || f.tipo_contrato || "mensal");
 
   const salarioBase = parseNumeroBR(f.salario_base);
   const horasMensais = parseNumeroBR(f.horas_mensais) || 220;
@@ -1616,12 +1784,80 @@ function recalcularFolha_(){
   const outrosProv = Number(folhaState.valoresFixos.outros_proventos || 0);
   const outrosDesc = Number(folhaState.valoresFixos.outros_descontos || 0);
 
-  const valorHora = horasMensais ? (salarioBase / horasMensais) : 0;
+  if(tipoContrato === "intermitente"){
+    const usuarioSel = document.getElementById("funcionarioSelect").value;
+    const valorHora = parseNumeroBR(f.valor_hora_intermitente || users[usuarioSel]?.valorHoraIntermitente || 0);
+    const adicionalNoturnoPercent = parseNumeroBR(f.adicional_noturno_percent || users[usuarioSel]?.adicionalNoturnoPercent || 20) || 20;
 
+    const horasTotais = (a.totalMin || 0) / 60;
+    const horasHE50 = (a.he50_min || 0) / 60;
+    const horasHE100 = (a.he100_min || 0) / 60;
+    const horasNoturnas = (a.heNoturno_min || 0) / 60;
+
+    const remunHoras = horasTotais * valorHora;
+    const adicHE50 = horasHE50 * valorHora * 0.5;
+    const adicHE100 = horasHE100 * valorHora * 1.0;
+    const adicNoturno = horasNoturnas * valorHora * (adicionalNoturnoPercent / 100);
+
+    const refsDSR = contarDiasDSRNoPeriodo_(folhaState.periodo.ini, folhaState.periodo.fim);
+    const baseVariavelDSR = remunHoras + adicHE50 + adicHE100 + adicNoturno;
+    const dsr = (refsDSR.uteis > 0) ? ((baseVariavelDSR / refsDSR.uteis) * refsDSR.dsr) : 0;
+
+    const baseFerias13 = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr;
+    const feriasProp = baseFerias13 / 12;
+    const umTercoFerias = feriasProp / 3;
+    const decimoTerceiroProp = baseFerias13 / 12;
+
+    const bruto = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr + feriasProp + umTercoFerias + decimoTerceiroProp + outrosProv;
+    const inss = calcINSS2026(bruto);
+
+    const dedDep = depIR * 189.59;
+    const descSimpl = 607.20;
+    const dedLegais = inss + dedDep + pensao + prevCompl;
+    const dedUsada = Math.max(dedLegais, descSimpl);
+
+    const base_ir = Math.max(0, bruto - dedUsada);
+    const irAntes = calcIRRFBase2025(base_ir);
+    const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
+
+    const vt = vtUsa ? ((Math.max(0, Math.min(6, vtPercent)) / 100) * remunHoras) : 0;
+    const faltas_val = 0;
+    const descontos = faltas_val + inss + irrf + vt + outrosDesc;
+    const liquido = bruto - descontos;
+    const base_fgts = bruto;
+    const fgts_guia = round2(base_fgts * 0.08);
+
+    folhaState.calculado = {
+      modo: "intermitente",
+      salarioBase: 0,
+      horasMensais: 0,
+      valorHora,
+      adicionalNoturnoPercent,
+      depIR, vtUsa, vtPercent,
+      outrosProv, outrosDesc,
+      he50_val: adicHE50,
+      he100_val: adicHE100,
+      heNoturno_val: adicNoturno,
+      remunHoras,
+      dsr,
+      feriasProp,
+      umTercoFerias,
+      decimoTerceiroProp,
+      faltas_val,
+      bruto, inss, base_ir, irrf, vt,
+      descontos, liquido,
+      base_fgts, fgts_guia,
+      dedDep, dedUsada
+    };
+
+    renderFolha_();
+    return;
+  }
+
+  const valorHora = horasMensais ? (salarioBase / horasMensais) : 0;
   const he50_val = (a.he50_min/60) * valorHora * 1.5;
   const he100_val = (a.he100_min/60) * valorHora * 2.0;
   const faltas_val = (a.faltas_min/60) * valorHora;
-
   const bruto = salarioBase + he50_val + he100_val + outrosProv;
   const inss = calcINSS2026(bruto);
 
@@ -1635,14 +1871,13 @@ function recalcularFolha_(){
   const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
 
   const vt = (Math.max(0, Math.min(6, vtPercent)) / 100) * salarioBase;
-
   const descontos = faltas_val + inss + irrf + vt + outrosDesc;
   const liquido = bruto - descontos;
-
   const base_fgts = bruto;
   const fgts_guia = round2(base_fgts * 0.08);
 
   folhaState.calculado = {
+    modo: "mensal",
     salarioBase, horasMensais, valorHora,
     depIR, vtUsa, vtPercent,
     outrosProv, outrosDesc,
@@ -1690,6 +1925,139 @@ function renderFolha_(){
   const a = folhaState.apuracao || {};
   const c = folhaState.calculado || {};
   const p = folhaState.periodo || {};
+  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || f.tipo_contrato || "mensal");
+
+  if(tipoContrato === "intermitente"){
+    document.getElementById("folhaCadastro").innerHTML = `
+      <b>Cadastro (FUNCIONARIOS)</b><br>
+      Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>
+      Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>
+      Tipo de contrato: <b>INTERMITENTE</b><br>
+      Valor hora intermitente: <b>${moeda(c.valorHora||0)}</b> • Adic. noturno: <b>${c.adicionalNoturnoPercent || 20}%</b><br>
+      Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa ? (c.vtPercent||6) : 0}%</b>
+    `;
+
+    document.getElementById("folhaResultado").innerHTML = `
+      <b>Apuração do período (INTERMITENTE)</b><br>
+      Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>
+      Total trabalhado: <b>${horas(a.totalMin)}</b><br>
+      HE 50%: <b>${horas(a.he50_min)}</b> • HE 100%: <b>${horas(a.he100_min)}</b> • Noturno: <b>${horas(a.heNoturno_min)}</b><br>
+      Dias trabalhados: <b>${a.diasTrabalhados || 0}</b><br><br>
+
+      <table id="tabelaFolha">
+        <tr>
+          <th style="text-align:left">Descrição</th>
+          <th>Ref.</th>
+          <th>Proventos</th>
+          <th>Descontos</th>
+        </tr>
+        <tr>
+          <td style="text-align:left">Remuneração horas trabalhadas</td>
+          <td>${horas(a.totalMin)}</td>
+          <td>${moeda(c.remunHoras)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">Adicional HE 50%</td>
+          <td>${horas(a.he50_min)}</td>
+          <td>${moeda(c.he50_val)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">Adicional HE 100%</td>
+          <td>${horas(a.he100_min)}</td>
+          <td>${moeda(c.he100_val)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">Adicional Noturno</td>
+          <td>${horas(a.heNoturno_min)}</td>
+          <td>${moeda(c.heNoturno_val)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">DSR sobre verbas variáveis</td>
+          <td></td>
+          <td>${moeda(c.dsr)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">Férias proporcionais</td>
+          <td>1/12</td>
+          <td>${moeda(c.feriasProp)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">1/3 férias proporcionais</td>
+          <td>1/3</td>
+          <td>${moeda(c.umTercoFerias)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">13º proporcional</td>
+          <td>1/12</td>
+          <td>${moeda(c.decimoTerceiroProp)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="text-align:left">Outros Proventos <button class="mini" onclick="editarVerba('outros_proventos')">Editar</button></td>
+          <td></td>
+          <td>${moeda(c.outrosProv)}</td>
+          <td></td>
+        </tr>
+
+        <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
+
+        <tr>
+          <td style="text-align:left">INSS</td>
+          <td></td>
+          <td></td>
+          <td>${moeda(c.inss)}</td>
+        </tr>
+        <tr>
+          <td style="text-align:left">IRRF</td>
+          <td></td>
+          <td></td>
+          <td>${moeda(c.irrf)}</td>
+        </tr>
+        <tr>
+          <td style="text-align:left">Vale Transporte</td>
+          <td>${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td>
+          <td></td>
+          <td>${moeda(c.vt)}</td>
+        </tr>
+        <tr>
+          <td style="text-align:left">Outros Descontos <button class="mini" onclick="editarVerba('outros_descontos')">Editar</button></td>
+          <td></td>
+          <td></td>
+          <td>${moeda(c.outrosDesc)}</td>
+        </tr>
+
+        <tr>
+          <th style="text-align:left">TOTAL</th>
+          <th></th>
+          <th>${moeda(c.bruto)}</th>
+          <th>${moeda(c.descontos)}</th>
+        </tr>
+        <tr>
+          <th style="text-align:left">LÍQUIDO A RECEBER</th>
+          <th></th>
+          <th colspan="2">${moeda(c.liquido)}</th>
+        </tr>
+      </table>
+
+      <p class="muted" style="margin-top:8px">
+        Memória de cálculo: Horas trabalhadas × valor hora, com pagamento separado de DSR, férias proporcionais + 1/3 e 13º proporcional, além dos adicionais legais.
+      </p>
+
+      <p class="muted" style="margin-top:8px">
+        Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
+      </p>
+    `;
+
+    preencherHoleritePrint_();
+    return;
+  }
 
   document.getElementById("folhaCadastro").innerHTML = `
     <b>Cadastro (FUNCIONARIOS)</b><br>
@@ -1779,6 +2147,7 @@ function preencherHoleritePrint_(){
   const a = folhaState.apuracao || {};
   const c = folhaState.calculado || {};
   const p = folhaState.periodo || {};
+  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || f.tipo_contrato || "mensal");
 
   const comp = document.getElementById("folhaCompetencia").value || "";
   document.getElementById("hpCompetencia").textContent = comp;
@@ -1792,37 +2161,69 @@ function preencherHoleritePrint_(){
     Admissão: ${f.data_admissao||""}
   `;
 
-  document.getElementById("hpResumo").innerHTML = `
-    <b>Apuração</b><br>
-    Total trabalhado: <b>${horas(a.totalMin)}</b><br>
-    Crédito: <b>${horas(a.creditoMin)}</b><br>
-    Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b>
-  `;
-
-  const provs = folhaState.verbas.proventos.map(v=>({grupo:"P", item:v}));
-  const descs = folhaState.verbas.descontos.map(v=>({grupo:"D", item:v}));
-
-  function getLinha(item, grupo){
-    let ref="", val=0;
-    if(item.key==="salario_base") val=c.salarioBase;
-    if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
-    if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
-    if(item.key==="outros_proventos") val=c.outrosProv;
-    if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
-    if(item.key==="inss") val=c.inss;
-    if(item.key==="irrf") val=c.irrf;
-    if(item.key==="vt"){ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt;}
-    if(item.key==="outros_descontos") val=c.outrosDesc;
-
-    return `<tr>
-      <td>${item.label}</td>
-      <td style="text-align:center">${ref||""}</td>
-      <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
-      <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
-    </tr>`;
+  if(tipoContrato === "intermitente"){
+    document.getElementById("hpResumo").innerHTML = `
+      <b>Apuração</b><br>
+      Tipo: <b>INTERMITENTE</b><br>
+      Total trabalhado: <b>${horas(a.totalMin)}</b><br>
+      HE 50%: <b>${horas(a.he50_min)}</b><br>
+      HE 100%: <b>${horas(a.he100_min)}</b><br>
+      Valor hora: <b>${moeda(c.valorHora||0)}</b>
+    `;
+  } else {
+    document.getElementById("hpResumo").innerHTML = `
+      <b>Apuração</b><br>
+      Total trabalhado: <b>${horas(a.totalMin)}</b><br>
+      Crédito: <b>${horas(a.creditoMin)}</b><br>
+      Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b>
+    `;
   }
 
-  const tbody = provs.map(x=>getLinha(x.item,"P")).join("") + descs.map(x=>getLinha(x.item,"D")).join("");
+  let tbody = "";
+
+  if(tipoContrato === "intermitente"){
+    tbody = `
+      <tr><td>Remuneração horas trabalhadas</td><td style="text-align:center">${horas(a.totalMin)}</td><td style="text-align:right">${moeda(c.remunHoras)}</td><td></td></tr>
+      <tr><td>Adicional HE 50%</td><td style="text-align:center">${horas(a.he50_min)}</td><td style="text-align:right">${moeda(c.he50_val)}</td><td></td></tr>
+      <tr><td>Adicional HE 100%</td><td style="text-align:center">${horas(a.he100_min)}</td><td style="text-align:right">${moeda(c.he100_val)}</td><td></td></tr>
+      <tr><td>Adicional Noturno</td><td style="text-align:center">${horas(a.heNoturno_min)}</td><td style="text-align:right">${moeda(c.heNoturno_val)}</td><td></td></tr>
+      <tr><td>DSR</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.dsr)}</td><td></td></tr>
+      <tr><td>Férias proporcionais</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.feriasProp)}</td><td></td></tr>
+      <tr><td>1/3 férias</td><td style="text-align:center">1/3</td><td style="text-align:right">${moeda(c.umTercoFerias)}</td><td></td></tr>
+      <tr><td>13º proporcional</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.decimoTerceiroProp)}</td><td></td></tr>
+      <tr><td>Outros Proventos</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.outrosProv)}</td><td></td></tr>
+      <tr><td>INSS</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.inss)}</td></tr>
+      <tr><td>IRRF</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.irrf)}</td></tr>
+      <tr><td>Vale Transporte</td><td style="text-align:center">${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td><td></td><td style="text-align:right">${moeda(c.vt)}</td></tr>
+      <tr><td>Outros Descontos</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.outrosDesc)}</td></tr>
+    `;
+  } else {
+    const provs = folhaState.verbas.proventos.map(v=>({grupo:"P", item:v}));
+    const descs = folhaState.verbas.descontos.map(v=>({grupo:"D", item:v}));
+
+    function getLinha(item, grupo){
+      let ref="", val=0;
+      if(item.key==="salario_base") val=c.salarioBase;
+      if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
+      if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
+      if(item.key==="outros_proventos") val=c.outrosProv;
+      if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
+      if(item.key==="inss") val=c.inss;
+      if(item.key==="irrf") val=c.irrf;
+      if(item.key==="vt"){ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt;}
+      if(item.key==="outros_descontos") val=c.outrosDesc;
+
+      return `<tr>
+        <td>${item.label}</td>
+        <td style="text-align:center">${ref||""}</td>
+        <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
+        <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
+      </tr>`;
+    }
+
+    tbody = provs.map(x=>getLinha(x.item,"P")).join("") + descs.map(x=>getLinha(x.item,"D")).join("");
+  }
+
   document.getElementById("hpTabela").innerHTML = tbody;
 
   document.getElementById("hpTotais").innerHTML = `
