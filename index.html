@@ -47,7 +47,7 @@
   .mini{font-size:11px;padding:4px 8px;border-radius:8px}
 
   .modalMask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
-  .modalCard{background:#fff;border-radius:14px;max-width:520px;width:95%;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.2)}
+  .modalCard{background:#fff;border-radius:14px;max-width:560px;width:95%;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.2)}
   .modalCard h3{margin:0 0 10px 0}
   .modalCard label{display:block;margin:8px 0 4px}
   .modalCard input,.modalCard select{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:10px}
@@ -160,7 +160,7 @@
   </div>
 </div>
 
-<div id="modalFuncionario" class="card hidden" style="max-width:500px">
+<div id="modalFuncionario" class="card hidden" style="max-width:560px">
   <h3>Cadastro / Edição de Funcionário</h3>
 
   <label>Código Funcionário:<br>
@@ -362,7 +362,7 @@
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyYhU-CW0rAHd139ZZUBV6ATRl43s8iok2hQ3VxSZv2_Ozyc8ew3y6DsRLpfVkBFJTQ/exec";
+const WEBAPP_URL = "COLE_AQUI_A_URL_DO_SEU_WEBAPP";
 
 let users = {};
 let currentUser = null;
@@ -1330,7 +1330,6 @@ function gerarExcel(){
     linhas.push(row);
   });
 
-  const extra = document.querySelector("#cartaoFuncionario p b");
   const qtdMatch = document.getElementById("cartaoFuncionario").innerText.match(/Quantidade de diárias:\s*(\d+)/i);
   if(qtdMatch) linhas.push(["Quantidade de diárias", qtdMatch[1]]);
 
@@ -1589,10 +1588,19 @@ let folhaState = {
   funcionario: {},
   tipoContrato: "mensal",
   periodo: { iniBR:"", fimBR:"", ini:null, fim:null },
-  apuracao: { totalMin:0, creditoMin:0, he50_min:0, he100_min:0, heNoturno_min:0, faltas_min:0, diasTrabalhados:0 },
-  verbas: {
+  apuracao: {
+    totalMin:0,
+    creditoMin:0,
+    he50_min:0,
+    he100_min:0,
+    heNoturno_min:0,
+    faltas_min:0,
+    diasTrabalhados:0,
+    diasComEventoIntermitente:0
+  },
+  verbasBase: {
     proventos: [
-      { key:"salario_base", label:"Salário Base", tipo:"fixo" },
+      { key:"salario_base", label:"Salário Base", tipo:"calc" },
       { key:"he50", label:"Hora extra 50%", tipo:"calc" },
       { key:"he100", label:"Hora extra 100%", tipo:"calc" },
       { key:"outros_proventos", label:"Outros Proventos", tipo:"fixo" }
@@ -1608,8 +1616,72 @@ let folhaState = {
   valoresFixos: {
     outros_proventos: 0,
     outros_descontos: 0
+  },
+  verbasComplementares: {
+    proventos: [],
+    descontos: []
   }
 };
+
+function getModelosVerbasComplementares_(){
+  return {
+    proventos: [
+      { key:"adicional_noturno", label:"Adicional Noturno", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"insalubridade", label:"Insalubridade", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"periculosidade", label:"Periculosidade", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"comissoes", label:"Comissões", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"dsr_comissao", label:"D.S.R. s/ Comissão", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"salario_familia", label:"Salário Família", valor:0, incidencias:{inss:false, irrf:false, fgts:false} },
+      { key:"ajuda_custo", label:"Ajuda de Custo", valor:0, incidencias:{inss:false, irrf:false, fgts:false} },
+      { key:"diarias", label:"Diárias", valor:0, incidencias:{inss:false, irrf:false, fgts:false} },
+      { key:"premio", label:"Prêmio", valor:0, incidencias:{inss:false, irrf:true, fgts:false} },
+      { key:"gratificacao", label:"Gratificação", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"reembolso", label:"Reembolso", valor:0, incidencias:{inss:false, irrf:false, fgts:false} },
+      { key:"aux_doenca_15", label:"Aux. Doença (15 dias)", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"acidente_trabalho_15", label:"Acidente de Trabalho (15 dias)", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"ferias", label:"Férias", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"um_terco_ferias", label:"1/3 Férias", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"abono_ferias", label:"Abono de Férias Art. 143", valor:0, incidencias:{inss:false, irrf:false, fgts:false} },
+      { key:"um_terco_abono", label:"1/3 s/ Abono de Férias", valor:0, incidencias:{inss:false, irrf:false, fgts:false} },
+      { key:"decimo_terceiro", label:"13º Salário", valor:0, incidencias:{inss:true, irrf:true, fgts:true} },
+      { key:"dif_salario_familia", label:"Dif. Salário Família", valor:0, incidencias:{inss:false, irrf:false, fgts:false} },
+      { key:"arredondamento", label:"Arredondamento", valor:0, incidencias:{inss:false, irrf:false, fgts:false} }
+    ],
+    descontos: [
+      { key:"adiantamento", label:"Adiantamento", valor:0 },
+      { key:"contrib_sindical", label:"Pagto. Contrib. Sindical", valor:0 },
+      { key:"vale_refeicao", label:"Pagto. Vale Refeição", valor:0 },
+      { key:"cesta_basica", label:"Pagto. Cesta Básica", valor:0 },
+      { key:"assist_medica", label:"Pagto. Assist. Médica", valor:0 },
+      { key:"assist_odontologica", label:"Pagto. Assist. Odontológica", valor:0 },
+      { key:"pagto_vt", label:"Pagto. Vale-Transporte", valor:0 }
+    ]
+  };
+}
+
+function resetVerbasComplementares_(){
+  const modelos = getModelosVerbasComplementares_();
+  folhaState.verbasComplementares = {
+    proventos: modelos.proventos.map(v => ({...v, incidencias:{...(v.incidencias||{})}})),
+    descontos: modelos.descontos.map(v => ({...v}))
+  };
+}
+
+function getVerbaComplementar_(grupo, key){
+  const lista = (folhaState.verbasComplementares?.[grupo] || []);
+  return lista.find(v => v.key === key) || null;
+}
+
+function somaVerbasComplementares_(grupo){
+  return (folhaState.verbasComplementares?.[grupo] || []).reduce((acc, v)=> acc + Number(v.valor || 0), 0);
+}
+
+function somaProventosPorIncidencia_(tipoIncidencia){
+  return (folhaState.verbasComplementares?.proventos || []).reduce((acc, v)=>{
+    if(v?.incidencias?.[tipoIncidencia]) acc += Number(v.valor || 0);
+    return acc;
+  }, 0);
+}
 
 function toggleFolha(){
   const box = document.getElementById("folhaBox");
@@ -1715,6 +1787,7 @@ async function carregarFolha(){
 
   folhaState.valoresFixos.outros_proventos = parseNumeroBR(f.outros_proventos_padrao);
   folhaState.valoresFixos.outros_descontos = parseNumeroBR(f.outros_descontos_padrao);
+  resetVerbasComplementares_();
 
   const ini = parseInputDateLocal(di);
   const fim = parseInputDateLocal(df);
@@ -1827,6 +1900,13 @@ function recalcularFolha_(){
   const outrosProv = Number(folhaState.valoresFixos.outros_proventos || 0);
   const outrosDesc = Number(folhaState.valoresFixos.outros_descontos || 0);
 
+  const complProvTotal = somaVerbasComplementares_("proventos");
+  const complDescTotal = somaVerbasComplementares_("descontos");
+
+  const complINSS = somaProventosPorIncidencia_("inss");
+  const complIRRF = somaProventosPorIncidencia_("irrf");
+  const complFGTS = somaProventosPorIncidencia_("fgts");
+
   if(tipoContrato === "intermitente"){
     const usuarioSel = document.getElementById("funcionarioSelect").value;
     const valorHora = parseNumeroBR(f.valor_hora_intermitente || users[usuarioSel]?.valorHoraIntermitente || 0);
@@ -1851,23 +1931,26 @@ function recalcularFolha_(){
     const umTercoFerias = feriasProp / 3;
     const decimoTerceiroProp = baseFerias13 / 12;
 
-    const bruto = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr + feriasProp + umTercoFerias + decimoTerceiroProp + outrosProv;
-    const inss = calcINSS2026(bruto);
+    const brutoBase = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr + feriasProp + umTercoFerias + decimoTerceiroProp + outrosProv;
+    const bruto = brutoBase + complProvTotal;
+
+    const base_inss = brutoBase + complINSS;
+    const inss = calcINSS2026(base_inss);
 
     const dedDep = depIR * 189.59;
     const descSimpl = 607.20;
     const dedLegais = inss + dedDep + pensao + prevCompl;
-    const dedUsada = Math.max(dedLegais, descSimpl);
+    const base_ir = Math.max(0, (brutoBase + complIRRF) - Math.max(dedLegais, descSimpl));
 
-    const base_ir = Math.max(0, bruto - dedUsada);
     const irAntes = calcIRRFBase2025(base_ir);
     const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
 
     const vt = vtUsa ? ((Math.max(0, Math.min(6, vtPercent)) / 100) * remunHoras) : 0;
     const faltas_val = 0;
-    const descontos = faltas_val + inss + irrf + vt + outrosDesc;
+    const descontos = faltas_val + inss + irrf + vt + outrosDesc + complDescTotal;
     const liquido = bruto - descontos;
-    const base_fgts = bruto;
+
+    const base_fgts = brutoBase + complFGTS;
     const fgts_guia = round2(base_fgts * 0.08);
 
     folhaState.calculado = {
@@ -1878,6 +1961,7 @@ function recalcularFolha_(){
       adicionalNoturnoPercent,
       depIR, vtUsa, vtPercent,
       outrosProv, outrosDesc,
+      complProvTotal, complDescTotal,
       he50_val: adicHE50,
       he100_val: adicHE100,
       heNoturno_val: adicNoturno,
@@ -1890,7 +1974,7 @@ function recalcularFolha_(){
       bruto, inss, base_ir, irrf, vt,
       descontos, liquido,
       base_fgts, fgts_guia,
-      dedDep, dedUsada
+      dedDep
     };
 
     renderFolha_();
@@ -1901,22 +1985,26 @@ function recalcularFolha_(){
   const he50_val = (a.he50_min/60) * valorHora * 1.5;
   const he100_val = (a.he100_min/60) * valorHora * 2.0;
   const faltas_val = (a.faltas_min/60) * valorHora;
-  const bruto = salarioBase + he50_val + he100_val + outrosProv;
-  const inss = calcINSS2026(bruto);
+
+  const brutoBase = salarioBase + he50_val + he100_val + outrosProv;
+  const bruto = brutoBase + complProvTotal;
+
+  const base_inss = salarioBase + he50_val + he100_val + outrosProv + complINSS;
+  const inss = calcINSS2026(base_inss);
 
   const dedDep = depIR * 189.59;
   const descSimpl = 607.20;
   const dedLegais = inss + dedDep + pensao + prevCompl;
-  const dedUsada = Math.max(dedLegais, descSimpl);
+  const base_ir = Math.max(0, (salarioBase + he50_val + he100_val + outrosProv + complIRRF) - Math.max(dedLegais, descSimpl));
 
-  const base_ir = Math.max(0, bruto - dedUsada);
   const irAntes = calcIRRFBase2025(base_ir);
   const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
 
   const vt = (Math.max(0, Math.min(6, vtPercent)) / 100) * salarioBase;
-  const descontos = faltas_val + inss + irrf + vt + outrosDesc;
+  const descontos = faltas_val + inss + irrf + vt + outrosDesc + complDescTotal;
   const liquido = bruto - descontos;
-  const base_fgts = bruto;
+
+  const base_fgts = salarioBase + he50_val + he100_val + outrosProv + complFGTS;
   const fgts_guia = round2(base_fgts * 0.08);
 
   folhaState.calculado = {
@@ -1924,19 +2012,20 @@ function recalcularFolha_(){
     salarioBase, horasMensais, valorHora,
     depIR, vtUsa, vtPercent,
     outrosProv, outrosDesc,
+    complProvTotal, complDescTotal,
     he50_val, he100_val, faltas_val,
     bruto, inss, base_ir, irrf, vt,
     descontos, liquido,
     base_fgts, fgts_guia,
-    dedDep, dedUsada
+    dedDep
   };
 
   renderFolha_();
 }
 
 function renderLinhaVerba_(grupo, item){
-  const a = folhaState.apuracao;
-  const c = folhaState.calculado;
+  const a = folhaState.apuracao || {};
+  const c = folhaState.calculado || {};
 
   let ref = "";
   let val = 0;
@@ -1963,12 +2052,31 @@ function renderLinhaVerba_(grupo, item){
   </tr>`;
 }
 
+function renderLinhasVerbasComplementares_(grupo){
+  const lista = folhaState.verbasComplementares?.[grupo] || [];
+  return lista.map(item=>{
+    const val = Number(item.valor || 0);
+    const btn = ` <button class="mini" onclick="editarVerbaComplementar('${grupo}','${item.key}')">Editar</button>`;
+    return `
+      <tr>
+        <td style="text-align:left">${item.label}${btn}</td>
+        <td></td>
+        <td>${grupo==="proventos" ? moeda(val) : ""}</td>
+        <td>${grupo==="descontos" ? moeda(val) : ""}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
 function renderFolha_(){
   const f = folhaState.funcionario || {};
   const a = folhaState.apuracao || {};
   const c = folhaState.calculado || {};
   const p = folhaState.periodo || {};
   const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || f.tipo_contrato || "mensal");
+
+  const linhasComplProv = renderLinhasVerbasComplementares_("proventos");
+  const linhasComplDesc = renderLinhasVerbasComplementares_("descontos");
 
   if(tipoContrato === "intermitente"){
     document.getElementById("folhaCadastro").innerHTML = `
@@ -2049,6 +2157,8 @@ function renderFolha_(){
           <td></td>
         </tr>
 
+        ${linhasComplProv}
+
         <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
 
         <tr>
@@ -2076,6 +2186,8 @@ function renderFolha_(){
           <td>${moeda(c.outrosDesc)}</td>
         </tr>
 
+        ${linhasComplDesc}
+
         <tr>
           <th style="text-align:left">TOTAL</th>
           <th></th>
@@ -2088,10 +2200,6 @@ function renderFolha_(){
           <th colspan="2">${moeda(c.liquido)}</th>
         </tr>
       </table>
-
-      <p class="muted" style="margin-top:8px">
-        Memória de cálculo: Horas trabalhadas × valor hora, com pagamento separado de DSR, férias proporcionais + 1/3 e 13º proporcional, além dos adicionais legais.
-      </p>
 
       <p class="muted" style="margin-top:8px">
         Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
@@ -2110,8 +2218,8 @@ function renderFolha_(){
     Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa ? (c.vtPercent||6) : 0}%</b>
   `;
 
-  const linhasProv = folhaState.verbas.proventos.map(v=>renderLinhaVerba_("proventos", v)).join("");
-  const linhasDesc = folhaState.verbas.descontos.map(v=>renderLinhaVerba_("descontos", v)).join("");
+  const linhasProvBase = folhaState.verbasBase.proventos.map(v=>renderLinhaVerba_("proventos", v)).join("");
+  const linhasDescBase = folhaState.verbasBase.descontos.map(v=>renderLinhaVerba_("descontos", v)).join("");
 
   document.getElementById("folhaResultado").innerHTML = `
     <b>Apuração do período (PONTOS)</b><br>
@@ -2126,9 +2234,12 @@ function renderFolha_(){
         <th>Descontos</th>
       </tr>
 
-      ${linhasProv}
+      ${linhasProvBase}
+      ${linhasComplProv}
+
       <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
-      ${linhasDesc}
+      ${linhasDescBase}
+      ${linhasComplDesc}
 
       <tr>
         <th style="text-align:left">TOTAL</th>
@@ -2185,6 +2296,34 @@ function editarVerba(chave){
   };
 }
 
+function editarVerbaComplementar(grupo, chave){
+  const item = getVerbaComplementar_(grupo, chave);
+  if(!item) return;
+
+  const mask = document.createElement("div");
+  mask.className = "modalMask";
+  mask.innerHTML = `
+    <div class="modalCard">
+      <h3>Editar verba: ${item.label}</h3>
+      <div class="muted">Informe o valor em R$ (ex.: 150,00). Essa verba entrará automaticamente no cálculo da folha.</div>
+      <label>Valor</label>
+      <input id="verbaComplValor" placeholder="0,00" value="${String(Number(item.valor||0)).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}">
+      <div class="modalActions">
+        <button class="btn-sec" id="vcCancelar">Cancelar</button>
+        <button id="vcSalvar">Salvar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(mask);
+
+  mask.querySelector("#vcCancelar").onclick = ()=> mask.remove();
+  mask.querySelector("#vcSalvar").onclick = ()=>{
+    item.valor = parseNumeroBR(mask.querySelector("#verbaComplValor").value);
+    mask.remove();
+    recalcularFolha_();
+  };
+}
+
 function preencherHoleritePrint_(){
   const f = folhaState.funcionario || {};
   const a = folhaState.apuracao || {};
@@ -2225,7 +2364,7 @@ function preencherHoleritePrint_(){
   let tbody = "";
 
   if(tipoContrato === "intermitente"){
-    tbody = `
+    tbody += `
       <tr><td>Remuneração horas trabalhadas</td><td style="text-align:center">${horas(a.totalMin)}</td><td style="text-align:right">${moeda(c.remunHoras)}</td><td></td></tr>
       <tr><td>Adicional HE 50%</td><td style="text-align:center">${horas(a.he50_min)}</td><td style="text-align:right">${moeda(c.he50_val)}</td><td></td></tr>
       <tr><td>Adicional HE 100%</td><td style="text-align:center">${horas(a.he100_min)}</td><td style="text-align:right">${moeda(c.he100_val)}</td><td></td></tr>
@@ -2234,38 +2373,86 @@ function preencherHoleritePrint_(){
       <tr><td>Férias proporcionais</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.feriasProp)}</td><td></td></tr>
       <tr><td>1/3 férias</td><td style="text-align:center">1/3</td><td style="text-align:right">${moeda(c.umTercoFerias)}</td><td></td></tr>
       <tr><td>13º proporcional</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.decimoTerceiroProp)}</td><td></td></tr>
-      <tr><td>Outros Proventos</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.outrosProv)}</td><td></td></tr>
+      <tr><td>Outros Proventos</td><td></td><td style="text-align:right">${moeda(c.outrosProv)}</td><td></td></tr>
+    `;
+  } else {
+    function getLinhaBase(item, grupo){
+      let ref="", val=0;
+      if(item.key==="salario_base") val=c.salarioBase;
+      if(item.key==="he50"){ ref=horas(a.he50_min); val=c.he50_val; }
+      if(item.key==="he100"){ ref=horas(a.he100_min); val=c.he100_val; }
+      if(item.key==="outros_proventos") val=c.outrosProv;
+      if(item.key==="faltas"){ ref=horas(a.faltas_min); val=c.faltas_val; }
+      if(item.key==="inss") val=c.inss;
+      if(item.key==="irrf") val=c.irrf;
+      if(item.key==="vt"){ ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt; }
+      if(item.key==="outros_descontos") val=c.outrosDesc;
+
+      return `
+        <tr>
+          <td>${item.label}</td>
+          <td style="text-align:center">${ref||""}</td>
+          <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
+          <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
+        </tr>
+      `;
+    }
+
+    tbody += folhaState.verbasBase.proventos.map(v=>getLinhaBase(v,"P")).join("");
+  }
+
+  const provCompl = folhaState.verbasComplementares?.proventos || [];
+  const descCompl = folhaState.verbasComplementares?.descontos || [];
+
+  tbody += provCompl.map(v=>`
+    <tr>
+      <td>${v.label}</td>
+      <td style="text-align:center"></td>
+      <td style="text-align:right">${moeda(v.valor || 0)}</td>
+      <td></td>
+    </tr>
+  `).join("");
+
+  if(tipoContrato === "intermitente"){
+    tbody += `
       <tr><td>INSS</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.inss)}</td></tr>
       <tr><td>IRRF</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.irrf)}</td></tr>
       <tr><td>Vale Transporte</td><td style="text-align:center">${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td><td></td><td style="text-align:right">${moeda(c.vt)}</td></tr>
       <tr><td>Outros Descontos</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.outrosDesc)}</td></tr>
     `;
   } else {
-    const provs = folhaState.verbas.proventos.map(v=>({grupo:"P", item:v}));
-    const descs = folhaState.verbas.descontos.map(v=>({grupo:"D", item:v}));
-
-    function getLinha(item, grupo){
+    function getLinhaBaseDesc(item, grupo){
       let ref="", val=0;
       if(item.key==="salario_base") val=c.salarioBase;
-      if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
-      if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
+      if(item.key==="he50"){ ref=horas(a.he50_min); val=c.he50_val; }
+      if(item.key==="he100"){ ref=horas(a.he100_min); val=c.he100_val; }
       if(item.key==="outros_proventos") val=c.outrosProv;
-      if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
+      if(item.key==="faltas"){ ref=horas(a.faltas_min); val=c.faltas_val; }
       if(item.key==="inss") val=c.inss;
       if(item.key==="irrf") val=c.irrf;
-      if(item.key==="vt"){ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt;}
+      if(item.key==="vt"){ ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt; }
       if(item.key==="outros_descontos") val=c.outrosDesc;
 
-      return `<tr>
-        <td>${item.label}</td>
-        <td style="text-align:center">${ref||""}</td>
-        <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
-        <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
-      </tr>`;
+      return `
+        <tr>
+          <td>${item.label}</td>
+          <td style="text-align:center">${ref||""}</td>
+          <td style="text-align:right">${grupo==="P" ? moeda(val) : ""}</td>
+          <td style="text-align:right">${grupo==="D" ? moeda(val) : ""}</td>
+        </tr>
+      `;
     }
-
-    tbody = provs.map(x=>getLinha(x.item,"P")).join("") + descs.map(x=>getLinha(x.item,"D")).join("");
+    tbody += folhaState.verbasBase.descontos.map(v=>getLinhaBaseDesc(v,"D")).join("");
   }
+
+  tbody += descCompl.map(v=>`
+    <tr>
+      <td>${v.label}</td>
+      <td style="text-align:center"></td>
+      <td></td>
+      <td style="text-align:right">${moeda(v.valor || 0)}</td>
+    </tr>
+  `).join("");
 
   document.getElementById("hpTabela").innerHTML = tbody;
 
