@@ -466,12 +466,24 @@ function parseBRtoDate_(dBR){
 }
 
 function formataEscala(valor){
-  if(valor == null) return "";
+  if(valor == null || valor === "") return "";
+
+  if (valor instanceof Date) {
+    const hh = String(valor.getHours()).padStart(2,"0");
+    const mm = String(valor.getMinutes()).padStart(2,"0");
+    return `${hh}:${mm}`;
+  }
+
   const s = String(valor).trim();
   if(!s) return "";
   if(s.toUpperCase() === "FOLGA") return "FOLGA";
-  const m = s.match(/(\d{1,2}):(\d{2})/);
+
+  let m = s.match(/^(\d{1,2}):(\d{2})$/);
   if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
+
+  m = s.match(/(\d{1,2}):(\d{2})/);
+  if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
+
   return s;
 }
 
@@ -2529,3 +2541,4 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
