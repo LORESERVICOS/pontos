@@ -467,23 +467,18 @@ function parseBRtoDate_(dBR){
 
 function formataEscala(valor){
   if(valor == null || valor === "") return "";
-
   if (valor instanceof Date) {
     const hh = String(valor.getHours()).padStart(2,"0");
     const mm = String(valor.getMinutes()).padStart(2,"0");
     return `${hh}:${mm}`;
   }
-
   const s = String(valor).trim();
   if(!s) return "";
   if(s.toUpperCase() === "FOLGA") return "FOLGA";
-
   let m = s.match(/^(\d{1,2}):(\d{2})$/);
   if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
-
   m = s.match(/(\d{1,2}):(\d{2})/);
   if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
-
   return s;
 }
 
@@ -1182,6 +1177,10 @@ async function gerarRelatorioMensal(){
   periodoUser = u;
   periodoInicioKey = periodoInicioStr;
   periodoFimKey = periodoFimStr;
+
+  console.log("LOGIN BUSCADO:", u);
+  console.log("RETORNO getPeriodo:", resPeriodo);
+  console.log("REGISTROS ENCONTRADOS:", Object.keys(periodoCache));
 
   let html = "";
   html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
