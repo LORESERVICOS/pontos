@@ -1043,7 +1043,7 @@ function atualizarLinhaUI_(u, dBR, dateObj){
 
   const tdEsc = document.getElementById(`escala_${dBR}`);
   if(tdEsc){
-    tdEsc.textContent = formataEscala(getEscalaDoDia_(u, dateObj) || "");
+    tdEsc.textContent = isIntermitente_(u) ? "" : formataEscala(getEscalaDoDia_(u, dateObj) || "");
   }
 
   const tdCred = document.getElementById(`credito_${dBR}`);
@@ -1224,7 +1224,8 @@ async function gerarRelatorioMensal(){
     somaCreditoMin += (calc.creditoMin || 0);
     if(temRegistroEfetivoNoDia_(dadosAtual)) quantidadeDiarias++;
 
-    const escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
+    let escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
+    if (isIntermitente_(u)) escExibir = "";
 
     const dd = String(currentDate.getDate()).padStart(2,"0");
     const mm = String(currentDate.getMonth()+1).padStart(2,"0");
@@ -2541,4 +2542,3 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
-
