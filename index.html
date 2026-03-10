@@ -996,18 +996,21 @@ function campo(valor, c, adminView = true, dBR = ""){
 function atualizarLinhaUI_(u, dBR, dateObj){
   const reg = periodoCache[dBR] || {};
   const calc = calcularLinhaDia_(u, reg, dateObj);
+  const ehIntermitente = isIntermitente_(u);
+  const eventoAuto = eventoAutomaticoIntermitente_(u, reg);
 
   ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(c=>{
     const span = document.getElementById(`cell_${dBR}_${c}`);
     if(!span) return;
+
     dadosAtual = reg;
 
-    const eventoAuto = eventoAutomaticoIntermitente_(u, reg);
-    if(eventoAuto && !reg[c] && !reg[c+"_evento"]){
+    if(ehIntermitente && eventoAuto && !reg[c] && !reg[c+"_evento"]){
       span.innerHTML = `Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','${c}')">Editar</button>`;
-    } else {
-      span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
+      return;
     }
+
+    span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
   });
 
   const tdTotal = document.getElementById(`total_${dBR}`);
@@ -1070,20 +1073,14 @@ async function abrirAjuste(u,d,c){
 
     const patch = {};
 
-    // APAGAR REGISTRO DO CAMPO
     if(ev === "APAGAR"){
-      patch[c] = "";
-      patch[c+"_evento"] = "";
-      patch[c+"_editado"] = false;
-
-      // limpa também geo correspondente
-      const geoMap = {
-        entrada: "geoEntrada",
-        saidaAlmoco: "geoSaidaAlmoco",
-        retornoAlmoco: "geoRetornoAlmoco",
-        saida: "geoSaida"
-      };
-      if(geoMap[c]) patch[geoMap[c]] = "";
+      [
+        "entrada","saidaAlmoco","retornoAlmoco","saida",
+        "geoEntrada","geoSaidaAlmoco","geoRetornoAlmoco","geoSaida",
+        "entrada_evento","saidaAlmoco_evento","retornoAlmoco_evento","saida_evento",
+        "entrada_editado","saidaAlmoco_editado","retornoAlmoco_editado","saida_editado",
+        "atestadoHorasMin"
+      ].forEach(k => patch[k] = "");
 
       const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
       if(resSave.status !== "ok"){
@@ -1099,7 +1096,6 @@ async function abrirAjuste(u,d,c){
       return;
     }
 
-    // LIMPAR JUSTIFICATIVA E MANTER/ALTERAR HORA
     if(ev === "Nenhum"){
       patch[c+"_evento"] = "";
       patch[c+"_editado"] = false;
@@ -1122,15 +1118,12 @@ async function abrirAjuste(u,d,c){
       return;
     }
 
-    // INFORMOU HORA MANUAL
     if(h){
       patch[c] = h;
       patch[c+"_evento"] = "";
       patch[c+"_editado"] = true;
       patch.atestadoHorasMin = "";
-    }
-    // INFORMOU JUSTIFICATIVA
-    else if(ev){
+    } else if(ev){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
         patch[campoNome] = "-";
         patch[campoNome+"_evento"] = ev;
