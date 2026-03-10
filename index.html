@@ -1041,6 +1041,7 @@ async function abrirAjuste(u,d,c){
       <label>Justificar</label>
       <select id="selectJustificacao">
         <option value="">--Escolha--</option>
+        <option value="APAGAR">Apagar registro</option>
         ${justificativas.map(j=>{
           const evAtual = String(atual[c+"_evento"] || "").trim();
           const evNorm = evAtual.toLowerCase() === "intermite" ? "Intermitente" : evAtual;
@@ -1055,52 +1056,100 @@ async function abrirAjuste(u,d,c){
   `;
   document.body.appendChild(popup);
 
-  popup.querySelector("#cancelBtn").onclick=()=> popup.remove();
+  popup.querySelector("#cancelBtn").onclick = ()=> popup.remove();
 
   popup.querySelector("#okBtn").onclick = async ()=>{
     const hRaw = popup.querySelector("#inputHoras").value.trim();
     const h = normalizaHoraInput(hRaw);
     const ev = popup.querySelector("#selectJustificacao").value;
 
-    if(hRaw && !h){ alert("Hora inválida. Use HH:MM (ex: 08:00)."); return; }
+    if(hRaw && !h){
+      alert("Hora inválida. Use HH:MM (ex: 08:00).");
+      return;
+    }
 
     const patch = {};
 
-    if(ev === "Nenhum"){
+    // APAGAR REGISTRO DO CAMPO
+    if(ev === "APAGAR"){
+      patch[c] = "";
       patch[c+"_evento"] = "";
       patch[c+"_editado"] = false;
 
+      // limpa também geo correspondente
+      const geoMap = {
+        entrada: "geoEntrada",
+        saidaAlmoco: "geoSaidaAlmoco",
+        retornoAlmoco: "geoRetornoAlmoco",
+        saida: "geoSaida"
+      };
+      if(geoMap[c]) patch[geoMap[c]] = "";
+
       const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
-      if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; }
+      if(resSave.status !== "ok"){
+        alert(resSave.message || "Erro ao apagar registro");
+        return;
+      }
 
       periodoCache[d] = periodoCache[d] || {};
-      periodoCache[d][c+"_evento"] = "";
-      periodoCache[d][c+"_editado"] = false;
+      Object.keys(patch).forEach(k => periodoCache[d][k] = patch[k]);
 
       popup.remove();
       atualizarLinhaUI_(u, d, parseBRtoDate_(d));
       return;
     }
 
+    // LIMPAR JUSTIFICATIVA E MANTER/ALTERAR HORA
+    if(ev === "Nenhum"){
+      patch[c+"_evento"] = "";
+      patch[c+"_editado"] = false;
+
+      if(h){
+        patch[c] = h;
+      }
+
+      const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
+      if(resSave.status !== "ok"){
+        alert(resSave.message || "Erro ao salvar ajuste");
+        return;
+      }
+
+      periodoCache[d] = periodoCache[d] || {};
+      Object.keys(patch).forEach(k => periodoCache[d][k] = patch[k]);
+
+      popup.remove();
+      atualizarLinhaUI_(u, d, parseBRtoDate_(d));
+      return;
+    }
+
+    // INFORMOU HORA MANUAL
     if(h){
       patch[c] = h;
       patch[c+"_evento"] = "";
       patch[c+"_editado"] = true;
       patch.atestadoHorasMin = "";
-    } else if(ev){
+    }
+    // INFORMOU JUSTIFICATIVA
+    else if(ev){
       ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
         patch[campoNome] = "-";
         patch[campoNome+"_evento"] = ev;
         patch[campoNome+"_editado"] = true;
       });
       patch.atestadoHorasMin = "";
+    } else {
+      alert("Informe uma hora, ou selecione uma justificativa, ou escolha Apagar registro.");
+      return;
     }
 
     const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
-    if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; }
+    if(resSave.status !== "ok"){
+      alert(resSave.message || "Erro ao salvar ajuste");
+      return;
+    }
 
     periodoCache[d] = periodoCache[d] || {};
-    Object.keys(patch).forEach(k=>{ periodoCache[d][k] = patch[k]; });
+    Object.keys(patch).forEach(k => { periodoCache[d][k] = patch[k]; });
 
     popup.remove();
     atualizarLinhaUI_(u, d, parseBRtoDate_(d));
