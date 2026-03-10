@@ -17,9 +17,9 @@
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{border:1px solid #ddd;padding:8px;text-align:center;font-size:13px}
   th{background:#f1f5f9}
-  .verde{color:green;font-weight:bold}
-  .vermelho{color:red;font-weight:bold}
-  input,select{padding:4px 6px;margin:2px 0}
+  .verde{color:green;font-weight:bold;}
+  .vermelho{color:red;font-weight:bold;}
+  input,select{padding:4px 6px;margin:2px 0;}
 
   @media (max-width:768px){
     header{text-align:center}
@@ -71,22 +71,6 @@
   #holeritePrint .hp-sign{margin-top:18px;font-size:12px}
   #holeritePrint .hp-sign .line{margin-top:18px;border-top:1px solid #111827;width:260px}
 
-  .folha-acoes{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    margin:10px 0 6px;
-  }
-  .chip-info{
-    display:inline-block;
-    padding:4px 8px;
-    border-radius:999px;
-    background:#e2e8f0;
-    font-size:12px;
-    color:#0f172a;
-    margin-left:6px;
-  }
-
   @media print{
     body *{visibility:hidden}
     #holeritePrint, #holeritePrint *{visibility:visible}
@@ -125,7 +109,6 @@
   <div class="card" style="max-width:1200px">
     <h2>Relatório – Cartão de Ponto</h2>
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
-    <button onclick="abrirEscalaMensal()">Editar Escala Mensal</button>
     <button onclick="toggleFolha()">Folha de Pagamento</button>
     <br><br>
 
@@ -325,14 +308,6 @@
   <button onclick="fecharCadastroFuncionario()">Cancelar</button>
 </div>
 
-<div id="modalEscala" class="card hidden" style="max-width:600px;max-height:500px;overflow:auto">
-  <h3>Editar Escala Mensal (manual)</h3>
-  <p>Formato HH:MM por dia (opcional – usado se quiser sobrescrever a escala semanal)</p>
-  <div id="conteudoEscala"></div>
-  <button onclick="salvarEscalaMensal()">Salvar Escala</button>
-  <button onclick="fecharEscalaMensal()">Cancelar</button>
-</div>
-
 <div id="holeritePrint">
   <div class="hp-wrap">
     <div class="hp-title">
@@ -400,42 +375,6 @@ const justificativas = [
   "Licença Maternidade","Licença Paternidade","Licença INSS+15 D","Acidente de Trabalho","Feriado",
   "Intermitente"
 ];
-
-const EVENTOS_FOLHA_CATALOGO = {
-  proventos: [
-    { codigo:"adicional_noturno", label:"Adicional Noturno", tipos:["mensal","intermitente"] },
-    { codigo:"adicional_insalubridade", label:"Adicional de Insalubridade", tipos:["mensal","intermitente"] },
-    { codigo:"adicional_periculosidade", label:"Adicional de Periculosidade", tipos:["mensal","intermitente"] },
-    { codigo:"adicional_transferencia", label:"Adicional de Transferência", tipos:["mensal"] },
-    { codigo:"quebra_caixa", label:"Quebra de Caixa", tipos:["mensal"] },
-    { codigo:"comissao", label:"Comissões", tipos:["mensal","intermitente"] },
-    { codigo:"dsr_comissao", label:"DSR sobre Comissões", tipos:["mensal","intermitente"] },
-    { codigo:"premio", label:"Prêmio", tipos:["mensal","intermitente"] },
-    { codigo:"gratificacao", label:"Gratificação", tipos:["mensal","intermitente"] },
-    { codigo:"ajuda_custo_tributavel", label:"Ajuda de Custo Tributável", tipos:["mensal","intermitente"] },
-    { codigo:"salario_familia", label:"Salário-Família", tipos:["mensal","intermitente"] },
-    { codigo:"abono", label:"Abono", tipos:["mensal","intermitente"] },
-    { codigo:"ferias", label:"Férias", tipos:["mensal"] },
-    { codigo:"um_terco_ferias", label:"1/3 de Férias", tipos:["mensal"] },
-    { codigo:"abono_pecuniario", label:"Abono Pecuniário de Férias", tipos:["mensal"] },
-    { codigo:"decimo_terceiro", label:"13º Salário", tipos:["mensal"] }
-  ],
-  descontos: [
-    { codigo:"adiantamento_salarial", label:"Adiantamento Salarial", tipos:["mensal","intermitente"] },
-    { codigo:"faltas_desc_manual", label:"Faltas / Descontos Manuais", tipos:["mensal","intermitente"] },
-    { codigo:"vale_refeicao", label:"Vale-Refeição", tipos:["mensal","intermitente"] },
-    { codigo:"vale_alimentacao", label:"Vale-Alimentação", tipos:["mensal","intermitente"] },
-    { codigo:"assistencia_medica", label:"Assistência Médica", tipos:["mensal","intermitente"] },
-    { codigo:"assistencia_odontologica", label:"Assistência Odontológica", tipos:["mensal","intermitente"] },
-    { codigo:"coparticipacao", label:"Coparticipação Convênio", tipos:["mensal","intermitente"] },
-    { codigo:"convenio_farmacia", label:"Convênio Farmácia", tipos:["mensal","intermitente"] },
-    { codigo:"seguro_vida", label:"Seguro de Vida", tipos:["mensal","intermitente"] },
-    { codigo:"contribuicao_assistencial", label:"Contribuição Assistencial", tipos:["mensal","intermitente"] },
-    { codigo:"pensao_judicial_extra", label:"Pensão Alimentícia Judicial (extra)", tipos:["mensal","intermitente"] },
-    { codigo:"emprestimo_consignado", label:"Empréstimo Consignado", tipos:["mensal","intermitente"] },
-    { codigo:"faltas_dsr", label:"Reflexo DSR por Faltas", tipos:["mensal"] }
-  ]
-};
 
 async function apiPost(payload){
   const r = await fetch(WEBAPP_URL, {
@@ -535,17 +474,13 @@ function cargaEscalaMin(escStr){
   if(m) return Number(m[1])*60 + Number(m[2]);
   return 0;
 }
+
 function getEscalaDoDia_(u, dateObj){
-  const diaNum = dateObj.getDate();
   const weekday = dateObj.getDay();
   const escSem = (users[u] && users[u].escalaSemanal) || {};
-  const escMensal = (users[u] && users[u].escalaMensal) || {};
-
-  const mensal = formataEscala(escMensal[diaNum] || "");
-  const semanal = formataEscala(escSem[weekday] || "");
-
-  return mensal || semanal || "";
+  return formataEscala(escSem[weekday] || "");
 }
+
 function isFolgaEscala_(escStr){
   return String(escStr||"").trim().toUpperCase() === "FOLGA";
 }
@@ -691,64 +626,6 @@ function getEventoDominanteDia_(regDia){
   return ev;
 }
 
-function obterCatalogoEventosFolha_(grupo, tipoContrato){
-  const tipo = normalizaTipoContrato(tipoContrato || folhaState?.tipoContrato || "mensal");
-  return (EVENTOS_FOLHA_CATALOGO[grupo] || []).filter(ev => (ev.tipos || []).includes(tipo));
-}
-
-function getLabelEventoFolha_(grupo, codigo){
-  const lista = EVENTOS_FOLHA_CATALOGO[grupo] || [];
-  const achou = lista.find(x => x.codigo === codigo);
-  return achou ? achou.label : codigo;
-}
-
-function normalizaEventoExtra_(ev, grupo){
-  if(!ev) return null;
-  const codigo = String(ev.codigo || "").trim();
-  const valor = parseNumeroBR(ev.valor);
-  const referencia = String(ev.referencia || "").trim();
-  if(!codigo || valor <= 0) return null;
-  return {
-    codigo,
-    label: getLabelEventoFolha_(grupo, codigo),
-    referencia,
-    valor: round2(valor)
-  };
-}
-
-function somaEventosExtras_(grupo){
-  return round2((folhaState.eventosLancados?.[grupo] || []).reduce((acc, ev)=> acc + parseNumeroBR(ev.valor), 0));
-}
-
-function linhasEventosExtrasHTML_(grupo){
-  const lista = folhaState.eventosLancados?.[grupo] || [];
-  if(!lista.length) return "";
-  return lista.map((ev, idx) => `
-    <tr>
-      <td style="text-align:left">
-        ${ev.label}
-        <button class="mini" onclick="editarEventoExtra('${grupo}', ${idx})">Editar</button>
-      </td>
-      <td>${ev.referencia || ""}</td>
-      <td>${grupo==="proventos" ? moeda(ev.valor) : ""}</td>
-      <td>${grupo==="descontos" ? moeda(ev.valor) : ""}</td>
-    </tr>
-  `).join("");
-}
-
-function linhasEventosExtrasPrintHTML_(grupo){
-  const lista = folhaState.eventosLancados?.[grupo] || [];
-  if(!lista.length) return "";
-  return lista.map(ev => `
-    <tr>
-      <td>${ev.label}</td>
-      <td style="text-align:center">${ev.referencia || ""}</td>
-      <td style="text-align:right">${grupo==="proventos" ? moeda(ev.valor) : ""}</td>
-      <td style="text-align:right">${grupo==="descontos" ? moeda(ev.valor) : ""}</td>
-    </tr>
-  `).join("");
-}
-
 async function login(){
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
@@ -793,7 +670,6 @@ async function login(){
     tipoContrato: normalizaTipoContrato(user.tipo_contrato || "mensal"),
     valorHoraIntermitente: user.valor_hora_intermitente || "",
     adicionalNoturnoPercent: user.adicional_noturno_percent || "",
-    escalaMensal: {},
     escalaSemanal: esc
   };
 
@@ -842,7 +718,6 @@ async function carregarUsuariosAdmin(){
         tipoContrato: normalizaTipoContrato(u.tipo_contrato || "mensal"),
         valorHoraIntermitente: u.valor_hora_intermitente || "",
         adicionalNoturnoPercent: u.adicional_noturno_percent || "",
-        escalaMensal: {},
         escalaSemanal: esc
       };
     });
@@ -1668,46 +1543,6 @@ async function salvarFuncionario(){
   }
 }
 
-function abrirEscalaMensal(){
-  const u = document.getElementById("funcionarioSelect").value;
-  if(!u) return alert("Selecione um funcionário");
-
-  const conteudo = document.getElementById("conteudoEscala");
-  conteudo.innerHTML = "";
-
-  users[u].escalaMensal = users[u].escalaMensal || {};
-
-  for(let i=1;i<=31;i++){
-    const val = users[u].escalaMensal[i] || "";
-    conteudo.innerHTML += `Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
-  }
-
-  document.getElementById("modalEscala").classList.remove("hidden");
-}
-
-function fecharEscalaMensal(){
-  document.getElementById("modalEscala").classList.add("hidden");
-}
-
-function salvarEscalaMensal(){
-  const u = document.getElementById("funcionarioSelect").value;
-  if(!u) return;
-
-  users[u].escalaMensal = {};
-
-  for(let i=1;i<=31;i++){
-    const raw = document.getElementById(`escala${i}`).value.trim();
-    const val = formataEscala(raw);
-
-    if(val){
-      users[u].escalaMensal[i] = val;
-    }
-  }
-
-  fecharEscalaMensal();
-  alert("Escala mensal salva (em memória).");
-}
-
 let folhaState = {
   funcionario: {},
   tipoContrato: "mensal",
@@ -1717,22 +1552,20 @@ let folhaState = {
     proventos: [
       { key:"salario_base", label:"Salário Base", tipo:"fixo" },
       { key:"he50", label:"Hora extra 50%", tipo:"calc" },
-      { key:"he100", label:"Hora extra 100%", tipo:"calc" }
+      { key:"he100", label:"Hora extra 100%", tipo:"calc" },
+      { key:"outros_proventos", label:"Outros Proventos", tipo:"fixo" }
     ],
     descontos: [
       { key:"faltas", label:"Faltas/Atrasos", tipo:"calc" },
       { key:"inss", label:"INSS", tipo:"calc" },
       { key:"irrf", label:"IRRF", tipo:"calc" },
-      { key:"vt", label:"Vale Transporte", tipo:"calc" }
+      { key:"vt", label:"Vale Transporte", tipo:"calc" },
+      { key:"outros_descontos", label:"Outros Descontos", tipo:"fixo" }
     ]
   },
   valoresFixos: {
     outros_proventos: 0,
     outros_descontos: 0
-  },
-  eventosLancados: {
-    proventos: [],
-    descontos: []
   }
 };
 
@@ -1838,12 +1671,8 @@ async function carregarFolha(){
   folhaState.funcionario = f;
   folhaState.tipoContrato = normalizaTipoContrato(f.tipo_contrato || users[u]?.tipoContrato || "mensal");
 
-  folhaState.valoresFixos.outros_proventos = 0;
-  folhaState.valoresFixos.outros_descontos = 0;
-  folhaState.eventosLancados = {
-    proventos: [],
-    descontos: []
-  };
+  folhaState.valoresFixos.outros_proventos = parseNumeroBR(f.outros_proventos_padrao);
+  folhaState.valoresFixos.outros_descontos = parseNumeroBR(f.outros_descontos_padrao);
 
   const ini = parseInputDateLocal(di);
   const fim = parseInputDateLocal(df);
@@ -1953,10 +1782,8 @@ function recalcularFolha_(){
   const pensao = parseNumeroBR(f.pensao_alimenticia);
   const prevCompl = parseNumeroBR(f.prev_complementar);
 
-  const outrosProv = 0;
-  const outrosDesc = 0;
-  const extrasProv = somaEventosExtras_("proventos");
-  const extrasDesc = somaEventosExtras_("descontos");
+  const outrosProv = Number(folhaState.valoresFixos.outros_proventos || 0);
+  const outrosDesc = Number(folhaState.valoresFixos.outros_descontos || 0);
 
   if(tipoContrato === "intermitente"){
     const usuarioSel = document.getElementById("funcionarioSelect").value;
@@ -1982,7 +1809,7 @@ function recalcularFolha_(){
     const umTercoFerias = feriasProp / 3;
     const decimoTerceiroProp = baseFerias13 / 12;
 
-    const bruto = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr + feriasProp + umTercoFerias + decimoTerceiroProp + outrosProv + extrasProv;
+    const bruto = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr + feriasProp + umTercoFerias + decimoTerceiroProp + outrosProv;
     const inss = calcINSS2026(bruto);
 
     const dedDep = depIR * 189.59;
@@ -1996,7 +1823,7 @@ function recalcularFolha_(){
 
     const vt = vtUsa ? ((Math.max(0, Math.min(6, vtPercent)) / 100) * remunHoras) : 0;
     const faltas_val = 0;
-    const descontos = faltas_val + inss + irrf + vt + outrosDesc + extrasDesc;
+    const descontos = faltas_val + inss + irrf + vt + outrosDesc;
     const liquido = bruto - descontos;
     const base_fgts = bruto;
     const fgts_guia = round2(base_fgts * 0.08);
@@ -2009,7 +1836,6 @@ function recalcularFolha_(){
       adicionalNoturnoPercent,
       depIR, vtUsa, vtPercent,
       outrosProv, outrosDesc,
-      extrasProv, extrasDesc,
       he50_val: adicHE50,
       he100_val: adicHE100,
       heNoturno_val: adicNoturno,
@@ -2033,8 +1859,7 @@ function recalcularFolha_(){
   const he50_val = (a.he50_min/60) * valorHora * 1.5;
   const he100_val = (a.he100_min/60) * valorHora * 2.0;
   const faltas_val = (a.faltas_min/60) * valorHora;
-
-  const bruto = salarioBase + he50_val + he100_val + outrosProv + extrasProv;
+  const bruto = salarioBase + he50_val + he100_val + outrosProv;
   const inss = calcINSS2026(bruto);
 
   const dedDep = depIR * 189.59;
@@ -2047,7 +1872,7 @@ function recalcularFolha_(){
   const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
 
   const vt = (Math.max(0, Math.min(6, vtPercent)) / 100) * salarioBase;
-  const descontos = faltas_val + inss + irrf + vt + outrosDesc + extrasDesc;
+  const descontos = faltas_val + inss + irrf + vt + outrosDesc;
   const liquido = bruto - descontos;
   const base_fgts = bruto;
   const fgts_guia = round2(base_fgts * 0.08);
@@ -2057,7 +1882,6 @@ function recalcularFolha_(){
     salarioBase, horasMensais, valorHora,
     depIR, vtUsa, vtPercent,
     outrosProv, outrosDesc,
-    extrasProv, extrasDesc,
     he50_val, he100_val, faltas_val,
     bruto, inss, base_ir, irrf, vt,
     descontos, liquido,
@@ -2078,14 +1902,19 @@ function renderLinhaVerba_(grupo, item){
   if(item.key === "salario_base"){ val = c.salarioBase; }
   if(item.key === "he50"){ ref = horas(a.he50_min); val = c.he50_val; }
   if(item.key === "he100"){ ref = horas(a.he100_min); val = c.he100_val; }
+  if(item.key === "outros_proventos"){ val = c.outrosProv; }
 
   if(item.key === "faltas"){ ref = horas(a.faltas_min); val = c.faltas_val; }
   if(item.key === "inss"){ val = c.inss; }
   if(item.key === "irrf"){ val = c.irrf; }
   if(item.key === "vt"){ ref = (c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val = c.vt; }
+  if(item.key === "outros_descontos"){ val = c.outrosDesc; }
+
+  const isEditavel = (item.key === "outros_proventos" || item.key === "outros_descontos");
+  const btn = isEditavel ? ` <button class="mini" onclick="editarVerba('${item.key}')">Editar</button>` : "";
 
   return `<tr>
-    <td style="text-align:left">${item.label}</td>
+    <td style="text-align:left">${item.label}${btn}</td>
     <td>${ref || ""}</td>
     <td>${grupo==="proventos" ? moeda(val) : ""}</td>
     <td>${grupo==="descontos" ? moeda(val) : ""}</td>
@@ -2115,12 +1944,6 @@ function renderFolha_(){
       Total trabalhado: <b>${horas(a.totalMin)}</b><br>
       HE 50%: <b>${horas(a.he50_min)}</b> • HE 100%: <b>${horas(a.he100_min)}</b> • Noturno: <b>${horas(a.heNoturno_min)}</b><br>
       Dias trabalhados: <b>${a.diasTrabalhados || 0}</b><br><br>
-
-      <div class="folha-acoes">
-        <button onclick="abrirLancamentosExtras('proventos')">Lançar Outros Proventos</button>
-        <button class="btn-sec" onclick="abrirLancamentosExtras('descontos')">Lançar Outros Descontos</button>
-        <span class="chip-info">Somente eventos compatíveis com contrato INTERMITENTE</span>
-      </div>
 
       <table id="tabelaFolha">
         <tr>
@@ -2177,8 +2000,12 @@ function renderFolha_(){
           <td>${moeda(c.decimoTerceiroProp)}</td>
           <td></td>
         </tr>
-
-        ${linhasEventosExtrasHTML_("proventos")}
+        <tr>
+          <td style="text-align:left">Outros Proventos <button class="mini" onclick="editarVerba('outros_proventos')">Editar</button></td>
+          <td></td>
+          <td>${moeda(c.outrosProv)}</td>
+          <td></td>
+        </tr>
 
         <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
 
@@ -2200,8 +2027,12 @@ function renderFolha_(){
           <td></td>
           <td>${moeda(c.vt)}</td>
         </tr>
-
-        ${linhasEventosExtrasHTML_("descontos")}
+        <tr>
+          <td style="text-align:left">Outros Descontos <button class="mini" onclick="editarVerba('outros_descontos')">Editar</button></td>
+          <td></td>
+          <td></td>
+          <td>${moeda(c.outrosDesc)}</td>
+        </tr>
 
         <tr>
           <th style="text-align:left">TOTAL</th>
@@ -2239,19 +2070,11 @@ function renderFolha_(){
 
   const linhasProv = folhaState.verbas.proventos.map(v=>renderLinhaVerba_("proventos", v)).join("");
   const linhasDesc = folhaState.verbas.descontos.map(v=>renderLinhaVerba_("descontos", v)).join("");
-  const linhasProvExtras = linhasEventosExtrasHTML_("proventos");
-  const linhasDescExtras = linhasEventosExtrasHTML_("descontos");
 
   document.getElementById("folhaResultado").innerHTML = `
     <b>Apuração do período (PONTOS)</b><br>
     Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>
     Total trabalhado: <b>${horas(a.totalMin)}</b> • Crédito: <b>${horas(a.creditoMin)}</b><br><br>
-
-    <div class="folha-acoes">
-      <button onclick="abrirLancamentosExtras('proventos')">Lançar Outros Proventos</button>
-      <button class="btn-sec" onclick="abrirLancamentosExtras('descontos')">Lançar Outros Descontos</button>
-      <span class="chip-info">Somente eventos compatíveis com contrato MENSAL</span>
-    </div>
 
     <table id="tabelaFolha">
       <tr>
@@ -2262,11 +2085,8 @@ function renderFolha_(){
       </tr>
 
       ${linhasProv}
-      ${linhasProvExtras}
-
       <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
       ${linhasDesc}
-      ${linhasDescExtras}
 
       <tr>
         <th style="text-align:left">TOTAL</th>
@@ -2289,174 +2109,35 @@ function renderFolha_(){
   preencherHoleritePrint_();
 }
 
-function abrirLancamentosExtras(grupo){
-  if(!folhaState.funcionario || !Object.keys(folhaState.funcionario).length){
-    alert("Calcule a folha antes de lançar eventos.");
-    return;
-  }
+function editarVerba(chave){
+  const atual = (chave==="outros_proventos")
+    ? folhaState.valoresFixos.outros_proventos
+    : folhaState.valoresFixos.outros_descontos;
 
-  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || folhaState.funcionario?.tipo_contrato || "mensal");
-  const lista = obterCatalogoEventosFolha_(grupo, tipoContrato);
-  const existentes = (folhaState.eventosLancados?.[grupo] || []).map(ev => ({
-    codigo: ev.codigo || "",
-    referencia: ev.referencia || "",
-    valor: parseNumeroBR(ev.valor || 0)
-  }));
-
-  const qtdInicial = Math.max(1, existentes.length || 1);
-  const titulo = grupo === "proventos" ? "Outros Proventos" : "Outros Descontos";
+  const titulo = (chave==="outros_proventos") ? "Outros Proventos" : "Outros Descontos";
 
   const mask = document.createElement("div");
   mask.className = "modalMask";
   mask.innerHTML = `
-    <div class="modalCard" style="max-width:760px">
-      <h3>${titulo} – Lançamentos extras</h3>
-      <div class="muted">
-        Contrato atual: <b>${tipoContrato.toUpperCase()}</b>.
-        Escolha a quantidade de eventos para abrir somente as linhas necessárias.
-      </div>
-
-      <label>Quantidade de eventos</label>
-      <select id="extraQtd">
-        ${Array.from({length:10}, (_,i)=> `<option value="${i+1}" ${qtdInicial===i+1?'selected':''}>${i+1}</option>`).join("")}
-      </select>
-
-      <div id="extraLinhasWrap" style="margin-top:10px"></div>
-
+    <div class="modalCard">
+      <h3>Editar verba: ${titulo}</h3>
+      <div class="muted">Informe o valor em R$ (ex.: 150,00). Ao salvar, o cálculo é refeito automaticamente.</div>
+      <label>Valor</label>
+      <input id="verbaValor" placeholder="0,00" value="${String(atual||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}">
       <div class="modalActions">
-        <button class="btn-sec" id="extraCancelar">Cancelar</button>
-        <button id="extraSalvar">Salvar</button>
+        <button class="btn-sec" id="vCancelar">Cancelar</button>
+        <button id="vSalvar">Salvar</button>
       </div>
     </div>
   `;
   document.body.appendChild(mask);
 
-  function renderLinhas(qtd){
-    const wrap = mask.querySelector("#extraLinhasWrap");
-    wrap.innerHTML = "";
-
-    for(let i=0;i<qtd;i++){
-      const atual = existentes[i] || { codigo:"", referencia:"", valor:0 };
-      wrap.innerHTML += `
-        <div class="box" style="margin-top:8px">
-          <div class="row">
-            <div style="min-width:280px;flex:1">
-              <label><b>Evento ${i+1}</b></label><br>
-              <select class="extra-codigo" data-idx="${i}" style="width:100%">
-                <option value="">-- selecione --</option>
-                ${lista.map(ev => `<option value="${ev.codigo}" ${atual.codigo===ev.codigo?'selected':''}>${ev.label}</option>`).join("")}
-              </select>
-            </div>
-            <div style="min-width:140px">
-              <label><b>Referência</b></label><br>
-              <input class="extra-ref" data-idx="${i}" placeholder="Ex: 10h, 30%, 1 cota" value="${atual.referencia || ""}" style="width:100%">
-            </div>
-            <div style="min-width:160px">
-              <label><b>Valor (R$)</b></label><br>
-              <input class="extra-valor" data-idx="${i}" placeholder="0,00" value="${atual.valor ? atual.valor.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}) : ""}" style="width:100%">
-            </div>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  renderLinhas(qtdInicial);
-
-  mask.querySelector("#extraQtd").onchange = e => {
-    renderLinhas(Number(e.target.value || 1));
-  };
-
-  mask.querySelector("#extraCancelar").onclick = ()=> mask.remove();
-
-  mask.querySelector("#extraSalvar").onclick = ()=>{
-    const codigos = [...mask.querySelectorAll(".extra-codigo")];
-    const refs = [...mask.querySelectorAll(".extra-ref")];
-    const valores = [...mask.querySelectorAll(".extra-valor")];
-
-    const novos = [];
-    for(let i=0;i<codigos.length;i++){
-      const item = normalizaEventoExtra_({
-        codigo: codigos[i].value,
-        referencia: refs[i].value,
-        valor: valores[i].value
-      }, grupo);
-
-      if(item) novos.push(item);
-    }
-
-    folhaState.eventosLancados[grupo] = novos;
-    mask.remove();
-    recalcularFolha_();
-  };
-}
-
-function editarEventoExtra(grupo, idx){
-  const listaAtual = folhaState.eventosLancados?.[grupo] || [];
-  const atual = listaAtual[idx];
-
-  if(!atual){
-    alert("Evento não encontrado.");
-    return;
-  }
-
-  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || folhaState.funcionario?.tipo_contrato || "mensal");
-  const catalogo = obterCatalogoEventosFolha_(grupo, tipoContrato);
-
-  const titulo = grupo === "proventos" ? "Editar Outros Proventos" : "Editar Outros Descontos";
-
-  const mask = document.createElement("div");
-  mask.className = "modalMask";
-  mask.innerHTML = `
-    <div class="modalCard" style="max-width:640px">
-      <h3>${titulo}</h3>
-      <div class="muted">Altere os dados do evento lançado ou exclua este lançamento.</div>
-
-      <label>Evento</label>
-      <select id="edExtraCodigo">
-        <option value="">-- selecione --</option>
-        ${catalogo.map(ev => `<option value="${ev.codigo}" ${atual.codigo===ev.codigo?'selected':''}>${ev.label}</option>`).join("")}
-      </select>
-
-      <label>Referência</label>
-      <input id="edExtraReferencia" placeholder="Ex: 10h, 30%, 1 cota" value="${atual.referencia || ""}">
-
-      <label>Valor (R$)</label>
-      <input id="edExtraValor" placeholder="0,00" value="${Number(atual.valor || 0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}">
-
-      <div class="modalActions" style="justify-content:space-between">
-        <button class="btn-warn" id="edExtraExcluir">Excluir</button>
-        <div>
-          <button class="btn-sec" id="edExtraCancelar">Cancelar</button>
-          <button id="edExtraSalvar">Salvar</button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(mask);
-
-  mask.querySelector("#edExtraCancelar").onclick = ()=> mask.remove();
-
-  mask.querySelector("#edExtraExcluir").onclick = ()=>{
-    if(!confirm("Deseja realmente excluir este evento?")) return;
-    folhaState.eventosLancados[grupo].splice(idx, 1);
-    mask.remove();
-    recalcularFolha_();
-  };
-
-  mask.querySelector("#edExtraSalvar").onclick = ()=>{
-    const item = normalizaEventoExtra_({
-      codigo: mask.querySelector("#edExtraCodigo").value,
-      referencia: mask.querySelector("#edExtraReferencia").value,
-      valor: mask.querySelector("#edExtraValor").value
-    }, grupo);
-
-    if(!item){
-      alert("Preencha corretamente o evento e um valor maior que zero.");
-      return;
-    }
-
-    folhaState.eventosLancados[grupo][idx] = item;
+  mask.querySelector("#vCancelar").onclick = ()=> mask.remove();
+  mask.querySelector("#vSalvar").onclick = ()=>{
+    const raw = mask.querySelector("#verbaValor").value;
+    const v = parseNumeroBR(raw);
+    if(chave==="outros_proventos") folhaState.valoresFixos.outros_proventos = v;
+    else folhaState.valoresFixos.outros_descontos = v;
     mask.remove();
     recalcularFolha_();
   };
@@ -2511,11 +2192,11 @@ function preencherHoleritePrint_(){
       <tr><td>Férias proporcionais</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.feriasProp)}</td><td></td></tr>
       <tr><td>1/3 férias</td><td style="text-align:center">1/3</td><td style="text-align:right">${moeda(c.umTercoFerias)}</td><td></td></tr>
       <tr><td>13º proporcional</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.decimoTerceiroProp)}</td><td></td></tr>
-      ${linhasEventosExtrasPrintHTML_("proventos")}
+      <tr><td>Outros Proventos</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.outrosProv)}</td><td></td></tr>
       <tr><td>INSS</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.inss)}</td></tr>
       <tr><td>IRRF</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.irrf)}</td></tr>
       <tr><td>Vale Transporte</td><td style="text-align:center">${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td><td></td><td style="text-align:right">${moeda(c.vt)}</td></tr>
-      ${linhasEventosExtrasPrintHTML_("descontos")}
+      <tr><td>Outros Descontos</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.outrosDesc)}</td></tr>
     `;
   } else {
     const provs = folhaState.verbas.proventos.map(v=>({grupo:"P", item:v}));
@@ -2526,10 +2207,12 @@ function preencherHoleritePrint_(){
       if(item.key==="salario_base") val=c.salarioBase;
       if(item.key==="he50"){ref=horas(a.he50_min); val=c.he50_val;}
       if(item.key==="he100"){ref=horas(a.he100_min); val=c.he100_val;}
+      if(item.key==="outros_proventos") val=c.outrosProv;
       if(item.key==="faltas"){ref=horas(a.faltas_min); val=c.faltas_val;}
       if(item.key==="inss") val=c.inss;
       if(item.key==="irrf") val=c.irrf;
       if(item.key==="vt"){ref=(c.vtUsa ? `${c.vtPercent||6}%` : "0%"); val=c.vt;}
+      if(item.key==="outros_descontos") val=c.outrosDesc;
 
       return `<tr>
         <td>${item.label}</td>
@@ -2539,11 +2222,7 @@ function preencherHoleritePrint_(){
       </tr>`;
     }
 
-    tbody =
-      provs.map(x=>getLinha(x.item,"P")).join("") +
-      linhasEventosExtrasPrintHTML_("proventos") +
-      descs.map(x=>getLinha(x.item,"D")).join("") +
-      linhasEventosExtrasPrintHTML_("descontos");
+    tbody = provs.map(x=>getLinha(x.item,"P")).join("") + descs.map(x=>getLinha(x.item,"D")).join("");
   }
 
   document.getElementById("hpTabela").innerHTML = tbody;
@@ -2621,7 +2300,3 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
-
-
-
-
