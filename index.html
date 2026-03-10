@@ -535,15 +535,17 @@ function cargaEscalaMin(escStr){
   if(m) return Number(m[1])*60 + Number(m[2]);
   return 0;
 }
-
 function getEscalaDoDia_(u, dateObj){
   const diaNum = dateObj.getDate();
   const weekday = dateObj.getDay();
   const escSem = (users[u] && users[u].escalaSemanal) || {};
   const escMensal = (users[u] && users[u].escalaMensal) || {};
-  return (escMensal && escMensal[diaNum]) || escSem[weekday] || "";
-}
 
+  const mensal = formataEscala(escMensal[diaNum] || "");
+  const semanal = formataEscala(escSem[weekday] || "");
+
+  return mensal || semanal || "";
+}
 function isFolgaEscala_(escStr){
   return String(escStr||"").trim().toUpperCase() === "FOLGA";
 }
@@ -1667,15 +1669,19 @@ async function salvarFuncionario(){
 }
 
 function abrirEscalaMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
+  const u = document.getElementById("funcionarioSelect").value;
   if(!u) return alert("Selecione um funcionário");
-  const conteudo=document.getElementById("conteudoEscala");
-  conteudo.innerHTML="";
+
+  const conteudo = document.getElementById("conteudoEscala");
+  conteudo.innerHTML = "";
+
   users[u].escalaMensal = users[u].escalaMensal || {};
+
   for(let i=1;i<=31;i++){
-    const val = users[u].escalaMensal[i]||"";
-    conteudo.innerHTML+=`Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
+    const val = users[u].escalaMensal[i] || "";
+    conteudo.innerHTML += `Dia ${i}: <input type="text" id="escala${i}" value="${val}" placeholder="HH:MM ou vazio"><br>`;
   }
+
   document.getElementById("modalEscala").classList.remove("hidden");
 }
 
@@ -2615,6 +2621,7 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
 
 
 
