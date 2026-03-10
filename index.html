@@ -1684,12 +1684,20 @@ function fecharEscalaMensal(){
 }
 
 function salvarEscalaMensal(){
-  const u=document.getElementById("funcionarioSelect").value;
+  const u = document.getElementById("funcionarioSelect").value;
   if(!u) return;
-  users[u].escalaMensal = users[u].escalaMensal || {};
+
+  users[u].escalaMensal = {};
+
   for(let i=1;i<=31;i++){
-    users[u].escalaMensal[i]=document.getElementById(`escala${i}`).value.trim();
+    const raw = document.getElementById(`escala${i}`).value.trim();
+    const val = formataEscala(raw);
+
+    if(val){
+      users[u].escalaMensal[i] = val;
+    }
   }
+
   fecharEscalaMensal();
   alert("Escala mensal salva (em memória).");
 }
@@ -2607,5 +2615,6 @@ async function gerarPDFHolerite(){
 </script>
 </body>
 </html>
+
 
 
