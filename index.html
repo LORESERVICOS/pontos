@@ -19,11 +19,11 @@
   th{background:#f1f5f9}
   .verde{color:green;font-weight:bold;}
   .vermelho{color:red;font-weight:bold;}
-  input,select{padding:4px 6px;margin:2px 0;}
+  input,select,textarea{padding:4px 6px;margin:2px 0;}
 
   @media (max-width:768px){
     header{text-align:center}
-    button,input,select{width:100%;margin:4px 0}
+    button,input,select,textarea{width:100%;margin:4px 0}
     table thead{display:none}
     table tr{display:block;border:1px solid #ddd;margin-bottom:10px;border-radius:8px}
     table td{display:flex;justify-content:space-between;border:none}
@@ -47,10 +47,10 @@
   .mini{font-size:11px;padding:4px 8px;border-radius:8px}
 
   .modalMask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
-  .modalCard{background:#fff;border-radius:14px;max-width:520px;width:95%;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.2)}
+  .modalCard{background:#fff;border-radius:14px;max-width:560px;width:95%;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.2);max-height:90vh;overflow:auto}
   .modalCard h3{margin:0 0 10px 0}
   .modalCard label{display:block;margin:8px 0 4px}
-  .modalCard input,.modalCard select{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:10px}
+  .modalCard input,.modalCard select,.modalCard textarea{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:10px}
   .modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 
   #holeritePrint{
@@ -106,13 +106,14 @@
 </div>
 
 <div id="adminSection" class="hidden">
-  <div class="card" style="max-width:1200px">
+  <div class="card" style="max-width:1280px">
     <h2>Relatório – Cartão de Ponto</h2>
+
     <button onclick="abrirCadastroFuncionario()">Cadastro / Edição de Funcionário</button>
     <button onclick="toggleFolha()">Folha de Pagamento</button>
     <br><br>
 
-    <select id="funcionarioSelect" onchange="gerarRelatorioMensal()"></select>
+    <select id="funcionarioSelect" onchange="onFuncionarioChange()"></select>
     <input type="date" id="dataInicio">
     <input type="date" id="dataFim">
     <select id="tipoRelatorio">
@@ -145,6 +146,17 @@
         </div>
         <div>
           <button onclick="carregarFolha()">Carregar / Calcular</button>
+          <button class="btn-sec" onclick="baixarArquivoESocialCompetencia()">Folha eSocial (S-1200)</button>
+          <button class="btn-sec" onclick="abrirModalESocial('admissao')">Admissão eSocial</button>
+          <button class="btn-sec" onclick="abrirModalESocial('altCadastral')">Alteração Cadastral</button>
+          <button class="btn-sec" onclick="abrirModalESocial('altContratual')">Alteração Contratual</button>
+          <button class="btn-sec" onclick="abrirModalESocial('ferias')">Férias / Afastamento</button>
+          <button class="btn-sec" onclick="abrirModalESocial('rescisao')">Rescisão eSocial</button>
+          <button class="btn-sec" onclick="abrirModalESocial('pagamento')">Pagamento eSocial</button>
+          <button class="btn-sec" onclick="baixarFechamentoESocial()">Fechamento eSocial</button>
+          <button class="btn-sec" onclick="fecharFolhaCompetenciaAtual()">Fechar Folha</button>
+          <button class="btn-warn" onclick="reabrirFolhaCompetenciaAtual()">Reabrir Folha</button>
+          <button class="btn-sec" onclick="gerarRemessaBancoBrasil()">Remessa BB</button>
         </div>
         <div style="margin-left:auto">
           <button class="btn-sec" onclick="imprimirHolerite()">Imprimir Holerite</button>
@@ -152,6 +164,7 @@
         </div>
       </div>
 
+      <div id="folhaStatusFechamento" class="box" style="margin-top:10px"></div>
       <div id="folhaMsg" class="muted" style="margin-top:10px"></div>
       <div id="folhaCadastro" class="box"></div>
       <div id="folhaResultado" class="box"></div>
@@ -159,7 +172,7 @@
   </div>
 </div>
 
-<div id="modalFuncionario" class="card hidden" style="max-width:500px">
+<div id="modalFuncionario" class="card hidden" style="max-width:560px">
   <h3>Cadastro / Edição de Funcionário</h3>
 
   <label>Código Funcionário:<br>
@@ -195,7 +208,7 @@
   </label><br>
 
   <hr>
-  <h4 style="margin:10px 0 6px 0">Dados adicionais (Folha / RH)</h4>
+  <h4 style="margin:10px 0 6px 0">Dados adicionais (Folha / RH / eSocial)</h4>
 
   <label>CPF:<br>
     <input id="novoCpf" placeholder="CPF">
@@ -222,6 +235,22 @@
 
   <label>Data de Admissão:<br>
     <input id="novoAdmissao" type="date">
+  </label><br>
+
+  <label>Matrícula eSocial:<br>
+    <input id="novoMatriculaEsocial" placeholder="Ex: 000123">
+  </label><br>
+
+  <label>Categoria eSocial:<br>
+    <input id="novoCodCategEsocial" placeholder="Ex: 101">
+  </label><br>
+
+  <label>Lotação Tributária:<br>
+    <input id="novoCodLotacaoEsocial" placeholder="Ex: 1">
+  </label><br>
+
+  <label>CBO:<br>
+    <input id="novoCboEsocial" placeholder="Ex: 411005">
   </label><br>
 
   <label>Horas Mensais:<br>
@@ -307,6 +336,8 @@
   <button onclick="salvarFuncionario()">Salvar</button>
   <button onclick="fecharCadastroFuncionario()">Cancelar</button>
 </div>
+
+<div id="modalESocial" class="hidden"></div>
 
 <div id="holeritePrint">
   <div class="hp-wrap">
@@ -453,2088 +484,267 @@ async function apiPost(payload){
 }
 
 function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }
+function hm(h){ if(!h || typeof h!=="string" || !h.includes(":")) return 0; const [x,y] = h.split(":").map(Number); if(isNaN(x)||isNaN(y)) return 0; return x*60+y; }
+function fmt(m){ const abs=Math.max(0,Math.round(m||0)); const h=String(Math.floor(abs/60)).padStart(2,"0"); const mm=String(abs%60).padStart(2,"0"); return `${h}:${mm}`; }
+function formataHoraCelula(valor){ if(!valor) return ""; const s=String(valor).trim(); if(!s) return ""; if(s.toUpperCase()==="FOLGA") return "FOLGA"; let m=s.match(/^(\d{1,2}):(\d{2})$/); if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`; m=s.match(/(\d{1,2}):(\d{2})/); if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`; return s; }
+function parseInputDateLocal(str){ if(!str) return null; const [ano,mes,dia]=str.split("-").map(Number); return new Date(ano,mes-1,dia); }
+function normalizaHoraInput(h){ if(!h) return ""; const s=String(h).trim(); let m=s.match(/^(\d{1,2}):(\d{2})$/); if(m){ const hh=String(Number(m[1])).padStart(2,"0"); const mm=m[2]; const hhn=Number(hh), mmn=Number(mm); if(hhn>=0&&hhn<=23&&mmn>=0&&mmn<=59) return `${hh}:${mm}`; } m=s.match(/(\d{1,2}):(\d{2})/); if(m){ const hh=String(Number(m[1])).padStart(2,"0"); const mm=m[2]; const hhn=Number(hh), mmn=Number(mm); if(hhn>=0&&hhn<=23&&mmn>=0&&mmn<=59) return `${hh}:${mm}`; } return ""; }
+function dateToBR_(dt){ const dd=String(dt.getDate()).padStart(2,"0"); const mm=String(dt.getMonth()+1).padStart(2,"0"); const yyyy=dt.getFullYear(); return `${dd}/${mm}/${yyyy}`; }
+function parseBRtoDate_(dBR){ const [dd,mm,yyyy]=String(dBR||"").split("/").map(Number); return new Date(yyyy,(mm||1)-1,dd||1); }
+function formataEscala(valor){ if(valor==null) return ""; const s=String(valor).trim(); if(!s) return ""; if(s.toUpperCase()==="FOLGA") return "FOLGA"; const m=s.match(/(\d{1,2}):(\d{2})/); if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`; return s; }
+function cargaEscalaMin(escStr){ if(!escStr) return 0; const s=String(escStr).toUpperCase().trim(); if(s==="FOLGA") return 0; const m=s.match(/(\d{1,2}):(\d{2})/); if(m) return Number(m[1])*60+Number(m[2]); return 0; }
+function getEscalaDoDia_(u,dateObj){ const weekday=dateObj.getDay(); const escSem=(users[u]&&users[u].escalaSemanal)||{}; return formataEscala(escSem[weekday]||""); }
+function isFolgaEscala_(escStr){ return String(escStr||"").trim().toUpperCase()==="FOLGA"; }
+function brToISODate_(dbr){ if(!dbr) return ""; const s=String(dbr).trim(); const m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m) return ""; return `${m[3]}-${m[2]}-${m[1]}`; }
+function isoToBRDate_(iso){ if(!iso) return ""; const s=String(iso).trim(); const m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ""; return `${m[3]}/${m[2]}/${m[1]}`; }
+function montarObjetoSemVazios_(obj){ const out={}; Object.keys(obj||{}).forEach(k=>{ const v=obj[k]; if(v===undefined||v===null) return; if(typeof v==="string"&&v.trim()==="") return; out[k]=v; }); return out; }
+function normalizaTipoContrato(v){ const s=String(v||"").trim().toLowerCase(); return s==="intermitente"?"intermitente":"mensal"; }
+function getTipoContratoUsuario_(u){ const uo=users[u]||{}; return normalizaTipoContrato(uo.tipoContrato||uo.tipo_contrato||uo.contrato||currentUserObj?.tipo_contrato||"mensal"); }
+function isIntermitente_(u){ return getTipoContratoUsuario_(u)==="intermitente"; }
+function diaSemMarcacao_(regDia){ if(!regDia) return true; const temHora=!!(formataHoraCelula(regDia.entrada)||formataHoraCelula(regDia.saidaAlmoco)||formataHoraCelula(regDia.retornoAlmoco)||formataHoraCelula(regDia.saida)); const temEvento=!!(regDia.entrada_evento||regDia.saidaAlmoco_evento||regDia.retornoAlmoco_evento||regDia.saida_evento); return !temHora&&!temEvento; }
+function temRegistroEfetivoNoDia_(regDia){ const ent=formataHoraCelula(regDia?.entrada); const sAl=formataHoraCelula(regDia?.saidaAlmoco); const ret=formataHoraCelula(regDia?.retornoAlmoco); const sai=formataHoraCelula(regDia?.saida); const horas=[ent,sAl,ret,sai].filter(v=>v&&v!=="-"&&v!=="FOLGA"); return horas.length>0; }
+function eventoAutomaticoIntermitente_(u,regDia){ if(!isIntermitente_(u)) return ""; if(diaSemMarcacao_(regDia)) return "Intermitente"; return ""; }
+function contarDiasDSRNoPeriodo_(ini,fim){ let uteis=0, dsr=0; let d=new Date(ini); while(d<=fim){ const dd=String(d.getDate()).padStart(2,"0"); const mm=String(d.getMonth()+1).padStart(2,"0"); const ddmm=`${dd}/${mm}`; const ehFeriado=feriados.includes(ddmm); const diaSemana=d.getDay(); if(diaSemana===0||ehFeriado) dsr++; else uteis++; d.setDate(d.getDate()+1); } return {uteis,dsr}; }
+function minutosSobrepostos_(aIni,aFim,bIni,bFim){ const ini=Math.max(aIni,bIni); const fim=Math.min(aFim,bFim); return Math.max(0,fim-ini); }
+function calcAdicionalNoturnoMinDia_(regDia){ const ent=formataHoraCelula(regDia?.entrada); const sAl=formataHoraCelula(regDia?.saidaAlmoco); const ret=formataHoraCelula(regDia?.retornoAlmoco); const sai=formataHoraCelula(regDia?.saida); if(!ent||!sai) return 0; const segmentos=[]; if(ent&&sAl&&ret&&sai){ segmentos.push([hm(ent),hm(sAl)]); segmentos.push([hm(ret),hm(sai)]); } else if(ent&&sai){ segmentos.push([hm(ent),hm(sai)]); } let total=0; segmentos.forEach(([ini,fim])=>{ let iniAdj=ini; let fimAdj=fim; if(fimAdj<iniAdj) fimAdj+=24*60; total+=minutosSobrepostos_(iniAdj,fimAdj,22*60,24*60); total+=minutosSobrepostos_(iniAdj,fimAdj,24*60,29*60); }); return total; }
 
-function hm(h){
-  if(!h || typeof h!=="string" || !h.includes(":")) return 0;
-  const [x,y] = h.split(":").map(Number);
-  if(isNaN(x) || isNaN(y)) return 0;
-  return x*60+y;
-}
-
-function fmt(m){
-  const abs = Math.max(0, Math.round(m||0));
-  const h = String(Math.floor(abs/60)).padStart(2,"0");
-  const mm = String(abs%60).padStart(2,"0");
-  return `${h}:${mm}`;
-}
-
-function formataHoraCelula(valor){
-  if (!valor) return "";
-  if (valor instanceof Date) {
-    const hh = String(valor.getHours()).padStart(2,"0");
-    const mm = String(valor.getMinutes()).padStart(2,"0");
-    return `${hh}:${mm}`;
-  }
-  const s = String(valor).trim();
-  if (!s) return "";
-  if (s.toUpperCase() === "FOLGA") return "FOLGA";
-  let m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if (m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
-  m = s.match(/(\d{1,2}):(\d{2})/);
-  if (m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
-  return s;
-}
-
-function parseInputDateLocal(str){
-  if(!str) return null;
-  const [ano, mes, dia] = str.split("-").map(Number);
-  return new Date(ano, mes - 1, dia);
-}
-
-function normalizaHoraInput(h){
-  if(!h) return "";
-  const s = String(h).trim();
-  let m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if(m){
-    const hh = String(Number(m[1])).padStart(2,"0");
-    const mm = m[2];
-    const hhn = Number(hh), mmn = Number(mm);
-    if(hhn >= 0 && hhn <= 23 && mmn >= 0 && mmn <= 59) return `${hh}:${mm}`;
-  }
-  m = s.match(/(\d{1,2}):(\d{2})/);
-  if(m){
-    const hh = String(Number(m[1])).padStart(2,"0");
-    const mm = m[2];
-    const hhn = Number(hh), mmn = Number(mm);
-    if(hhn >= 0 && hhn <= 23 && mmn >= 0 && mmn <= 59) return `${hh}:${mm}`;
-  }
-  return "";
-}
-
-function dateToBR_(dt){
-  const dd = String(dt.getDate()).padStart(2,"0");
-  const mm = String(dt.getMonth()+1).padStart(2,"0");
-  const yyyy = dt.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function parseBRtoDate_(dBR){
-  const [dd,mm,yyyy] = String(dBR||"").split("/").map(Number);
-  return new Date(yyyy, (mm||1)-1, dd||1);
-}
-
-function formataEscala(valor){
-  if(valor == null) return "";
-  const s = String(valor).trim();
-  if(!s) return "";
-  if(s.toUpperCase() === "FOLGA") return "FOLGA";
-  const m = s.match(/(\d{1,2}):(\d{2})/);
-  if(m) return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
-  return s;
-}
-
-function cargaEscalaMin(escStr){
-  if(!escStr) return 0;
-  const s = String(escStr).toUpperCase().trim();
-  if(s==="FOLGA") return 0;
-  const m = s.match(/(\d{1,2}):(\d{2})/);
-  if(m) return Number(m[1])*60 + Number(m[2]);
-  return 0;
-}
-
-function getEscalaDoDia_(u, dateObj){
-  const weekday = dateObj.getDay();
-  const escSem = (users[u] && users[u].escalaSemanal) || {};
-  return formataEscala(escSem[weekday] || "");
-}
-
-function isFolgaEscala_(escStr){
-  return String(escStr||"").trim().toUpperCase() === "FOLGA";
-}
-
-function brToISODate_(dbr){
-  if(!dbr) return "";
-  const s = String(dbr).trim();
-  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if(!m) return "";
-  return `${m[3]}-${m[2]}-${m[1]}`;
-}
-
-function isoToBRDate_(iso){
-  if(!iso) return "";
-  const s = String(iso).trim();
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(!m) return "";
-  return `${m[3]}/${m[2]}/${m[1]}`;
-}
-
-function montarObjetoSemVazios_(obj){
-  const out = {};
-  Object.keys(obj || {}).forEach(k=>{
-    const v = obj[k];
-    if(v === undefined || v === null) return;
-    if(typeof v === "string" && v.trim() === "") return;
-    out[k] = v;
-  });
-  return out;
-}
-
-function normalizaTipoContrato(v){
-  const s = String(v || "").trim().toLowerCase();
-  return s === "intermitente" ? "intermitente" : "mensal";
-}
-
-function getTipoContratoUsuario_(u){
-  const uo = users[u] || {};
-  return normalizaTipoContrato(
-    uo.tipoContrato ||
-    uo.tipo_contrato ||
-    uo.contrato ||
-    currentUserObj?.tipo_contrato ||
-    "mensal"
-  );
-}
-
-function isIntermitente_(u){
-  return getTipoContratoUsuario_(u) === "intermitente";
-}
-
-function diaSemMarcacao_(regDia){
-  if(!regDia) return true;
-  const temHora = !!(
-    formataHoraCelula(regDia.entrada) ||
-    formataHoraCelula(regDia.saidaAlmoco) ||
-    formataHoraCelula(regDia.retornoAlmoco) ||
-    formataHoraCelula(regDia.saida)
-  );
-  const temEvento = !!(
-    regDia.entrada_evento ||
-    regDia.saidaAlmoco_evento ||
-    regDia.retornoAlmoco_evento ||
-    regDia.saida_evento
-  );
-  return !temHora && !temEvento;
-}
-
-function temRegistroEfetivoNoDia_(regDia){
-  const ent = formataHoraCelula(regDia?.entrada);
-  const sAl = formataHoraCelula(regDia?.saidaAlmoco);
-  const ret = formataHoraCelula(regDia?.retornoAlmoco);
-  const sai = formataHoraCelula(regDia?.saida);
-  const horas = [ent, sAl, ret, sai].filter(v => v && v !== "-" && v !== "FOLGA");
-  return horas.length > 0;
-}
-
-function eventoAutomaticoIntermitente_(u, regDia){
-  if(!isIntermitente_(u)) return "";
-  if(diaSemMarcacao_(regDia)) return "Intermitente";
-  return "";
-}
-
-function contarDiasDSRNoPeriodo_(ini, fim){
-  let uteis = 0;
-  let dsr = 0;
-  let d = new Date(ini);
-  while(d <= fim){
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const ddmm = `${dd}/${mm}`;
-    const ehFeriado = feriados.includes(ddmm);
-    const diaSemana = d.getDay();
-    if(diaSemana === 0 || ehFeriado) dsr++;
-    else uteis++;
-    d.setDate(d.getDate()+1);
-  }
-  return { uteis, dsr };
-}
-
-function minutosSobrepostos_(aIni, aFim, bIni, bFim){
-  const ini = Math.max(aIni, bIni);
-  const fim = Math.min(aFim, bFim);
-  return Math.max(0, fim - ini);
-}
-
-function calcAdicionalNoturnoMinDia_(regDia){
-  const ent = formataHoraCelula(regDia?.entrada);
-  const sAl = formataHoraCelula(regDia?.saidaAlmoco);
-  const ret = formataHoraCelula(regDia?.retornoAlmoco);
-  const sai = formataHoraCelula(regDia?.saida);
-
-  if(!ent || !sai) return 0;
-
-  const segmentos = [];
-  if(ent && sAl && ret && sai){
-    segmentos.push([hm(ent), hm(sAl)]);
-    segmentos.push([hm(ret), hm(sai)]);
-  } else if(ent && sai){
-    segmentos.push([hm(ent), hm(sai)]);
-  }
-
-  let total = 0;
-  segmentos.forEach(([ini, fim])=>{
-    let iniAdj = ini;
-    let fimAdj = fim;
-    if(fimAdj < iniAdj) fimAdj += 24*60;
-    total += minutosSobrepostos_(iniAdj, fimAdj, 22*60, 24*60);
-    total += minutosSobrepostos_(iniAdj, fimAdj, 24*60, 29*60);
-  });
-  return total;
-}
-
-function getEventoDominanteDia_(regDia){
-  const ev = (
-    regDia?.entrada_evento ||
-    regDia?.saidaAlmoco_evento ||
-    regDia?.retornoAlmoco_evento ||
-    regDia?.saida_evento ||
-    ""
-  );
-  if(String(ev).trim().toLowerCase() === "intermite") return "Intermitente";
-  return ev;
-}
-
-async function login(){
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value.trim();
-  if(!u || !p){ alert("Preencha usuário e senha."); return; }
-
-  let res;
-  try{
-    res = await apiPost({ tipo:"login", usuario:u, senha:p });
-  }catch(e){
-    alert("Erro ao conectar com o servidor: " + e);
-    return;
-  }
-
-  if(!res || res.status !== "ok"){
-    alert(res && res.message ? res.message : "Usuário ou senha inválidos.");
-    return;
-  }
-
-  const user = res.user || {};
-  const loginKey = (user.usuario_login || u).toString().trim().toLowerCase();
-
-  currentUser = loginKey;
-  currentUserObj = user;
-
-  const esc = {
-    1: formataEscala(user.escSeg || "08:00"),
-    2: formataEscala(user.escTer || user.escSeg || "08:00"),
-    3: formataEscala(user.escQua || user.escSeg || "08:00"),
-    4: formataEscala(user.escQui || user.escSeg || "08:00"),
-    5: formataEscala(user.escSex || user.escSeg || "08:00"),
-    6: formataEscala(user.escSab || "FOLGA"),
-    0: formataEscala(user.escDom || "FOLGA")
-  };
-
-  users[loginKey] = {
-    role: (user.role || "operacional").toLowerCase(),
-    nomeCompleto: user.nomeCompleto || user.nome || loginKey,
-    pis: user.pis || "",
-    cargo: user.cargo || "",
-    setor: user.setor || "",
-    localTrabalho: user.local_trabalho || "",
-    tipoContrato: normalizaTipoContrato(user.tipo_contrato || "mensal"),
-    valorHoraIntermitente: user.valor_hora_intermitente || "",
-    adicionalNoturnoPercent: user.adicional_noturno_percent || "",
-    escalaSemanal: esc
-  };
-
-  document.getElementById("nomeUsuario").textContent = users[loginKey].nomeCompleto;
-  document.getElementById("loginSection").classList.add("hidden");
-
-  if(users[loginKey].role === "admin"){
-    document.getElementById("adminSection").classList.remove("hidden");
-    await carregarUsuariosAdmin();
-    preencherFuncionarios();
-  } else {
-    document.getElementById("operacionalSection").classList.remove("hidden");
-    mostrarDataHora();
-    mostrarRegistrosUsuario();
-  }
-}
-
+async function login(){ const u=document.getElementById("username").value.trim(); const p=document.getElementById("password").value.trim(); if(!u||!p){ alert("Preencha usuário e senha."); return; } let res; try{ res=await apiPost({ tipo:"login", usuario:u, senha:p }); }catch(e){ alert("Erro ao conectar com o servidor: "+e); return; } if(!res||res.status!=="ok"){ alert(res&&res.message?res.message:"Usuário ou senha inválidos."); return; } const user=res.user||{}; const loginKey=(user.usuario_login||u).toString().trim().toLowerCase(); currentUser=loginKey; currentUserObj=user; const esc={1:formataEscala(user.escSeg||"08:00"),2:formataEscala(user.escTer||user.escSeg||"08:00"),3:formataEscala(user.escQua||user.escSeg||"08:00"),4:formataEscala(user.escQui||user.escSeg||"08:00"),5:formataEscala(user.escSex||user.escSeg||"08:00"),6:formataEscala(user.escSab||"FOLGA"),0:formataEscala(user.escDom||"FOLGA")}; users[loginKey]={ role:(user.role||"operacional").toLowerCase(), nomeCompleto:user.nomeCompleto||user.nome||loginKey, pis:user.pis||"", cargo:user.cargo||"", setor:user.setor||"", localTrabalho:user.local_trabalho||"", tipoContrato:normalizaTipoContrato(user.tipo_contrato||"mensal"), valorHoraIntermitente:user.valor_hora_intermitente||"", adicionalNoturnoPercent:user.adicional_noturno_percent||"", escalaSemanal:esc }; document.getElementById("nomeUsuario").textContent=users[loginKey].nomeCompleto; document.getElementById("loginSection").classList.add("hidden"); if(users[loginKey].role==="admin"){ document.getElementById("adminSection").classList.remove("hidden"); await carregarUsuariosAdmin(); preencherFuncionarios(); } else { document.getElementById("operacionalSection").classList.remove("hidden"); mostrarDataHora(); mostrarRegistrosUsuario(); } }
 function logout(){ location.reload(); }
-
-async function carregarUsuariosAdmin(){
-  try{
-    const res = await apiPost({ tipo:"listarUsuarios" });
-    if(res.status !== "ok") return;
-
-    (res.usuarios || []).forEach(u=>{
-      const loginKey = (u.usuario_login || "").toString().trim().toLowerCase();
-      if(!loginKey) return;
-
-      const esc = {
-        1: formataEscala(u.escSeg || "08:00"),
-        2: formataEscala(u.escTer || u.escSeg || "08:00"),
-        3: formataEscala(u.escQua || u.escSeg || "08:00"),
-        4: formataEscala(u.escQui || u.escSeg || "08:00"),
-        5: formataEscala(u.escSex || u.escSeg || "08:00"),
-        6: formataEscala(u.escSab || "FOLGA"),
-        0: formataEscala(u.escDom || "FOLGA")
-      };
-
-      users[loginKey] = {
-        role: (u.role || "operacional").toLowerCase(),
-        nomeCompleto: u.nomeCompleto || u.nome || loginKey,
-        pis: u.pis || "",
-        cargo: u.cargo || "",
-        setor: u.setor || "",
-        localTrabalho: u.local_trabalho || "",
-        tipoContrato: normalizaTipoContrato(u.tipo_contrato || "mensal"),
-        valorHoraIntermitente: u.valor_hora_intermitente || "",
-        adicionalNoturnoPercent: u.adicional_noturno_percent || "",
-        escalaSemanal: esc
-      };
-    });
-  }catch(e){
-    console.error("Erro ao listar usuários:", e);
-  }
-}
-
-async function registrar(tipo){
-  const agora = new Date();
-  const hora = agora.toTimeString().slice(0,5);
-  const data = dateToBR_(agora);
-
-  if(!navigator.geolocation){
-    alert("⚠️ Sem geolocalização neste dispositivo/navegador. O ponto será registrado mesmo assim.");
-    return salvarRegistro(tipo, hora, data, "Não suportada");
-  }
-
-  try{
-    if(navigator.permissions?.query){
-      const st = await navigator.permissions.query({ name: "geolocation" });
-      if(st.state === "denied"){
-        alert("⚠️ Geolocalização BLOQUEADA no navegador. O ponto será registrado mesmo assim (sem localização).");
-        return salvarRegistro(tipo, hora, data, "Permissão negada");
-      }
-    }
-  }catch(e){}
-
-  const opts = { enableHighAccuracy:true, timeout:15000, maximumAge:0 };
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const geo = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-      salvarRegistro(tipo, hora, data, geo);
-    },
-    err => {
-      console.warn("Geolocalização falhou:", err);
-      let msg = "Não registrada";
-      if(err?.code === 1) msg = "Permissão negada";
-      if(err?.code === 2) msg = "Posição indisponível";
-      if(err?.code === 3) msg = "Tempo esgotado";
-      salvarRegistro(tipo, hora, data, msg);
-    },
-    opts
-  );
-}
-
-async function salvarRegistro(tipo,hora,data,geo){
-  const res = await apiPost({
-    tipo:"registroPonto",
-    usuario_login: currentUser,
-    data: data,
-    marcacao: tipo,
-    hora: hora,
-    geo: geo
-  });
-
-  if(res.status !== "ok"){
-    alert(res.message || "Erro ao salvar registro na planilha");
-    return;
-  }
-  await mostrarRegistrosUsuario();
-}
-
-function mostrarDataHora(){
-  setInterval(()=>{
-    const a=new Date();
-    document.getElementById("dataAtual").textContent="Data: "+dateToBR_(a);
-    document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString("pt-BR");
-  },1000);
-}
-
-async function mostrarRegistrosUsuario(){
-  const hoje = new Date().toLocaleDateString("pt-BR");
-  const registrosDiv = document.getElementById("registrosUsuario");
-  const botoesDiv = document.getElementById("botoesRegistro");
-
-  registrosDiv.innerHTML = "Carregando marcações...";
-  botoesDiv.innerHTML = "";
-
-  let r = {};
-  try{
-    const res = await apiPost({ tipo:"getDia", usuario_login: currentUser, data: hoje });
-    if(res && res.status === "ok" && res.dia) r = res.dia;
-    else if(res && res.status === "erro"){
-      registrosDiv.innerHTML = "Erro ao carregar dia: " + (res.message || "");
-      return;
-    }
-  }catch(e){
-    console.error(e);
-    registrosDiv.innerHTML = "Erro ao conectar com o servidor.";
-    return;
-  }
-
-  registrosDiv.innerHTML = "";
-  const campos = [
-    ["entrada","Entrada"],
-    ["saidaAlmoco","Saída Almoço"],
-    ["retornoAlmoco","Retorno"],
-    ["saida","Saída"]
-  ];
-
-  campos.forEach(([k,label])=>{
-    const v = r[k];
-    if(v && String(v).trim() && String(v).trim() !== "-"){
-      const horaFmt = formataHoraCelula(v);
-      registrosDiv.innerHTML += `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eee;">
-          <div><strong>${label}:</strong> ${horaFmt}</div>
-          <button type="button" class="mini" onclick="gerarComprovante('${k}')">📄 PDF</button>
-        </div>
-      `;
-    }
-  });
-
-  if(!r.entrada){
-    botoesDiv.innerHTML = `<button onclick="registrar('entrada')">Entrada</button>`;
-  } else if(!r.saidaAlmoco){
-    botoesDiv.innerHTML = `<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`;
-  } else if(!r.retornoAlmoco){
-    botoesDiv.innerHTML = `<button onclick="registrar('retornoAlmoco')">Retorno</button>`;
-  } else if(!r.saida){
-    botoesDiv.innerHTML = `<button onclick="registrar('saida')">Saída</button>`;
-  } else {
-    botoesDiv.innerHTML = "✅ Jornada finalizada";
-  }
-}
-
-function calcularLinhaDia_(u, regDia, dateObj){
-  const dd = String(dateObj.getDate()).padStart(2,"0");
-  const mm = String(dateObj.getMonth()+1).padStart(2,"0");
-  const weekday = dateObj.getDay();
-
-  const escStr = getEscalaDoDia_(u, dateObj);
-  const jornadaEscala = cargaEscalaMin(escStr);
-  const folgaProgramada = isFolgaEscala_(escStr);
-
-  const ddmm = `${dd}/${mm}`;
-  const isFeriadoLista = feriados.includes(ddmm);
-
-  const ent = formataHoraCelula(regDia?.entrada);
-  const sAl = formataHoraCelula(regDia?.saidaAlmoco);
-  const ret = formataHoraCelula(regDia?.retornoAlmoco);
-  const sai = formataHoraCelula(regDia?.saida);
-
-  const temAlgumaMarcacao = !!(ent || sAl || ret || sai);
-
-  const eventos = [
-    regDia?.entrada_evento,
-    regDia?.saidaAlmoco_evento,
-    regDia?.retornoAlmoco_evento,
-    regDia?.saida_evento
-  ].filter(Boolean);
-  const eventoDia = eventos[0] || "";
-
-  let totalMin = 0;
-  if(!eventoDia){
-    const temEnt = !!ent, temSAl = !!sAl, temRet = !!ret, temSai = !!sai;
-    if(temEnt && temSAl && temRet && temSai){
-      totalMin = (hm(sAl) - hm(ent)) + (hm(sai) - hm(ret));
-    } else if(temEnt && temSai && !temSAl && !temRet){
-      totalMin = hm(sai) - hm(ent);
-    } else {
-      totalMin = 0;
-    }
-    if(totalMin < 0) totalMin = 0;
-  } else {
-    totalMin = 0;
-  }
-
-  let nomeDia = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday];
-  if(isFeriadoLista) nomeDia = "Feriado";
-
-  let creditoMin = 0;
-  let destaqueCredito = false;
-  let saldoMin = totalMin - jornadaEscala;
-
-  if(isFeriadoLista && temAlgumaMarcacao){
-    creditoMin = totalMin;
-    destaqueCredito = true;
-    return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
-  }
-
-  if(folgaProgramada){
-    if(temAlgumaMarcacao){
-      const prox = new Date(dateObj);
-      prox.setDate(prox.getDate()+1);
-      const folgaAmanha = isFolgaEscala_(getEscalaDoDia_(u, prox));
-      creditoMin = totalMin;
-      destaqueCredito = !folgaAmanha;
-    }
-    return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
-  }
-
-  if(totalMin > jornadaEscala){
-    creditoMin = totalMin - jornadaEscala;
-    destaqueCredito = true;
-  }
-
-  return { nomeDia, totalMin, jornadaEscala, creditoMin, destaqueCredito, saldoMin };
-}
-
-async function gerarComprovante(tipo){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  const hoje = new Date().toLocaleDateString("pt-BR");
-
-  let res;
-  try{
-    res = await apiPost({ tipo:"getDia", usuario_login: currentUser, data: hoje });
-  }catch(e){
-    alert("Erro ao buscar dados do dia: " + e);
-    return;
-  }
-
-  const r = (res && res.status === "ok" ? (res.dia || {}) : {});
-  const hora = formataHoraCelula(r[tipo] || "");
-
-  const geoKey = ({
-    entrada: "geoEntrada",
-    saidaAlmoco: "geoSaidaAlmoco",
-    retornoAlmoco: "geoRetornoAlmoco",
-    saida: "geoSaida"
-  })[tipo] || ("geo" + capitalize(tipo));
-
-  const geo = r[geoKey] || "";
-
-  doc.setFontSize(14);
-  doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"});
-  doc.setFontSize(11);
-  doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto || currentUser}`,14,30);
-  doc.text(`PIS: ${users[currentUser]?.pis || ""}`,14,36);
-  doc.text(`Data: ${hoje}`,14,42);
-  doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48);
-  doc.text(`Horário: ${hora || "-"}`,14,54);
-  doc.text(`Geolocalização: ${geo || "-"}`,14,60);
-
-  doc.save(`comprovante_${tipo}_${hoje.replaceAll("/","-")}.pdf`);
-}
-
-function campo(valor, c, adminView = true, dBR = ""){
-  const valorFmt = formataHoraCelula(valor);
-  const vazio = !valorFmt || valorFmt === "-";
-  const evento = dadosAtual[c+"_evento"];
-
-  const cellId = (dBR ? `cell_${dBR}_${c}` : "");
-  const wrapOpen = cellId ? `<span id="${cellId}">` : `<span>`;
-  const wrapClose = `</span>`;
-
-  const u = document.getElementById("funcionarioSelect")?.value || "";
-  const d = dBR || dataAtualRel;
-
-  if(!vazio && !evento){
-    if(adminView){
-      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
-      return wrapOpen + valorFmt + btn + wrapClose;
-    }
-    return wrapOpen + valorFmt + wrapClose;
-  }
-
-  if(evento){
-    if(adminView){
-      const btn = ` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`;
-      return wrapOpen + evento + btn + wrapClose;
-    }
-    return wrapOpen + evento + wrapClose;
-  }
-
-  if(adminView){
-    return wrapOpen + `<button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">➕ Ajustar</button>` + wrapClose;
-  }
-  return wrapOpen + "" + wrapClose;
-}
-
-function atualizarLinhaUI_(u, dBR, dateObj){
-  const reg = periodoCache[dBR] || {};
-  const calc = calcularLinhaDia_(u, reg, dateObj);
-  const ehIntermitente = isIntermitente_(u);
-  const eventoAuto = eventoAutomaticoIntermitente_(u, reg);
-
-  ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(c=>{
-    const span = document.getElementById(`cell_${dBR}_${c}`);
-    if(!span) return;
-
-    dadosAtual = reg;
-
-    if(ehIntermitente && eventoAuto && !reg[c] && !reg[c+"_evento"]){
-      span.innerHTML = `Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','${c}')">Editar</button>`;
-      return;
-    }
-
-    span.innerHTML = campo(reg[c], c, true, dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,"");
-  });
-
-  const tdTotal = document.getElementById(`total_${dBR}`);
-  if(tdTotal){
-    tdTotal.className = "verde";
-    tdTotal.textContent = fmt(calc.totalMin);
-  }
-
-  const tdEsc = document.getElementById(`escala_${dBR}`);
-  if(tdEsc){
-    tdEsc.textContent = formataEscala(getEscalaDoDia_(u, dateObj) || "");
-  }
-
-  const tdCred = document.getElementById(`credito_${dBR}`);
-  if(tdCred){
-    tdCred.className = calc.destaqueCredito ? "credito-excedente" : "verde";
-    tdCred.textContent = (calc.creditoMin > 0 ? fmt(calc.creditoMin) : "");
-  }
-}
-
-async function abrirAjuste(u,d,c){
-  const atual = (periodoCache[d] || {});
-
-  let popup = document.createElement("div");
-  popup.className = "modalMask";
-  popup.innerHTML = `
-    <div class="modalCard">
-      <h3>Ajustar ${c}</h3>
-      <label>Horas</label>
-      <input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}">
-      <label>Justificar</label>
-      <select id="selectJustificacao">
-        <option value="">--Escolha--</option>
-        <option value="APAGAR">Apagar registro</option>
-        ${justificativas.map(j=>{
-          const evAtual = String(atual[c+"_evento"] || "").trim();
-          const evNorm = evAtual.toLowerCase() === "intermite" ? "Intermitente" : evAtual;
-          return `<option value="${j}" ${evNorm===j?'selected':''}>${j}</option>`;
-        }).join("")}
-      </select>
-      <div class="modalActions">
-        <button class="btn-sec" id="cancelBtn">Cancelar</button>
-        <button id="okBtn">Salvar</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(popup);
-
-  popup.querySelector("#cancelBtn").onclick = ()=> popup.remove();
-
-  popup.querySelector("#okBtn").onclick = async ()=>{
-    const hRaw = popup.querySelector("#inputHoras").value.trim();
-    const h = normalizaHoraInput(hRaw);
-    const ev = popup.querySelector("#selectJustificacao").value;
-
-    if(hRaw && !h){
-      alert("Hora inválida. Use HH:MM (ex: 08:00).");
-      return;
-    }
-
-    const patch = {};
-
-    if(ev === "APAGAR"){
-      [
-        "entrada","saidaAlmoco","retornoAlmoco","saida",
-        "geoEntrada","geoSaidaAlmoco","geoRetornoAlmoco","geoSaida",
-        "entrada_evento","saidaAlmoco_evento","retornoAlmoco_evento","saida_evento",
-        "entrada_editado","saidaAlmoco_editado","retornoAlmoco_editado","saida_editado",
-        "atestadoHorasMin"
-      ].forEach(k => patch[k] = "");
-
-      const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
-      if(resSave.status !== "ok"){
-        alert(resSave.message || "Erro ao apagar registro");
-        return;
-      }
-
-      periodoCache[d] = periodoCache[d] || {};
-      Object.keys(patch).forEach(k => periodoCache[d][k] = patch[k]);
-
-      popup.remove();
-      atualizarLinhaUI_(u, d, parseBRtoDate_(d));
-      return;
-    }
-
-    if(ev === "Nenhum"){
-      patch[c+"_evento"] = "";
-      patch[c+"_editado"] = false;
-
-      if(h){
-        patch[c] = h;
-      }
-
-      const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
-      if(resSave.status !== "ok"){
-        alert(resSave.message || "Erro ao salvar ajuste");
-        return;
-      }
-
-      periodoCache[d] = periodoCache[d] || {};
-      Object.keys(patch).forEach(k => periodoCache[d][k] = patch[k]);
-
-      popup.remove();
-      atualizarLinhaUI_(u, d, parseBRtoDate_(d));
-      return;
-    }
-
-    if(h){
-      patch[c] = h;
-      patch[c+"_evento"] = "";
-      patch[c+"_editado"] = true;
-      patch.atestadoHorasMin = "";
-    } else if(ev){
-      ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{
-        patch[campoNome] = "-";
-        patch[campoNome+"_evento"] = ev;
-        patch[campoNome+"_editado"] = true;
-      });
-      patch.atestadoHorasMin = "";
-    } else {
-      alert("Informe uma hora, ou selecione uma justificativa, ou escolha Apagar registro.");
-      return;
-    }
-
-    const resSave = await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia: patch });
-    if(resSave.status !== "ok"){
-      alert(resSave.message || "Erro ao salvar ajuste");
-      return;
-    }
-
-    periodoCache[d] = periodoCache[d] || {};
-    Object.keys(patch).forEach(k => { periodoCache[d][k] = patch[k]; });
-
-    popup.remove();
-    atualizarLinhaUI_(u, d, parseBRtoDate_(d));
-  };
-}
-
-function preencherFuncionarios(){
-  const select=document.getElementById("funcionarioSelect");
-  select.innerHTML="<option value=''>Selecionar Funcionário</option>";
-  Object.keys(users).forEach(u=>{
-    if(users[u].role==="operacional"){
-      const option=document.createElement("option");
-      option.value=u;
-      option.textContent=users[u].nomeCompleto || u;
-      select.appendChild(option);
-    }
-  });
-}
-
-async function gerarRelatorioMensal(){
-  const u = document.getElementById("funcionarioSelect").value;
-  const dataInicioEl = document.getElementById("dataInicio");
-  const dataFimEl = document.getElementById("dataFim");
-  const tipo = document.getElementById("tipoRelatorio").value;
-
-  if(!u || !dataInicioEl.value) return;
-
-  const inicio = parseInputDateLocal(dataInicioEl.value);
-  const fim = dataFimEl.value ? parseInputDateLocal(dataFimEl.value) : inicio;
-  if(!inicio || !fim){ alert("Preencha corretamente as datas."); return; }
-
-  const periodoInicioStr = dateToBR_(inicio);
-  const periodoFimStr = dateToBR_(fim);
-
-  let resPeriodo;
-  try{
-    resPeriodo = await apiPost({
-      tipo: "getPeriodo",
-      usuario_login: u,
-      dataInicio: periodoInicioStr,
-      dataFim: periodoFimStr
-    });
-  }catch(e){
-    alert("Erro ao carregar período: " + e);
-    return;
-  }
-
-  if(!resPeriodo || resPeriodo.status !== "ok"){
-    alert(resPeriodo?.message || "Erro ao carregar período");
-    return;
-  }
-
-  periodoCache = resPeriodo.registros || {};
-  periodoUser = u;
-  periodoInicioKey = periodoInicioStr;
-  periodoFimKey = periodoFimStr;
-
-  let html = "";
-  html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto || u}</h3>`;
-  html += `<p>PIS: ${users[u]?.pis || ""}</p>`;
-  html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`;
-
-  html += `<table id="tabelaRelatorio"><tr>
-    <th>Data</th>
-    <th>Dia</th>
-    <th>Entrada</th>
-    <th>Saída Almoço</th>
-    <th>Retorno</th>
-    <th>Saída</th>
-    <th>Total</th>
-    <th>Escala</th>
-    <th>Crédito</th>`;
-
-  if(tipo==="comGeo"){
-    html += `<th>Geo Entrada</th>
-             <th>Geo Saída Almoço</th>
-             <th>Geo Retorno</th>
-             <th>Geo Saída</th>`;
-  }
-  html += `</tr>`;
-
-  let somaTotalMin = 0;
-  let somaCreditoMin = 0;
-  let quantidadeDiarias = 0;
-  let currentDate = new Date(inicio);
-
-  while(currentDate <= fim){
-    const dBR = dateToBR_(currentDate);
-
-    dadosAtual = periodoCache[dBR] || {};
-    dataAtualRel = dBR;
-
-    const calc = calcularLinhaDia_(u, dadosAtual, currentDate);
-
-    somaTotalMin += calc.totalMin;
-    somaCreditoMin += (calc.creditoMin || 0);
-    if(temRegistroEfetivoNoDia_(dadosAtual)) quantidadeDiarias++;
-
-    const escExibir = formataEscala(getEscalaDoDia_(u, currentDate) || "");
-
-    const dd = String(currentDate.getDate()).padStart(2,"0");
-    const mm = String(currentDate.getMonth()+1).padStart(2,"0");
-    const ddmm = `${dd}/${mm}`;
-    const isFeriadoLista = feriados.includes(ddmm);
-    const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, currentDate));
-    const temAlgumaMarcacao =
-      dadosAtual.entrada || dadosAtual.saidaAlmoco || dadosAtual.retornoAlmoco || dadosAtual.saida;
-
-    let conteudoEntrada, conteudoSaidaAlm, conteudoRetorno, conteudoSaida;
-    const eventoAutoIntermitente = eventoAutomaticoIntermitente_(u, dadosAtual);
-
-    if(eventoAutoIntermitente){
-      conteudoEntrada = `<span id="cell_${dBR}_entrada">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','entrada')">Editar</button></span>`;
-      conteudoSaidaAlm = `<span id="cell_${dBR}_saidaAlmoco">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','saidaAlmoco')">Editar</button></span>`;
-      conteudoRetorno = `<span id="cell_${dBR}_retornoAlmoco">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','retornoAlmoco')">Editar</button></span>`;
-      conteudoSaida = `<span id="cell_${dBR}_saida">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','saida')">Editar</button></span>`;
-    } else if(!isFeriadoLista && folgaProgramada && !temAlgumaMarcacao && !dadosAtual.entrada_evento){
-      conteudoEntrada = "FOLGA";
-      conteudoSaidaAlm = "FOLGA";
-      conteudoRetorno  = "FOLGA";
-      conteudoSaida    = "FOLGA";
-    } else {
-      conteudoEntrada   = campo(dadosAtual.entrada,"entrada", true, dBR);
-      conteudoSaidaAlm  = campo(dadosAtual.saidaAlmoco,"saidaAlmoco", true, dBR);
-      conteudoRetorno   = campo(dadosAtual.retornoAlmoco,"retornoAlmoco", true, dBR);
-      conteudoSaida     = campo(dadosAtual.saida,"saida", true, dBR);
-    }
-
-    const totalTxt = fmt(calc.totalMin);
-    const credTxt  = (calc.creditoMin > 0 ? fmt(calc.creditoMin) : "");
-    const credClass = calc.destaqueCredito ? "credito-excedente" : "verde";
-
-    html += `<tr>
-      <td>${dBR}</td>
-      <td>${calc.nomeDia}</td>
-      <td>${conteudoEntrada}</td>
-      <td>${conteudoSaidaAlm}</td>
-      <td>${conteudoRetorno}</td>
-      <td>${conteudoSaida}</td>
-      <td id="total_${dBR}" class="verde">${totalTxt}</td>
-      <td id="escala_${dBR}">${escExibir}</td>
-      <td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`;
-
-    if(tipo==="comGeo"){
-      html+=`<td>${dadosAtual.geoEntrada||""}</td>
-             <td>${dadosAtual.geoSaidaAlmoco||""}</td>
-             <td>${dadosAtual.geoRetornoAlmoco||""}</td>
-             <td>${dadosAtual.geoSaida||""}</td>`;
-    }
-
-    html += `</tr>`;
-    currentDate.setDate(currentDate.getDate()+1);
-  }
-
-  html += `<tr>
-    <th colspan="6">TOTAL</th>
-    <th class="verde">${fmt(somaTotalMin)}</th>
-    <th></th>
-    <th class="verde">${fmt(somaCreditoMin)}</th>`;
-
-  if(tipo==="comGeo"){
-    html += `<th colspan="4"></th>`;
-  }
-
-  html += `</tr></table>
-    <p><b>Quantidade de diárias:</b> ${quantidadeDiarias}</p>
-    <p>Assinatura do Funcionário: _____________________</p>`;
-
-  document.getElementById("cartaoFuncionario").innerHTML = html;
-
-  if(!document.getElementById("folhaBox").classList.contains("hidden")){
-    preencherTopoFolha_();
-  }
-}
-
-function limparIntermitenteDoClonePDF_(tabelaClone){
-  [...tabelaClone.querySelectorAll("td")].forEach(td=>{
-    const txt = (td.textContent || "").trim().toLowerCase();
-    if(txt === "intermitente editar" || txt === "intermitente"){
-      td.innerHTML = "";
-    }
-  });
-}
-
-function gerarExcel(){
-  const tabelaOriginal = document.querySelector("#tabelaRelatorio");
-  if(!tabelaOriginal){
-    alert("Gere o relatório do cartão de ponto antes de exportar para Excel.");
-    return;
-  }
-
-  const opt = confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-  const tabela = tabelaOriginal.cloneNode(true);
-
-  if(!opt){
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML = "";
-    });
-  } else {
-    [...tabela.querySelectorAll("td")].forEach(td=>{
-      td.innerHTML = td.innerHTML.replace(/ <button.*<\/button>/g,"");
-    });
-  }
-
-  const wb = XLSX.utils.book_new();
-  const linhas = [];
-  const trs = tabela.querySelectorAll("tr");
-
-  trs.forEach(tr=>{
-    const row = [];
-    tr.querySelectorAll("th,td").forEach(cell=>{
-      row.push((cell.innerText || cell.textContent || "").trim());
-    });
-    linhas.push(row);
-  });
-
-  const qtdMatch = document.getElementById("cartaoFuncionario").innerText.match(/Quantidade de diárias:\s*(\d+)/i);
-  if(qtdMatch) linhas.push(["Quantidade de diárias", qtdMatch[1]]);
-
-  const ws = XLSX.utils.aoa_to_sheet(linhas);
-  XLSX.utils.book_append_sheet(wb, ws, "Cartão de Ponto");
-  XLSX.writeFile(wb, "cartao_ponto.xlsx");
-}
-
-async function gerarPDFAdmin(){
+async function carregarUsuariosAdmin(){ try{ const res=await apiPost({ tipo:"listarUsuarios" }); if(res.status!=="ok") return; (res.usuarios||[]).forEach(u=>{ const loginKey=(u.usuario_login||"").toString().trim().toLowerCase(); if(!loginKey) return; const esc={1:formataEscala(u.escSeg||"08:00"),2:formataEscala(u.escTer||u.escSeg||"08:00"),3:formataEscala(u.escQua||u.escSeg||"08:00"),4:formataEscala(u.escQui||u.escSeg||"08:00"),5:formataEscala(u.escSex||u.escSeg||"08:00"),6:formataEscala(u.escSab||"FOLGA"),0:formataEscala(u.escDom||"FOLGA")}; users[loginKey]={ role:(u.role||"operacional").toLowerCase(), nomeCompleto:u.nomeCompleto||u.nome||loginKey, pis:u.pis||"", cargo:u.cargo||"", setor:u.setor||"", localTrabalho:u.local_trabalho||"", tipoContrato:normalizaTipoContrato(u.tipo_contrato||"mensal"), valorHoraIntermitente:u.valor_hora_intermitente||"", adicionalNoturnoPercent:u.adicional_noturno_percent||"", escalaSemanal:esc }; }); }catch(e){ console.error("Erro ao listar usuários:",e); } }
+async function registrar(tipo){ const agora=new Date(); const hora=agora.toTimeString().slice(0,5); const data=dateToBR_(agora); if(!navigator.geolocation){ alert("⚠️ Sem geolocalização neste dispositivo/navegador. O ponto será registrado mesmo assim."); return salvarRegistro(tipo,hora,data,"Não suportada"); } try{ if(navigator.permissions?.query){ const st=await navigator.permissions.query({ name:"geolocation" }); if(st.state==="denied"){ alert("⚠️ Geolocalização BLOQUEADA no navegador. O ponto será registrado mesmo assim (sem localização)."); return salvarRegistro(tipo,hora,data,"Permissão negada"); } } }catch(e){} const opts={ enableHighAccuracy:true, timeout:15000, maximumAge:0 }; navigator.geolocation.getCurrentPosition(pos=>{ const geo=`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`; salvarRegistro(tipo,hora,data,geo); }, err=>{ let msg="Não registrada"; if(err?.code===1) msg="Permissão negada"; if(err?.code===2) msg="Posição indisponível"; if(err?.code===3) msg="Tempo esgotado"; salvarRegistro(tipo,hora,data,msg); }, opts); }
+async function salvarRegistro(tipo,hora,data,geo){ const res=await apiPost({ tipo:"registroPonto", usuario_login:currentUser, data:data, marcacao:tipo, hora:hora, geo:geo }); if(res.status!=="ok"){ alert(res.message||"Erro ao salvar registro na planilha"); return; } await mostrarRegistrosUsuario(); }
+function mostrarDataHora(){ setInterval(()=>{ const a=new Date(); document.getElementById("dataAtual").textContent="Data: "+dateToBR_(a); document.getElementById("horaAtual").textContent="Hora: "+a.toLocaleTimeString("pt-BR"); },1000); }
+async function mostrarRegistrosUsuario(){ const hoje=new Date().toLocaleDateString("pt-BR"); const registrosDiv=document.getElementById("registrosUsuario"); const botoesDiv=document.getElementById("botoesRegistro"); registrosDiv.innerHTML="Carregando marcações..."; botoesDiv.innerHTML=""; let r={}; try{ const res=await apiPost({ tipo:"getDia", usuario_login:currentUser, data:hoje }); if(res&&res.status==="ok"&&res.dia) r=res.dia; else if(res&&res.status==="erro"){ registrosDiv.innerHTML="Erro ao carregar dia: "+(res.message||""); return; } }catch(e){ registrosDiv.innerHTML="Erro ao conectar com o servidor."; return; } registrosDiv.innerHTML=""; const campos=[["entrada","Entrada"],["saidaAlmoco","Saída Almoço"],["retornoAlmoco","Retorno"],["saida","Saída"]]; campos.forEach(([k,label])=>{ const v=r[k]; if(v&&String(v).trim()&&String(v).trim()!=="-"){ const horaFmt=formataHoraCelula(v); registrosDiv.innerHTML += `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eee;"><div><strong>${label}:</strong> ${horaFmt}</div><button type="button" class="mini" onclick="gerarComprovante('${k}')">📄 PDF</button></div>`; } }); if(!r.entrada){ botoesDiv.innerHTML=`<button onclick="registrar('entrada')">Entrada</button>`; } else if(!r.saidaAlmoco){ botoesDiv.innerHTML=`<button onclick="registrar('saidaAlmoco')">Saída Almoço</button>`; } else if(!r.retornoAlmoco){ botoesDiv.innerHTML=`<button onclick="registrar('retornoAlmoco')">Retorno</button>`; } else if(!r.saida){ botoesDiv.innerHTML=`<button onclick="registrar('saida')">Saída</button>`; } else { botoesDiv.innerHTML="✅ Jornada finalizada"; } }
+function calcularLinhaDia_(u,regDia,dateObj){ const dd=String(dateObj.getDate()).padStart(2,"0"); const mm=String(dateObj.getMonth()+1).padStart(2,"0"); const weekday=dateObj.getDay(); const escStr=getEscalaDoDia_(u,dateObj); const jornadaEscala=cargaEscalaMin(escStr); const folgaProgramada=isFolgaEscala_(escStr); const ddmm=`${dd}/${mm}`; const isFeriadoLista=feriados.includes(ddmm); const ent=formataHoraCelula(regDia?.entrada); const sAl=formataHoraCelula(regDia?.saidaAlmoco); const ret=formataHoraCelula(regDia?.retornoAlmoco); const sai=formataHoraCelula(regDia?.saida); const temAlgumaMarcacao=!!(ent||sAl||ret||sai); const eventos=[regDia?.entrada_evento,regDia?.saidaAlmoco_evento,regDia?.retornoAlmoco_evento,regDia?.saida_evento].filter(Boolean); const eventoDia=eventos[0]||""; let totalMin=0; if(!eventoDia){ const temEnt=!!ent, temSAl=!!sAl, temRet=!!ret, temSai=!!sai; if(temEnt&&temSAl&&temRet&&temSai){ totalMin=(hm(sAl)-hm(ent))+(hm(sai)-hm(ret)); } else if(temEnt&&temSai&&!temSAl&&!temRet){ totalMin=hm(sai)-hm(ent); } if(totalMin<0) totalMin=0; } let nomeDia=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][weekday]; if(isFeriadoLista) nomeDia="Feriado"; let creditoMin=0; let destaqueCredito=false; let saldoMin=totalMin-jornadaEscala; if(isFeriadoLista&&temAlgumaMarcacao){ creditoMin=totalMin; destaqueCredito=true; return {nomeDia,totalMin,jornadaEscala,creditoMin,destaqueCredito,saldoMin}; } if(folgaProgramada){ if(temAlgumaMarcacao){ const prox=new Date(dateObj); prox.setDate(prox.getDate()+1); const folgaAmanha=isFolgaEscala_(getEscalaDoDia_(u,prox)); creditoMin=totalMin; destaqueCredito=!folgaAmanha; } return {nomeDia,totalMin,jornadaEscala,creditoMin,destaqueCredito,saldoMin}; } if(totalMin>jornadaEscala){ creditoMin=totalMin-jornadaEscala; destaqueCredito=true; } return {nomeDia,totalMin,jornadaEscala,creditoMin,destaqueCredito,saldoMin}; }
+async function gerarComprovante(tipo){ const { jsPDF }=window.jspdf; const doc=new jsPDF(); const hoje=new Date().toLocaleDateString("pt-BR"); let res; try{ res=await apiPost({ tipo:"getDia", usuario_login:currentUser, data:hoje }); }catch(e){ alert("Erro ao buscar dados do dia: "+e); return; } const r=(res&&res.status==="ok"?(res.dia||{}):{}); const hora=formataHoraCelula(r[tipo]||""); const geoKey=({ entrada:"geoEntrada", saidaAlmoco:"geoSaidaAlmoco", retornoAlmoco:"geoRetornoAlmoco", saida:"geoSaida" })[tipo]||("geo"+capitalize(tipo)); const geo=r[geoKey]||""; doc.setFontSize(14); doc.text("COMPROVANTE DE REGISTRO DE PONTO",105,15,{align:"center"}); doc.setFontSize(11); doc.text(`Colaborador: ${users[currentUser]?.nomeCompleto||currentUser}`,14,30); doc.text(`PIS: ${users[currentUser]?.pis||""}`,14,36); doc.text(`Data: ${hoje}`,14,42); doc.text(`Tipo de Marcação: ${capitalize(tipo)}`,14,48); doc.text(`Horário: ${hora||"-"}`,14,54); doc.text(`Geolocalização: ${geo||"-"}`,14,60); doc.save(`comprovante_${tipo}_${hoje.replaceAll("/","-")}.pdf`); }
+function campo(valor,c,adminView=true,dBR=""){ const valorFmt=formataHoraCelula(valor); const vazio=!valorFmt||valorFmt==="-"; const evento=dadosAtual[c+"_evento"]; const cellId=(dBR?`cell_${dBR}_${c}`:""); const wrapOpen=cellId?`<span id="${cellId}">`:`<span>`; const wrapClose=`</span>`; const u=document.getElementById("funcionarioSelect")?.value||""; const d=dBR||dataAtualRel; if(!vazio&&!evento){ if(adminView){ const btn=` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`; return wrapOpen+valorFmt+btn+wrapClose; } return wrapOpen+valorFmt+wrapClose; } if(evento){ if(adminView){ const btn=` <button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">Editar</button>`; return wrapOpen+evento+btn+wrapClose; } return wrapOpen+evento+wrapClose; } if(adminView){ return wrapOpen+`<button class="mini" onclick="abrirAjuste('${u}','${d}','${c}')">➕ Ajustar</button>`+wrapClose; } return wrapOpen+""+wrapClose; }
+function atualizarLinhaUI_(u,dBR,dateObj){ const reg=periodoCache[dBR]||{}; const calc=calcularLinhaDia_(u,reg,dateObj); const ehIntermitente=isIntermitente_(u); const eventoAuto=eventoAutomaticoIntermitente_(u,reg); ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(c=>{ const span=document.getElementById(`cell_${dBR}_${c}`); if(!span) return; dadosAtual=reg; if(ehIntermitente&&eventoAuto&&!reg[c]&&!reg[c+"_evento"]){ span.innerHTML=`Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','${c}')">Editar</button>`; return; } span.innerHTML=campo(reg[c],c,true,dBR).replace(/^\<span[^>]*\>|\<\/span\>$/g,""); }); const tdTotal=document.getElementById(`total_${dBR}`); if(tdTotal){ tdTotal.className="verde"; tdTotal.textContent=fmt(calc.totalMin); } const tdEsc=document.getElementById(`escala_${dBR}`); if(tdEsc){ tdEsc.textContent=formataEscala(getEscalaDoDia_(u,dateObj)||""); } const tdCred=document.getElementById(`credito_${dBR}`); if(tdCred){ tdCred.className=calc.destaqueCredito?"credito-excedente":"verde"; tdCred.textContent=(calc.creditoMin>0?fmt(calc.creditoMin):""); } }
+async function abrirAjuste(u,d,c){ if(!exigirFolhaAberta_("editar marcações")) return; const atual=(periodoCache[d]||{}); let popup=document.createElement("div"); popup.className="modalMask"; popup.innerHTML=`<div class="modalCard"><h3>Ajustar ${c}</h3><label>Horas</label><input type="text" id="inputHoras" placeholder="HH:MM" value="${formataHoraCelula(atual[c])||""}"><label>Justificar</label><select id="selectJustificacao"><option value="">--Escolha--</option><option value="APAGAR">Apagar registro</option>${justificativas.map(j=>{ const evAtual=String(atual[c+"_evento"]||"").trim(); const evNorm=evAtual.toLowerCase()==="intermite"?"Intermitente":evAtual; return `<option value="${j}" ${evNorm===j?'selected':''}>${j}</option>`; }).join("")}</select><div class="modalActions"><button class="btn-sec" id="cancelBtn">Cancelar</button><button id="okBtn">Salvar</button></div></div>`; document.body.appendChild(popup); popup.querySelector("#cancelBtn").onclick=()=>popup.remove(); popup.querySelector("#okBtn").onclick=async()=>{ const hRaw=popup.querySelector("#inputHoras").value.trim(); const h=normalizaHoraInput(hRaw); const ev=popup.querySelector("#selectJustificacao").value; if(hRaw&&!h){ alert("Hora inválida. Use HH:MM (ex: 08:00)."); return; } const patch={}; if(ev==="APAGAR"){ ["entrada","saidaAlmoco","retornoAlmoco","saida","geoEntrada","geoSaidaAlmoco","geoRetornoAlmoco","geoSaida","entrada_evento","saidaAlmoco_evento","retornoAlmoco_evento","saida_evento","entrada_editado","saidaAlmoco_editado","retornoAlmoco_editado","saida_editado","atestadoHorasMin"].forEach(k=>patch[k]=""); const resSave=await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia:patch }); if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao apagar registro"); return; } periodoCache[d]=periodoCache[d]||{}; Object.keys(patch).forEach(k=>periodoCache[d][k]=patch[k]); popup.remove(); atualizarLinhaUI_(u,d,parseBRtoDate_(d)); return; } if(ev==="Nenhum"){ patch[c+"_evento"]=""; patch[c+"_editado"]=false; if(h){ patch[c]=h; } const resSave=await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia:patch }); if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; } periodoCache[d]=periodoCache[d]||{}; Object.keys(patch).forEach(k=>periodoCache[d][k]=patch[k]); popup.remove(); atualizarLinhaUI_(u,d,parseBRtoDate_(d)); return; } if(h){ patch[c]=h; patch[c+"_evento"]=""; patch[c+"_editado"]=true; patch.atestadoHorasMin=""; } else if(ev){ ["entrada","saidaAlmoco","retornoAlmoco","saida"].forEach(campoNome=>{ patch[campoNome]="-"; patch[campoNome+"_evento"]=ev; patch[campoNome+"_editado"]=true; }); patch.atestadoHorasMin=""; } else { alert("Informe uma hora, ou selecione uma justificativa, ou escolha Apagar registro."); return; } const resSave=await apiPost({ tipo:"salvarDia", usuario_login:u, data:d, dia:patch }); if(resSave.status!=="ok"){ alert(resSave.message||"Erro ao salvar ajuste"); return; } periodoCache[d]=periodoCache[d]||{}; Object.keys(patch).forEach(k=>{ periodoCache[d][k]=patch[k]; }); popup.remove(); atualizarLinhaUI_(u,d,parseBRtoDate_(d)); } }
+function preencherFuncionarios(){ const select=document.getElementById("funcionarioSelect"); select.innerHTML="<option value=''>Selecionar Funcionário</option>"; Object.keys(users).forEach(u=>{ if(users[u].role==="operacional"){ const option=document.createElement("option"); option.value=u; option.textContent=users[u].nomeCompleto||u; select.appendChild(option); } }); }
+async function gerarRelatorioMensal(){ const u=document.getElementById("funcionarioSelect").value; const dataInicioEl=document.getElementById("dataInicio"); const dataFimEl=document.getElementById("dataFim"); const tipo=document.getElementById("tipoRelatorio").value; if(!u||!dataInicioEl.value) return; const inicio=parseInputDateLocal(dataInicioEl.value); const fim=dataFimEl.value?parseInputDateLocal(dataFimEl.value):inicio; if(!inicio||!fim){ alert("Preencha corretamente as datas."); return; } const periodoInicioStr=dateToBR_(inicio); const periodoFimStr=dateToBR_(fim); let resPeriodo; try{ resPeriodo=await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio:periodoInicioStr, dataFim:periodoFimStr }); }catch(e){ alert("Erro ao carregar período: "+e); return; } if(!resPeriodo||resPeriodo.status!=="ok"){ alert(resPeriodo?.message||"Erro ao carregar período"); return; } periodoCache=resPeriodo.registros||{}; periodoUser=u; periodoInicioKey=periodoInicioStr; periodoFimKey=periodoFimStr; let html=""; html += `<h3>Cartão de Ponto – ${users[u]?.nomeCompleto||u}</h3>`; html += `<p>PIS: ${users[u]?.pis||""}</p>`; html += `<p>Período: ${periodoInicioStr} até ${periodoFimStr}</p>`; html += `<table id="tabelaRelatorio"><tr><th>Data</th><th>Dia</th><th>Entrada</th><th>Saída Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Escala</th><th>Crédito</th>`; if(tipo==="comGeo"){ html += `<th>Geo Entrada</th><th>Geo Saída Almoço</th><th>Geo Retorno</th><th>Geo Saída</th>`; } html += `</tr>`; let somaTotalMin=0, somaCreditoMin=0, quantidadeDiarias=0; let currentDate=new Date(inicio); while(currentDate<=fim){ const dBR=dateToBR_(currentDate); dadosAtual=periodoCache[dBR]||{}; dataAtualRel=dBR; const calc=calcularLinhaDia_(u,dadosAtual,currentDate); somaTotalMin += calc.totalMin; somaCreditoMin += (calc.creditoMin||0); if(temRegistroEfetivoNoDia_(dadosAtual)) quantidadeDiarias++; const escExibir=formataEscala(getEscalaDoDia_(u,currentDate)||""); const dd=String(currentDate.getDate()).padStart(2,"0"); const mm=String(currentDate.getMonth()+1).padStart(2,"0"); const ddmm=`${dd}/${mm}`; const isFeriadoLista=feriados.includes(ddmm); const folgaProgramada=isFolgaEscala_(getEscalaDoDia_(u,currentDate)); const temAlgumaMarcacao=dadosAtual.entrada||dadosAtual.saidaAlmoco||dadosAtual.retornoAlmoco||dadosAtual.saida; let conteudoEntrada,conteudoSaidaAlm,conteudoRetorno,conteudoSaida; const eventoAutoIntermitente=eventoAutomaticoIntermitente_(u,dadosAtual); if(eventoAutoIntermitente){ conteudoEntrada=`<span id="cell_${dBR}_entrada">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','entrada')">Editar</button></span>`; conteudoSaidaAlm=`<span id="cell_${dBR}_saidaAlmoco">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','saidaAlmoco')">Editar</button></span>`; conteudoRetorno=`<span id="cell_${dBR}_retornoAlmoco">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','retornoAlmoco')">Editar</button></span>`; conteudoSaida=`<span id="cell_${dBR}_saida">Intermitente <button class="mini" onclick="abrirAjuste('${u}','${dBR}','saida')">Editar</button></span>`; } else if(!isFeriadoLista&&folgaProgramada&&!temAlgumaMarcacao&&!dadosAtual.entrada_evento){ conteudoEntrada="FOLGA"; conteudoSaidaAlm="FOLGA"; conteudoRetorno="FOLGA"; conteudoSaida="FOLGA"; } else { conteudoEntrada=campo(dadosAtual.entrada,"entrada",true,dBR); conteudoSaidaAlm=campo(dadosAtual.saidaAlmoco,"saidaAlmoco",true,dBR); conteudoRetorno=campo(dadosAtual.retornoAlmoco,"retornoAlmoco",true,dBR); conteudoSaida=campo(dadosAtual.saida,"saida",true,dBR); } const totalTxt=fmt(calc.totalMin); const credTxt=(calc.creditoMin>0?fmt(calc.creditoMin):""); const credClass=calc.destaqueCredito?"credito-excedente":"verde"; html += `<tr><td>${dBR}</td><td>${calc.nomeDia}</td><td>${conteudoEntrada}</td><td>${conteudoSaidaAlm}</td><td>${conteudoRetorno}</td><td>${conteudoSaida}</td><td id="total_${dBR}" class="verde">${totalTxt}</td><td id="escala_${dBR}">${escExibir}</td><td id="credito_${dBR}" class="${credClass}">${credTxt}</td>`; if(tipo==="comGeo"){ html += `<td>${dadosAtual.geoEntrada||""}</td><td>${dadosAtual.geoSaidaAlmoco||""}</td><td>${dadosAtual.geoRetornoAlmoco||""}</td><td>${dadosAtual.geoSaida||""}</td>`; } html += `</tr>`; currentDate.setDate(currentDate.getDate()+1); } html += `<tr><th colspan="6">TOTAL</th><th class="verde">${fmt(somaTotalMin)}</th><th></th><th class="verde">${fmt(somaCreditoMin)}</th>`; if(tipo==="comGeo"){ html += `<th colspan="4"></th>`; } html += `</tr></table><p><b>Quantidade de diárias:</b> ${quantidadeDiarias}</p><p>Assinatura do Funcionário: _____________________</p>`; document.getElementById("cartaoFuncionario").innerHTML=html; if(!document.getElementById("folhaBox").classList.contains("hidden")){ preencherTopoFolha_(); } }
+function limparIntermitenteDoClonePDF_(tabelaClone){ [...tabelaClone.querySelectorAll("td")].forEach(td=>{ const txt=(td.textContent||"").trim().toLowerCase(); if(txt==="intermitente editar"||txt==="intermitente"){ td.innerHTML=""; } }); }
+function montarAbaCartaoPontoExcel_(wb){
+  const tabelaOriginal=document.querySelector("#tabelaRelatorio");
+  if(!tabelaOriginal) return false;
   const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original");
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF('p','mm','a4');
-
-  doc.setFontSize(12);
-  doc.text("RELATÓRIO DE PONTO",105,10,{align:"center"});
-
-  doc.setFontSize(10);
-  const u = document.getElementById("funcionarioSelect").value;
-  if(!u){ alert("Selecione o funcionário"); return; }
-  doc.text(`Funcionário: ${users[u]?.nomeCompleto || u}`,14,18);
-  doc.text(`PIS: ${users[u]?.pis || ""}`,14,24);
-
-  const tabela=document.querySelector("#tabelaRelatorio");
-  if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; }
-
-  const clone = tabela.cloneNode(true);
-
-  if(!opt){
-    [...clone.querySelectorAll("td")].forEach(td=>{
-      if(td.innerHTML.includes("Editar") || td.innerHTML.includes("➕ Ajustar")) td.innerHTML="";
-    });
-  } else {
-    [...clone.querySelectorAll("td")].forEach(td=>{
-      td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,"");
-    });
-    limparIntermitenteDoClonePDF_(clone);
-  }
-
-  doc.autoTable({startY:30,html:clone});
-
-  const qtdMatch = document.getElementById("cartaoFuncionario").innerText.match(/Quantidade de diárias:\s*(\d+)/i);
-  const qtdDiarias = qtdMatch ? qtdMatch[1] : "0";
-
-  const yBase = (doc.lastAutoTable?.finalY || 120) + 8;
-  doc.text(`Quantidade de diárias: ${qtdDiarias}`,14,yBase);
-  doc.text("Assinatura do Funcionário: ______________________",14,yBase+10);
-  doc.save("cartao_ponto.pdf");
+  const tabela=tabelaOriginal.cloneNode(true);
+  if(!opt){ [...tabela.querySelectorAll("td")].forEach(td=>{ if(td.innerHTML.includes("Editar")||td.innerHTML.includes("➕ Ajustar")) td.innerHTML=""; }); }
+  else { [...tabela.querySelectorAll("td")].forEach(td=>{ td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,""); }); }
+  const linhas=[]; tabela.querySelectorAll("tr").forEach(tr=>{ const row=[]; tr.querySelectorAll("th,td").forEach(cell=>row.push((cell.innerText||cell.textContent||"").trim())); linhas.push(row); });
+  const qtdMatch=document.getElementById("cartaoFuncionario").innerText.match(/Quantidade de diárias:\s*(\d+)/i);
+  if(qtdMatch) linhas.push(["Quantidade de diárias",qtdMatch[1]]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(linhas),"Cartão de Ponto");
+  return true;
 }
-
-function limparModalFuncionario_(){
-  const set = (id, v="") => { const el=document.getElementById(id); if(el) el.value=v; };
-
-  set("novoCodigo","");
-  set("novoNome","");
-  set("novoUser","");
-  set("novoPass","");
-  set("novoCargo","");
-  set("novoPis","");
-  set("novoSetor","");
-  set("novoLocal","");
-  set("novoCpf","");
-  set("novoSalarioBase","");
-  set("novoTipoContrato","mensal");
-  set("novoValorHoraIntermitente","");
-  set("novoAdicionalNoturnoPercent","20");
-  set("novoAdmissao","");
-  set("novoHorasMensais","");
-  set("novoDepMenor14","");
-  set("novoDepMaior14","");
-  set("novoDepIR","");
-  set("novoDepSalFamilia","");
-  set("novoVTUsa","");
-  set("novoVTPercent","");
-  set("novoPensao","");
-  set("novoPrevCompl","");
-  set("novoOutrosProv","");
-  set("novoOutrosDesc","");
-  set("escSeg","08:00");
-  set("escTer","08:00");
-  set("escQua","08:00");
-  set("escQui","08:00");
-  set("escSex","08:00");
-  set("escSab","04:00");
-  set("escDom","FOLGA");
+function eventosParaAbaESocial_(nomeAba){
+  const u=obterFuncionarioFolhaAtual_();
+  const comp=obterCompetenciaFolhaAtual_();
+  const snap=obterFechamentoFolha_(u,comp)||snapshotFolhaAtual_();
+  const f=snap.funcionario||{};
+  const c=snap.calculado||folhaState.calculado||{};
+  const base=[
+    ["Competência", comp],
+    ["Funcionário", f.nome||users[u]?.nomeCompleto||u||""],
+    ["Usuário", f.usuario_login||u||""],
+    ["CPF", f.cpf||""],
+    ["PIS", f.pis||""],
+    ["Cargo", f.cargo||""],
+    ["Matrícula eSocial", f.matricula_esocial||""],
+    ["Status da Folha", (obterFechamentoFolha_(u,comp)?.fechado?"FECHADA":"ABERTA")],
+    ["Fechada em", obterFechamentoFolha_(u,comp)?.fechadoEm?new Date(obterFechamentoFolha_(u,comp).fechadoEm).toLocaleString("pt-BR"):""],
+    []
+  ];
+  if(nomeAba==="Folha eSocial (S-1200)") return base.concat([["Evento","S-1200"],["Bruto",Number(c.bruto||0)],["INSS",Number(c.inss||0)],["IRRF",Number(c.irrf||0)],["Líquido",Number(c.liquido||0)],["Base FGTS",Number(c.base_fgts||0)],["FGTS Guia",Number(c.fgts_guia||0)]]);
+  if(nomeAba==="Admissão eSocial") return base.concat([["Evento","S-2200"],["Data de admissão",f.data_admissao||""],["Categoria",f.cod_categ_esocial||""],["CBO",f.cbo_esocial||""],["Lotação",f.cod_lotacao_esocial||""]]);
+  if(nomeAba==="Alteração Cadastral") return base.concat([["Evento","S-2205"],["Nome",f.nome||""],["CPF",f.cpf||""]]);
+  if(nomeAba==="Alteração Contratual") return base.concat([["Evento","S-2206"],["Cargo",f.cargo||""],["Salário Base",Number(parseNumeroBR(f.salario_base||0)||0)],["CBO",f.cbo_esocial||""],["Lotação",f.cod_lotacao_esocial||""]]);
+  if(nomeAba==="Férias / Afastamento") return base.concat([["Evento","S-2230"],["Tipo","Férias / Afastamento"],["Período",`${snap.periodo?.iniBR||""} até ${snap.periodo?.fimBR||""}`]]);
+  if(nomeAba==="Rescisão eSocial") return base.concat([["Evento","S-2299"],["Funcionário",f.nome||""],["Matrícula",f.matricula_esocial||""]]);
+  if(nomeAba==="Pagamento eSocial") return base.concat([["Evento","S-1210"],["Data prevista pagamento",new Date().toLocaleDateString("pt-BR")],["Líquido",Number(c.liquido||0)]]);
+  if(nomeAba==="Fechamento eSocial") return base.concat([["Evento","S-1299"],["Competência",comp],["Status",obterFechamentoFolha_(u,comp)?.fechado?"Fechado":"Aberto"]]);
+  return base;
 }
-
-function preencherModalFuncionario_(f){
-  if(!f) return;
-  const set = (id, v="") => { const el=document.getElementById(id); if(el) el.value=(v ?? ""); };
-
-  set("novoCodigo", f.codigo || f.cod || "");
-  set("novoNome",   f.nome || f.nomeCompleto || "");
-  set("novoUser",   f.usuario_login || f.usuario || "");
-  set("novoPass",   f.senha || "");
-  set("novoCargo",  f.cargo || "");
-  set("novoPis",    f.pis || "");
-  set("novoSetor",  f.setor || "");
-  set("novoLocal",  f.local_trabalho || f.localTrabalho || "");
-  set("novoCpf", f.cpf || "");
-  set("novoSalarioBase", f.salario_base || "");
-  set("novoTipoContrato", normalizaTipoContrato(f.tipo_contrato || "mensal"));
-  set("novoValorHoraIntermitente", f.valor_hora_intermitente || "");
-  set("novoAdicionalNoturnoPercent", f.adicional_noturno_percent || "");
-  set("novoHorasMensais", f.horas_mensais || "");
-  set("novoDepMenor14", f.dep_menor14 || "");
-  set("novoDepMaior14", f.dep_maior14 || "");
-  set("novoDepIR", f.dep_ir || "");
-  set("novoDepSalFamilia", f.dep_sal_familia || "");
-  set("novoVTPercent", f.vt_percent || "");
-  set("novoPensao", f.pensao_alimenticia || "");
-  set("novoPrevCompl", f.prev_complementar || "");
-  set("novoOutrosProv", f.outros_proventos_padrao || "");
-  set("novoOutrosDesc", f.outros_descontos_padrao || "");
-  set("novoAdmissao", brToISODate_(f.data_admissao || ""));
-
-  const vt = String(f.vt_usa || "").trim().toLowerCase();
-  if(vt === "sim" || vt==="s" || vt==="true" || vt==="1") set("novoVTUsa","sim");
-  else if(vt === "nao" || vt==="não" || vt==="n" || vt==="false" || vt==="0") set("novoVTUsa","nao");
-  else set("novoVTUsa","");
-
-  set("escSeg", formataEscala(f.escSeg || f.esc_seg || "08:00"));
-  set("escTer", formataEscala(f.escTer || f.esc_ter || f.escSeg || "08:00"));
-  set("escQua", formataEscala(f.escQua || f.esc_qua || f.escSeg || "08:00"));
-  set("escQui", formataEscala(f.escQui || f.esc_qui || f.escSeg || "08:00"));
-  set("escSex", formataEscala(f.escSex || f.esc_sex || f.escSeg || "08:00"));
-  set("escSab", formataEscala(f.escSab || f.esc_sab || "04:00"));
-  set("escDom", formataEscala(f.escDom || f.esc_dom || "FOLGA"));
-}
-
-async function abrirCadastroFuncionario(){
-  limparModalFuncionario_();
-  document.getElementById("modalFuncionario").classList.remove("hidden");
-
-  const u = document.getElementById("funcionarioSelect")?.value || "";
-  if(!u) return;
-
-  try{
-    const res = await apiPost({ tipo:"getFuncionarioFull", usuario_login: u });
-    if(res?.status === "ok" && res.funcionario){
-      preencherModalFuncionario_(res.funcionario);
-    }else{
-      alert(res?.message || "Não foi possível carregar os dados do funcionário.");
-    }
-  }catch(e){
-    alert("Erro ao buscar dados do funcionário: " + e);
-  }
-}
-
-function fecharCadastroFuncionario(){
-  document.getElementById("modalFuncionario").classList.add("hidden");
-}
-
-async function salvarFuncionario(){
-  const usuario_login = document.getElementById("novoUser").value.trim();
-  const nome = document.getElementById("novoNome").value.trim();
-
-  if(!usuario_login){ alert("Preencha o campo Usuário (login)."); return; }
-  if(!nome){ alert("Preencha o Nome do funcionário."); return; }
-
-  const admISO = (document.getElementById("novoAdmissao")?.value || "").trim();
-  const admBR = admISO ? isoToBRDate_(admISO) : "";
-
-  const raw = {
-    codigo: document.getElementById("novoCodigo").value.trim(),
-    nome: nome,
-    usuario_login: usuario_login.toLowerCase(),
-    senha: document.getElementById("novoPass").value.trim(),
-    cargo: document.getElementById("novoCargo").value.trim(),
-    pis: document.getElementById("novoPis").value.trim(),
-    setor: document.getElementById("novoSetor").value.trim(),
-    local_trabalho: document.getElementById("novoLocal").value.trim(),
-    role: "operacional",
-    cpf: document.getElementById("novoCpf").value.trim(),
-    salario_base: document.getElementById("novoSalarioBase").value.trim(),
-    tipo_contrato: document.getElementById("novoTipoContrato").value.trim(),
-    valor_hora_intermitente: document.getElementById("novoValorHoraIntermitente").value.trim(),
-    adicional_noturno_percent: document.getElementById("novoAdicionalNoturnoPercent").value.trim(),
-    data_admissao: admBR,
-    horas_mensais: document.getElementById("novoHorasMensais").value.trim(),
-    dep_menor14: document.getElementById("novoDepMenor14").value.trim(),
-    dep_maior14: document.getElementById("novoDepMaior14").value.trim(),
-    dep_ir: document.getElementById("novoDepIR").value.trim(),
-    dep_sal_familia: document.getElementById("novoDepSalFamilia").value.trim(),
-    vt_usa: document.getElementById("novoVTUsa").value.trim(),
-    vt_percent: document.getElementById("novoVTPercent").value.trim(),
-    pensao_alimenticia: document.getElementById("novoPensao").value.trim(),
-    prev_complementar: document.getElementById("novoPrevCompl").value.trim(),
-    outros_proventos_padrao: document.getElementById("novoOutrosProv").value.trim(),
-    outros_descontos_padrao: document.getElementById("novoOutrosDesc").value.trim(),
-    escSeg: document.getElementById("escSeg").value.trim(),
-    escTer: document.getElementById("escTer").value.trim(),
-    escQua: document.getElementById("escQua").value.trim(),
-    escQui: document.getElementById("escQui").value.trim(),
-    escSex: document.getElementById("escSex").value.trim(),
-    escSab: document.getElementById("escSab").value.trim(),
-    escDom: document.getElementById("escDom").value.trim()
-  };
-
-  ["escSeg","escTer","escQua","escQui","escSex","escSab","escDom"].forEach(k=>{
-    const vv = formataEscala(raw[k]);
-    if(vv) raw[k] = vv;
+function gerarExcel(){
+  const wb=XLSX.utils.book_new();
+  montarAbaCartaoPontoExcel_(wb);
+  [
+    "Folha eSocial (S-1200)",
+    "Admissão eSocial",
+    "Alteração Cadastral",
+    "Alteração Contratual",
+    "Férias / Afastamento",
+    "Rescisão eSocial",
+    "Pagamento eSocial",
+    "Fechamento eSocial"
+  ].forEach(nome=>{
+    const ws=XLSX.utils.aoa_to_sheet(eventosParaAbaESocial_(nome));
+    XLSX.utils.book_append_sheet(wb,ws,nome.slice(0,31));
   });
-
-  const funcionario = montarObjetoSemVazios_(raw);
-
-  try{
-    const res = await apiPost({ tipo:"salvarUsuario", funcionario });
-    if(res?.status !== "ok"){
-      alert(res?.message || "Erro ao salvar funcionário.");
-      return;
-    }
-
-    alert("✅ Funcionário salvo com sucesso!");
-    fecharCadastroFuncionario();
-
-    await carregarUsuariosAdmin();
-    preencherFuncionarios();
-
-    const sel = document.getElementById("funcionarioSelect");
-    if(sel) sel.value = usuario_login.toLowerCase();
-
-  }catch(e){
-    alert("Erro ao salvar funcionário: " + e);
-  }
+  XLSX.writeFile(wb,`relatorio_folha_esocial_${(obterCompetenciaFolhaAtual_()||"competencia").replace("-","")}.xlsx`);
 }
+async function gerarPDFAdmin(){ const opt=confirm("Deseja gerar o relatório AJUSTADO?\nOK = Ajustado\nCancelar = Original"); const {jsPDF}=window.jspdf; const doc=new jsPDF('p','mm','a4'); doc.setFontSize(12); doc.text("RELATÓRIO DE PONTO",105,10,{align:"center"}); doc.setFontSize(10); const u=document.getElementById("funcionarioSelect").value; if(!u){ alert("Selecione o funcionário"); return; } doc.text(`Funcionário: ${users[u]?.nomeCompleto||u}`,14,18); doc.text(`PIS: ${users[u]?.pis||""}`,14,24); const tabela=document.querySelector("#tabelaRelatorio"); if(!tabela){ alert("Gere o relatório antes de exportar para PDF."); return; } const clone=tabela.cloneNode(true); if(!opt){ [...clone.querySelectorAll("td")].forEach(td=>{ if(td.innerHTML.includes("Editar")||td.innerHTML.includes("➕ Ajustar")) td.innerHTML=""; }); } else { [...clone.querySelectorAll("td")].forEach(td=>{ td.innerHTML=td.innerHTML.replace(/ <button.*<\/button>/g,""); }); limparIntermitenteDoClonePDF_(clone); } doc.autoTable({startY:30,html:clone}); const qtdMatch=document.getElementById("cartaoFuncionario").innerText.match(/Quantidade de diárias:\s*(\d+)/i); const qtdDiarias=qtdMatch?qtdMatch[1]:"0"; const yBase=(doc.lastAutoTable?.finalY||120)+8; doc.text(`Quantidade de diárias: ${qtdDiarias}`,14,yBase); doc.text("Assinatura do Funcionário: ______________________",14,yBase+10); doc.save("cartao_ponto.pdf"); }
+function limparModalFuncionario_(){ const set=(id,v="")=>{ const el=document.getElementById(id); if(el) el.value=v; }; set("novoCodigo",""); set("novoNome",""); set("novoUser",""); set("novoPass",""); set("novoCargo",""); set("novoPis",""); set("novoSetor",""); set("novoLocal",""); set("novoCpf",""); set("novoSalarioBase",""); set("novoTipoContrato","mensal"); set("novoValorHoraIntermitente",""); set("novoAdicionalNoturnoPercent","20"); set("novoAdmissao",""); set("novoMatriculaEsocial",""); set("novoCodCategEsocial","101"); set("novoCodLotacaoEsocial","1"); set("novoCboEsocial",""); set("novoHorasMensais",""); set("novoDepMenor14",""); set("novoDepMaior14",""); set("novoDepIR",""); set("novoDepSalFamilia",""); set("novoVTUsa",""); set("novoVTPercent",""); set("novoPensao",""); set("novoPrevCompl",""); set("novoOutrosProv",""); set("novoOutrosDesc",""); set("escSeg","08:00"); set("escTer","08:00"); set("escQua","08:00"); set("escQui","08:00"); set("escSex","08:00"); set("escSab","04:00"); set("escDom","FOLGA"); }
+function preencherModalFuncionario_(f){ if(!f) return; const set=(id,v="")=>{ const el=document.getElementById(id); if(el) el.value=(v??""); }; set("novoCodigo",f.codigo||f.cod||""); set("novoNome",f.nome||f.nomeCompleto||""); set("novoUser",f.usuario_login||f.usuario||""); set("novoPass",f.senha||""); set("novoCargo",f.cargo||""); set("novoPis",f.pis||""); set("novoSetor",f.setor||""); set("novoLocal",f.local_trabalho||f.localTrabalho||""); set("novoCpf",f.cpf||""); set("novoSalarioBase",f.salario_base||""); set("novoTipoContrato",normalizaTipoContrato(f.tipo_contrato||"mensal")); set("novoValorHoraIntermitente",f.valor_hora_intermitente||""); set("novoAdicionalNoturnoPercent",f.adicional_noturno_percent||""); set("novoAdmissao",brToISODate_(f.data_admissao||"")); set("novoMatriculaEsocial",f.matricula_esocial||""); set("novoCodCategEsocial",f.cod_categ_esocial||"101"); set("novoCodLotacaoEsocial",f.cod_lotacao_esocial||"1"); set("novoCboEsocial",f.cbo_esocial||""); set("novoHorasMensais",f.horas_mensais||""); set("novoDepMenor14",f.dep_menor14||""); set("novoDepMaior14",f.dep_maior14||""); set("novoDepIR",f.dep_ir||""); set("novoDepSalFamilia",f.dep_sal_familia||""); set("novoVTPercent",f.vt_percent||""); set("novoPensao",f.pensao_alimenticia||""); set("novoPrevCompl",f.prev_complementar||""); set("novoOutrosProv",f.outros_proventos_padrao||""); set("novoOutrosDesc",f.outros_descontos_padrao||""); const vt=String(f.vt_usa||"").trim().toLowerCase(); if(vt==="sim"||vt==="s"||vt==="true"||vt==="1") set("novoVTUsa","sim"); else if(vt==="nao"||vt==="não"||vt==="n"||vt==="false"||vt==="0") set("novoVTUsa","nao"); else set("novoVTUsa",""); set("escSeg",formataEscala(f.escSeg||f.esc_seg||"08:00")); set("escTer",formataEscala(f.escTer||f.esc_ter||f.escSeg||"08:00")); set("escQua",formataEscala(f.escQua||f.esc_qua||f.escSeg||"08:00")); set("escQui",formataEscala(f.escQui||f.esc_qui||f.escSeg||"08:00")); set("escSex",formataEscala(f.escSex||f.esc_sex||f.escSeg||"08:00")); set("escSab",formataEscala(f.escSab||f.esc_sab||"04:00")); set("escDom",formataEscala(f.escDom||f.esc_dom||"FOLGA")); }
+async function abrirCadastroFuncionario(){ limparModalFuncionario_(); document.getElementById("modalFuncionario").classList.remove("hidden"); const u=document.getElementById("funcionarioSelect")?.value||""; if(!u) return; try{ const res=await apiPost({ tipo:"getFuncionarioFull", usuario_login:u }); if(res?.status==="ok"&&res.funcionario){ preencherModalFuncionario_(res.funcionario); } else { alert(res?.message||"Não foi possível carregar os dados do funcionário."); } }catch(e){ alert("Erro ao buscar dados do funcionário: "+e); } }
+function fecharCadastroFuncionario(){ document.getElementById("modalFuncionario").classList.add("hidden"); }
+async function salvarFuncionario(){ const usuario_login=document.getElementById("novoUser").value.trim(); const nome=document.getElementById("novoNome").value.trim(); if(!usuario_login){ alert("Preencha o campo Usuário (login)."); return; } if(!nome){ alert("Preencha o Nome do funcionário."); return; } const admISO=(document.getElementById("novoAdmissao")?.value||"").trim(); const admBR=admISO?isoToBRDate_(admISO):""; const raw={ codigo:document.getElementById("novoCodigo").value.trim(), nome:nome, usuario_login:usuario_login.toLowerCase(), senha:document.getElementById("novoPass").value.trim(), cargo:document.getElementById("novoCargo").value.trim(), pis:document.getElementById("novoPis").value.trim(), setor:document.getElementById("novoSetor").value.trim(), local_trabalho:document.getElementById("novoLocal").value.trim(), role:"operacional", cpf:document.getElementById("novoCpf").value.trim(), salario_base:document.getElementById("novoSalarioBase").value.trim(), tipo_contrato:document.getElementById("novoTipoContrato").value.trim(), valor_hora_intermitente:document.getElementById("novoValorHoraIntermitente").value.trim(), adicional_noturno_percent:document.getElementById("novoAdicionalNoturnoPercent").value.trim(), data_admissao:admBR, matricula_esocial:document.getElementById("novoMatriculaEsocial").value.trim(), cod_categ_esocial:document.getElementById("novoCodCategEsocial").value.trim(), cod_lotacao_esocial:document.getElementById("novoCodLotacaoEsocial").value.trim(), cbo_esocial:document.getElementById("novoCboEsocial").value.trim(), horas_mensais:document.getElementById("novoHorasMensais").value.trim(), dep_menor14:document.getElementById("novoDepMenor14").value.trim(), dep_maior14:document.getElementById("novoDepMaior14").value.trim(), dep_ir:document.getElementById("novoDepIR").value.trim(), dep_sal_familia:document.getElementById("novoDepSalFamilia").value.trim(), vt_usa:document.getElementById("novoVTUsa").value.trim(), vt_percent:document.getElementById("novoVTPercent").value.trim(), pensao_alimenticia:document.getElementById("novoPensao").value.trim(), prev_complementar:document.getElementById("novoPrevCompl").value.trim(), outros_proventos_padrao:document.getElementById("novoOutrosProv").value.trim(), outros_descontos_padrao:document.getElementById("novoOutrosDesc").value.trim(), escSeg:document.getElementById("escSeg").value.trim(), escTer:document.getElementById("escTer").value.trim(), escQua:document.getElementById("escQua").value.trim(), escQui:document.getElementById("escQui").value.trim(), escSex:document.getElementById("escSex").value.trim(), escSab:document.getElementById("escSab").value.trim(), escDom:document.getElementById("escDom").value.trim() }; ["escSeg","escTer","escQua","escQui","escSex","escSab","escDom"].forEach(k=>{ const vv=formataEscala(raw[k]); if(vv) raw[k]=vv; }); const funcionario=montarObjetoSemVazios_(raw); try{ const res=await apiPost({ tipo:"salvarUsuario", funcionario }); if(res?.status!=="ok"){ alert(res?.message||"Erro ao salvar funcionário."); return; } alert("✅ Funcionário salvo com sucesso!"); fecharCadastroFuncionario(); await carregarUsuariosAdmin(); preencherFuncionarios(); const sel=document.getElementById("funcionarioSelect"); if(sel) sel.value=usuario_login.toLowerCase(); }catch(e){ alert("Erro ao salvar funcionário: "+e); } }
 
-let folhaState = {
-  funcionario: {},
-  tipoContrato: "mensal",
-  periodo: { iniBR:"", fimBR:"", ini:null, fim:null },
-  apuracao: { totalMin:0, creditoMin:0, he50_min:0, he100_min:0, heNoturno_min:0, faltas_min:0, diasTrabalhados:0 },
-  verbas: {
-    proventos: [
-      { key:"salario_base", label:"Salário Base", tipo:"fixo" },
-      { key:"he50", label:"Hora extra 50%", tipo:"calc" },
-      { key:"he100", label:"Hora extra 100%", tipo:"calc" }
-    ],
-    descontos: [
-      { key:"faltas", label:"Faltas/Atrasos", tipo:"calc" },
-      { key:"inss", label:"INSS", tipo:"calc" },
-      { key:"irrf", label:"IRRF", tipo:"calc" },
-      { key:"vt", label:"Vale Transporte", tipo:"calc" }
-    ]
-  },
-  valoresFixos: {
-    outros_proventos: 0,
-    outros_descontos: 0
-  },
-  eventosManuais: {
-    proventos: [],
-    descontos: []
-  }
-};
-
-function toggleFolha(){
-  const box = document.getElementById("folhaBox");
-  box.classList.toggle("hidden");
-  if(!box.classList.contains("hidden")){
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-    const comp = document.getElementById("folhaCompetencia");
-    if(comp && !comp.value) comp.value = ym;
-    preencherTopoFolha_();
-    document.getElementById("folhaMsg").textContent = "Selecione funcionário e período no Cartão de Ponto, depois clique Carregar / Calcular.";
-  }
+let folhaState={ funcionario:{}, tipoContrato:"mensal", periodo:{ iniBR:"", fimBR:"", ini:null, fim:null }, apuracao:{ totalMin:0, creditoMin:0, he50_min:0, he100_min:0, heNoturno_min:0, faltas_min:0, diasTrabalhados:0 }, eventosManuais:{ proventos:[], descontos:[] }, calculado:null, competencia:"", fechamento:null };
+let folhaFechamentos=carregarFechamentosLocal_();
+function chaveFechamentoFolha_(u,comp){ return `${String(u||"").trim().toLowerCase()}__${String(comp||"").trim()}`; }
+function carregarFechamentosLocal_(){ try{ return JSON.parse(localStorage.getItem("folhaFechamentosESocial")||"{}")||{}; }catch(e){ return {}; } }
+function salvarFechamentosLocal_(){ localStorage.setItem("folhaFechamentosESocial", JSON.stringify(folhaFechamentos||{})); }
+function obterFuncionarioFolhaAtual_(){ return (document.getElementById("funcionarioSelect")?.value||"").trim().toLowerCase(); }
+function obterCompetenciaFolhaAtual_(){ return (document.getElementById("folhaCompetencia")?.value||"").trim(); }
+function limparContextoFolhaSelecionada_(preservarMensagem=false){
+  const compAtual=obterCompetenciaFolhaAtual_()||folhaState.competencia||"";
+  folhaState={ funcionario:{}, tipoContrato:"mensal", periodo:{ iniBR:"", fimBR:"", ini:null, fim:null }, apuracao:{ totalMin:0, creditoMin:0, he50_min:0, he100_min:0, heNoturno_min:0, faltas_min:0, diasTrabalhados:0 }, eventosManuais:{ proventos:[], descontos:[] }, calculado:null, competencia:compAtual, fechamento:null };
+  preencherTopoFolha_();
+  const area=document.getElementById("resumoFolha");
+  if(area) area.innerHTML='';
+  const msg=document.getElementById("folhaMsg");
+  if(msg && !preservarMensagem) msg.textContent='Selecione funcionário e período, depois clique Carregar / Calcular.';
+  atualizarStatusFechamentoFolha_();
 }
-
-function preencherTopoFolha_(){
-  const u = document.getElementById("funcionarioSelect").value;
-  document.getElementById("folhaFuncionarioNome").value = u ? (users[u]?.nomeCompleto || u) : "";
+function onFuncionarioChange(){
+  gerarRelatorioMensal();
+  if(!document.getElementById("folhaBox")?.classList.contains("hidden")) limparContextoFolhaSelecionada_(true);
 }
-
-function parseNumeroBR(v){
-  if(v === null || v === undefined || v === "") return 0;
-  if(typeof v === "number") return v;
-  const s = String(v).trim().replace(/\./g,"").replace(",",".").replace(/[^\d.-]/g,"");
-  const n = Number(s);
-  return isNaN(n) ? 0 : n;
-}
-
-function simNao(v){
-  const s = String(v||"").trim().toUpperCase();
-  return (s==="SIM" || s==="S" || s==="TRUE" || s==="1");
-}
-
+function obterFechamentoFolha_(u,comp){ return folhaFechamentos[chaveFechamentoFolha_(u,comp)]||null; }
+function folhaFechadaAtual_(){ const u=obterFuncionarioFolhaAtual_(); const comp=obterCompetenciaFolhaAtual_(); return !!(u&&comp&&obterFechamentoFolha_(u,comp)?.fechado); }
+function exigirFolhaAberta_(acao){ if(folhaFechadaAtual_()){ alert(`A folha desta competência já foi fechada para este funcionário.${acao?`\n\nPara ${acao}, use primeiro o botão "Reabrir Folha".`:"\n\nReabra a folha para continuar."}`); return false; } return true; }
+function snapshotFolhaAtual_(){ const f=folhaState.funcionario||{}; const uSel=obterFuncionarioFolhaAtual_(); const c=folhaState.calculado||{}; const p=folhaState.periodo||{}; const a=folhaState.apuracao||{}; const cadastroUser=users[uSel]||{}; return { funcionario:{ usuario_login:uSel||String(f.usuario_login||"").trim().toLowerCase(), nome:f.nome||f.nomeCompleto||cadastroUser.nomeCompleto||uSel||"", cpf:f.cpf||"", pis:f.pis||cadastroUser.pis||"", cargo:f.cargo||"", setor:f.setor||"", banco:f.banco||"001", agencia:f.agencia||"", agencia_dv:f.agencia_dv||"", conta:f.conta||"", conta_dv:f.conta_dv||"", tipo_conta:f.tipo_conta||"corrente", matricula_esocial:f.matricula_esocial||"", codigo_funcionario:f.codigo||f.codigo_funcionario||"" }, periodo:p, competencia:obterCompetenciaFolhaAtual_(), tipoContrato:folhaState.tipoContrato||f.tipo_contrato||"mensal", apuracao:a, calculado:c, eventosManuais:JSON.parse(JSON.stringify(folhaState.eventosManuais||{proventos:[],descontos:[]})), fechadoEm:new Date().toISOString() }; }
+function atualizarStatusFechamentoFolha_(){ const box=document.getElementById("folhaStatusFechamento"); if(!box) return; const u=obterFuncionarioFolhaAtual_(); const comp=obterCompetenciaFolhaAtual_(); if(!u||!comp){ box.innerHTML='<b>Status da folha</b><br>Selecione o funcionário e a competência para visualizar o status.'; return; } const info=obterFechamentoFolha_(u,comp); if(info?.fechado){ const nome=info.funcionario?.nome||users[u]?.nomeCompleto||u; box.innerHTML=`<b>Status da folha</b><br><span class="vermelho">FECHADA</span> para <b>${nome}</b> na competência <b>${comp}</b>.<br>Fechada em: <b>${new Date(info.fechadoEm).toLocaleString("pt-BR")}</b>.<br>Para incluir ou alterar verbas/cálculos, clique em <b>Reabrir Folha</b>, faça as alterações e depois execute novo fechamento, novo envio ao eSocial e nova geração do pagamento/remessa.`; }
+  else { box.innerHTML=`<b>Status da folha</b><br><span class="verde">ABERTA</span> para edição na competência <b>${comp}</b>.`; } }
+function salvarRascunhoFolhaAtual_(){ const u=obterFuncionarioFolhaAtual_(); const comp=obterCompetenciaFolhaAtual_(); const loginFolha=String(folhaState.funcionario?.usuario_login||"").trim().toLowerCase(); if(!u||!comp||!folhaState.calculado) return; if(loginFolha && loginFolha!==u) return; const chave=chaveFechamentoFolha_(u,comp); const anterior=folhaFechamentos[chave]||{}; folhaFechamentos[chave]={ ...anterior, ...snapshotFolhaAtual_(), fechado: !!anterior.fechado, remessaGerada: !!anterior.remessaGerada, reabertoEm: anterior.reabertoEm||"" }; salvarFechamentosLocal_(); atualizarStatusFechamentoFolha_(); }
+function aplicarSnapshotFechamentoNaFolha_(snap){ if(!snap) return; const uSel=obterFuncionarioFolhaAtual_(); folhaState.funcionario={ ...(snap.funcionario||folhaState.funcionario||{}), usuario_login:uSel||String(snap.funcionario?.usuario_login||"").trim().toLowerCase() }; folhaState.periodo=snap.periodo||folhaState.periodo||{}; folhaState.competencia=snap.competencia||obterCompetenciaFolhaAtual_(); folhaState.tipoContrato=snap.tipoContrato||folhaState.tipoContrato||"mensal"; folhaState.apuracao=snap.apuracao||folhaState.apuracao||{}; folhaState.calculado=snap.calculado||folhaState.calculado||{}; folhaState.eventosManuais=JSON.parse(JSON.stringify(snap.eventosManuais||{proventos:[],descontos:[]})); folhaState.fechamento=snap; recalcularFolha_(true); }
+function fecharFolhaCompetenciaAtual(){ try{ const u=obterFuncionarioFolhaAtual_(); const comp=obterCompetenciaFolhaAtual_(); if(!u) throw new Error("Selecione um funcionário."); if(!comp) throw new Error("Selecione a competência."); if(!folhaState.calculado) throw new Error("Carregue / calcule a folha antes de fechar."); const chave=chaveFechamentoFolha_(u,comp); folhaFechamentos[chave]={ ...snapshotFolhaAtual_(), fechado:true, fechadoEm:new Date().toISOString(), reabertoEm:"", remessaGerada:false }; salvarFechamentosLocal_(); folhaState.fechamento=folhaFechamentos[chave]; atualizarStatusFechamentoFolha_(); document.getElementById("folhaMsg").textContent=`Folha fechada para ${users[u]?.nomeCompleto||u} na competência ${comp}. Para alterar verbas ou cálculos, use Reabrir Folha.`; alert("Folha fechada com sucesso.\n\nAgora o sistema exigirá reabertura antes de novas inclusões/alterações."); }catch(e){ alert(e.message||e); } }
+function reabrirFolhaCompetenciaAtual(){ try{ const u=obterFuncionarioFolhaAtual_(); const comp=obterCompetenciaFolhaAtual_(); if(!u) throw new Error("Selecione um funcionário."); if(!comp) throw new Error("Selecione a competência."); const chave=chaveFechamentoFolha_(u,comp); const atual=folhaFechamentos[chave]; if(!atual?.fechado){ alert("Esta folha já está aberta."); atualizarStatusFechamentoFolha_(); return; } atual.fechado=false; atual.reabertoEm=new Date().toISOString(); atual.remessaGerada=false; folhaFechamentos[chave]=atual; salvarFechamentosLocal_(); folhaState.fechamento=atual; atualizarStatusFechamentoFolha_(); document.getElementById("folhaMsg").textContent=`Folha reaberta para ${users[u]?.nomeCompleto||u} na competência ${comp}. Agora já é possível incluir/alterar verbas e recalcular.`; alert("Folha reaberta.\n\nFaça as inclusões/alterações necessárias, recalcule e depois efetue novo fechamento e nova geração dos arquivos."); }catch(e){ alert(e.message||e); } }
+function toggleFolha(){ const box=document.getElementById("folhaBox"); box.classList.toggle("hidden"); if(!box.classList.contains("hidden")){ const now=new Date(); const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`; const comp=document.getElementById("folhaCompetencia"); if(comp&&!comp.value) comp.value=ym; preencherTopoFolha_(); atualizarStatusFechamentoFolha_(); document.getElementById("folhaMsg").textContent="Selecione funcionário e período no Cartão de Ponto, depois clique Carregar / Calcular."; } }
+function preencherTopoFolha_(){ const u=document.getElementById("funcionarioSelect").value; document.getElementById("folhaFuncionarioNome").value=u?(users[u]?.nomeCompleto||u):""; }
+function parseNumeroBR(v){ if(v===null||v===undefined||v==="") return 0; if(typeof v==="number") return v; const s=String(v).trim().replace(/\./g,"").replace(",", ".").replace(/[^\d.-]/g,""); const n=Number(s); return isNaN(n)?0:n; }
+function simNao(v){ const s=String(v||"").trim().toUpperCase(); return (s==="SIM"||s==="S"||s==="TRUE"||s==="1"); }
 function round2(n){ return Math.round((Number(n||0)+Number.EPSILON)*100)/100; }
 function moeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
 function horas(min){ return fmt(min); }
+function calcINSS2026(salario){ const teto=8475.55; const base=Math.min(Math.max(0,salario),teto); const faixas=[{ate:1621,aliq:0.075},{ate:2902.84,aliq:0.09},{ate:4354.27,aliq:0.12},{ate:8475.55,aliq:0.14}]; let restante=base, prev=0, inss=0; for(const f of faixas){ const faixaValor=Math.max(0,Math.min(restante,f.ate-prev)); inss += faixaValor*f.aliq; restante -= faixaValor; prev=f.ate; if(restante<=0) break; } return round2(inss); }
+function calcIRRFBase2025(baseCalculo){ const b=Math.max(0,baseCalculo); const faixas=[{ate:2428.80,aliq:0,ded:0},{ate:2826.65,aliq:0.075,ded:182.16},{ate:3751.05,aliq:0.15,ded:394.16},{ate:4664.68,aliq:0.225,ded:675.49},{ate:Infinity,aliq:0.275,ded:908.73}]; const f=faixas.find(x=>b<=x.ate)||faixas[faixas.length-1]; return Math.max(0,round2((b*f.aliq)-f.ded)); }
+function aplicaRedutorIRRF2026(rendTributavel,irAntes){ const r=Math.max(0,rendTributavel); if(r<=5000) return 0; let reducao=0; if(r>5000&&r<=7350){ reducao=978.62-(0.133145*r); if(reducao<0) reducao=0; } return Math.max(0,round2(irAntes-reducao)); }
+function getEventosCompativeis_(grupo){ const tipo=normalizaTipoContrato(folhaState.tipoContrato||"mensal"); if(grupo==="proventos"){ return tipo==="intermitente"?EVENTOS_PROVENTOS_INTERMITENTE:EVENTOS_PROVENTOS_MENSAL; } return tipo==="intermitente"?EVENTOS_DESCONTOS_INTERMITENTE:EVENTOS_DESCONTOS_MENSAL; }
+function somaEventosManuais_(grupo){ return (folhaState.eventosManuais[grupo]||[]).reduce((acc,item)=> acc + Number(item.valor||0),0); }
+function abrirLancamentoEvento(grupo){ if(!exigirFolhaAberta_("lançar eventos")) return; const eventos=getEventosCompativeis_(grupo); const mask=document.createElement("div"); mask.className="modalMask"; mask.innerHTML=`<div class="modalCard"><h3>${grupo==="proventos"?"Lançar Outros Proventos":"Lançar Outros Descontos"}</h3><label>Quantidade de eventos</label><input id="qtdEventos" type="number" min="1" max="20" value="1"><div class="modalActions"><button class="btn-sec" id="evCancelar1">Cancelar</button><button id="evContinuar">Continuar</button></div><div id="eventosContainer" style="margin-top:10px"></div></div>`; document.body.appendChild(mask); mask.querySelector("#evCancelar1").onclick=()=>mask.remove(); mask.querySelector("#evContinuar").onclick=()=>{ const qtd=Math.max(1,Math.min(20,Number(mask.querySelector("#qtdEventos").value||1))); const box=mask.querySelector("#eventosContainer"); box.innerHTML=`<div class="muted" style="margin-bottom:8px">Somente eventos compatíveis com contrato <b>${String(folhaState.tipoContrato||"mensal").toUpperCase()}</b></div>${Array.from({length:qtd}).map((_,i)=>`<div class="box" style="margin-top:8px"><label>Evento</label><select id="ev_desc_${i}"><option value="">Selecione</option>${eventos.map(ev=>`<option value="${ev}">${ev}</option>`).join("")}</select><label>Referência</label><input id="ev_ref_${i}" placeholder="Ex: 1, 7:30, 10%, etc"><label>Valor (R$)</label><input id="ev_val_${i}" placeholder="0,00"></div>`).join("")}<div class="modalActions"><button class="btn-sec" id="evCancelar2">Cancelar</button><button id="evSalvarLista">Salvar</button></div>`; box.querySelector("#evCancelar2").onclick=()=>mask.remove(); box.querySelector("#evSalvarLista").onclick=()=>{ const lista=folhaState.eventosManuais[grupo]||[]; for(let i=0;i<qtd;i++){ const descricao=(document.getElementById(`ev_desc_${i}`)?.value||"").trim(); const referencia=(document.getElementById(`ev_ref_${i}`)?.value||"").trim(); const valor=parseNumeroBR(document.getElementById(`ev_val_${i}`)?.value||""); if(!descricao||!valor) continue; lista.push({ id:`${Date.now()}_${grupo}_${i}_${Math.random().toString(36).slice(2,7)}`, descricao, referencia, valor }); } folhaState.eventosManuais[grupo]=lista; mask.remove(); recalcularFolha_(); }; }; }
+function editarEventoManual(grupo,id){ if(!exigirFolhaAberta_("editar eventos")) return; const lista=folhaState.eventosManuais[grupo]||[]; const item=lista.find(x=>x.id===id); if(!item) return; const eventos=getEventosCompativeis_(grupo); const mask=document.createElement("div"); mask.className="modalMask"; mask.innerHTML=`<div class="modalCard"><h3>Editar evento</h3><label>Evento</label><select id="ed_desc"><option value="">Selecione</option>${eventos.map(ev=>`<option value="${ev}" ${ev===item.descricao?'selected':''}>${ev}</option>`).join("")}</select><label>Referência</label><input id="ed_ref" value="${item.referencia||""}"><label>Valor (R$)</label><input id="ed_val" value="${Number(item.valor||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}"><div class="modalActions"><button class="btn-warn" id="edExcluir">Excluir</button><button class="btn-sec" id="edCancelar">Cancelar</button><button id="edSalvar">Salvar</button></div></div>`; document.body.appendChild(mask); mask.querySelector("#edCancelar").onclick=()=>mask.remove(); mask.querySelector("#edExcluir").onclick=()=>{ folhaState.eventosManuais[grupo]=lista.filter(x=>x.id!==id); mask.remove(); recalcularFolha_(); }; mask.querySelector("#edSalvar").onclick=()=>{ item.descricao=(mask.querySelector("#ed_desc").value||"").trim(); item.referencia=(mask.querySelector("#ed_ref").value||"").trim(); item.valor=parseNumeroBR(mask.querySelector("#ed_val").value||""); if(!item.descricao||!item.valor){ alert("Preencha evento e valor."); return; } mask.remove(); recalcularFolha_(); }; }
+function renderEventosManuais_(grupo){ const lista=folhaState.eventosManuais[grupo]||[]; if(!lista.length) return ""; return lista.map(item=>`<tr><td style="text-align:left">${item.descricao}<button class="mini" onclick="editarEventoManual('${grupo}','${item.id}')">Editar</button></td><td>${item.referencia||""}</td><td>${grupo==="proventos"?moeda(item.valor):""}</td><td>${grupo==="descontos"?moeda(item.valor):""}</td></tr>`).join(""); }
+async function carregarFolha(){ const msg=document.getElementById("folhaMsg"); msg.textContent=""; const u=document.getElementById("funcionarioSelect").value; if(!u){ msg.textContent="Selecione um funcionário no Cartão de Ponto."; atualizarStatusFechamentoFolha_(); return; } const di=document.getElementById("dataInicio").value; const df=document.getElementById("dataFim").value||di; if(!di){ msg.textContent="Selecione a data início no Cartão de Ponto."; atualizarStatusFechamentoFolha_(); return; } limparContextoFolhaSelecionada_(true); folhaState.competencia=obterCompetenciaFolhaAtual_(); atualizarStatusFechamentoFolha_(); const fechamentoExistente=obterFechamentoFolha_(u,folhaState.competencia); if(fechamentoExistente?.fechado){ const loginSnap=String(fechamentoExistente.funcionario?.usuario_login||"").trim().toLowerCase(); if(loginSnap && loginSnap!==String(u).trim().toLowerCase()){ delete folhaFechamentos[chaveFechamentoFolha_(u,folhaState.competencia)]; salvarFechamentosLocal_(); atualizarStatusFechamentoFolha_(); msg.textContent=`Foi encontrada uma folha fechada inconsistente para ${users[u]?.nomeCompleto||u}. O fechamento incorreto foi descartado e a folha foi reaberta para novo cálculo.`; } else { aplicarSnapshotFechamentoNaFolha_(fechamentoExistente); msg.textContent=`Folha fechada carregada em modo consulta para ${users[u]?.nomeCompleto||u} na competência ${folhaState.competencia}. Reabra a folha para fazer inclusões e alterações.`; return; } } folhaState.eventosManuais={ proventos:[], descontos:[] }; const escRes=await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u }); if(escRes?.status==="ok"&&escRes.escala){ users[u]=users[u]||{}; users[u].escalaSemanal=escRes.escala; } const cad=await apiPost({ tipo:"getFuncionarioFull", usuario_login:u }); if(!cad||cad.status!=="ok"){ msg.textContent=cad?.message||"Erro ao buscar cadastro."; return; } const f=cad.funcionario||{}; folhaState.funcionario=f; folhaState.tipoContrato=normalizaTipoContrato(f.tipo_contrato||users[u]?.tipoContrato||"mensal"); const ini=parseInputDateLocal(di); const fim=parseInputDateLocal(df); const iniBR=dateToBR_(ini); const fimBR=dateToBR_(fim); folhaState.periodo={ iniBR,fimBR,ini,fim }; const periodo=await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio:iniBR, dataFim:fimBR }); if(!periodo||periodo.status!=="ok"){ msg.textContent=periodo?.message||"Erro ao buscar período."; return; } const registros=periodo.registros||{}; let somaTotalMin=0,somaCreditoMin=0,he50_min=0,he100_min=0,heNoturno_min=0,faltas_min=0,diasTrabalhados=0; let d=new Date(ini); while(d<=fim){ const dBR=dateToBR_(d); const diaObj=registros[dBR]||{}; const calc=calcularLinhaDia_(u,diaObj,d); somaTotalMin += calc.totalMin; somaCreditoMin += (calc.creditoMin||0); if((calc.totalMin||0)>0) diasTrabalhados++; heNoturno_min += calcAdicionalNoturnoMinDia_(diaObj); const ddmm=`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`; const ehFeriadoLista=feriados.includes(ddmm); const folgaProgramada=isFolgaEscala_(getEscalaDoDia_(u,d)); if(folhaState.tipoContrato==="intermitente"){ if(ehFeriadoLista||folgaProgramada){ if((calc.totalMin||0)>0){ he100_min += (calc.totalMin||0); } } else { he50_min += (calc.creditoMin||0); } } else { if(ehFeriadoLista||folgaProgramada){ if((calc.totalMin||0)>0){ he100_min += (calc.totalMin||0); } } else { he50_min += (calc.creditoMin||0); const faltaDia=Math.max(0,(calc.jornadaEscala||0)-(calc.totalMin||0)); faltas_min += faltaDia; } } d.setDate(d.getDate()+1); } folhaState.apuracao={ totalMin:somaTotalMin, creditoMin:somaCreditoMin, he50_min, he100_min, heNoturno_min, faltas_min, diasTrabalhados }; recalcularFolha_(); }
+function recalcularFolha_(silencioso=false){ const f=folhaState.funcionario||{}; const a=folhaState.apuracao||{}; const tipoContrato=normalizaTipoContrato(folhaState.tipoContrato||f.tipo_contrato||"mensal"); const salarioBase=parseNumeroBR(f.salario_base); const horasMensais=parseNumeroBR(f.horas_mensais)||220; let depIR=0; if(f.dep_ir!==""&&f.dep_ir!=null) depIR=parseNumeroBR(f.dep_ir); else depIR=parseNumeroBR(f.dep_menor14)+parseNumeroBR(f.dep_maior14); depIR=Math.max(0,Math.floor(depIR)); const vtUsa=simNao(f.vt_usa); let vtPercent=parseNumeroBR(f.vt_percent); if(!vtUsa) vtPercent=0; if(vtUsa&&!vtPercent) vtPercent=6; const pensao=parseNumeroBR(f.pensao_alimenticia); const prevCompl=parseNumeroBR(f.prev_complementar); const eventosProv=somaEventosManuais_("proventos"); const eventosDesc=somaEventosManuais_("descontos"); if(tipoContrato==="intermitente"){ const usuarioSel=document.getElementById("funcionarioSelect").value; const valorHora=parseNumeroBR(f.valor_hora_intermitente||users[usuarioSel]?.valorHoraIntermitente||0); const adicionalNoturnoPercent=parseNumeroBR(f.adicional_noturno_percent||users[usuarioSel]?.adicionalNoturnoPercent||20)||20; const horasTotais=(a.totalMin||0)/60; const horasHE50=(a.he50_min||0)/60; const horasHE100=(a.he100_min||0)/60; const horasNoturnas=(a.heNoturno_min||0)/60; const remunHoras=horasTotais*valorHora; const adicHE50=horasHE50*valorHora*0.5; const adicHE100=horasHE100*valorHora*1; const adicNoturno=horasNoturnas*valorHora*(adicionalNoturnoPercent/100); const refsDSR=contarDiasDSRNoPeriodo_(folhaState.periodo.ini,folhaState.periodo.fim); const baseVariavelDSR=remunHoras+adicHE50+adicHE100+adicNoturno; const dsr=(refsDSR.uteis>0)?((baseVariavelDSR/refsDSR.uteis)*refsDSR.dsr):0; const baseFerias13=remunHoras+adicHE50+adicHE100+adicNoturno+dsr; const feriasProp=baseFerias13/12; const umTercoFerias=feriasProp/3; const decimoTerceiroProp=baseFerias13/12; const bruto=remunHoras+adicHE50+adicHE100+adicNoturno+dsr+feriasProp+umTercoFerias+decimoTerceiroProp+eventosProv; const inss=calcINSS2026(bruto); const dedDep=depIR*189.59; const descSimpl=607.20; const dedLegais=inss+dedDep+pensao+prevCompl; const dedUsada=Math.max(dedLegais,descSimpl); const base_ir=Math.max(0,bruto-dedUsada); const irAntes=calcIRRFBase2025(base_ir); const irrf=aplicaRedutorIRRF2026(base_ir,irAntes); const vt=vtUsa?((Math.max(0,Math.min(6,vtPercent))/100)*remunHoras):0; const faltas_val=0; const descontos=faltas_val+inss+irrf+vt+eventosDesc; const liquido=bruto-descontos; const base_fgts=bruto; const fgts_guia=round2(base_fgts*0.08); folhaState.calculado={ modo:"intermitente", salarioBase:0, horasMensais:0, valorHora, adicionalNoturnoPercent, depIR, vtUsa, vtPercent, eventosProv, eventosDesc, he50_val:adicHE50, he100_val:adicHE100, heNoturno_val:adicNoturno, remunHoras, dsr, feriasProp, umTercoFerias, decimoTerceiroProp, faltas_val, bruto, inss, base_ir, irrf, vt, descontos, liquido, base_fgts, fgts_guia, dedDep, dedUsada }; renderFolha_(); salvarRascunhoFolhaAtual_(); if(!silencioso) atualizarStatusFechamentoFolha_(); return; } const valorHora=horasMensais?(salarioBase/horasMensais):0; const he50_val=(a.he50_min/60)*valorHora*1.5; const he100_val=(a.he100_min/60)*valorHora*2; const faltas_val=(a.faltas_min/60)*valorHora; const bruto=salarioBase+he50_val+he100_val+eventosProv; const inss=calcINSS2026(bruto); const dedDep=depIR*189.59; const descSimpl=607.20; const dedLegais=inss+dedDep+pensao+prevCompl; const dedUsada=Math.max(dedLegais,descSimpl); const base_ir=Math.max(0,bruto-dedUsada); const irAntes=calcIRRFBase2025(base_ir); const irrf=aplicaRedutorIRRF2026(base_ir,irAntes); const vt=(Math.max(0,Math.min(6,vtPercent))/100)*salarioBase; const descontos=faltas_val+inss+irrf+vt+eventosDesc; const liquido=bruto-descontos; const base_fgts=bruto; const fgts_guia=round2(base_fgts*0.08); folhaState.calculado={ modo:"mensal", salarioBase, horasMensais, valorHora, depIR, vtUsa, vtPercent, eventosProv, eventosDesc, he50_val, he100_val, faltas_val, bruto, inss, base_ir, irrf, vt, descontos, liquido, base_fgts, fgts_guia, dedDep, dedUsada }; renderFolha_(); salvarRascunhoFolhaAtual_(); if(!silencioso) atualizarStatusFechamentoFolha_(); }
+function renderFolha_(){ const f=folhaState.funcionario||{}; const a=folhaState.apuracao||{}; const c=folhaState.calculado||{}; const p=folhaState.periodo||{}; const tipoContrato=normalizaTipoContrato(folhaState.tipoContrato||f.tipo_contrato||"mensal"); const folhaTravada=folhaFechadaAtual_(); const botoesLancamento=`<div style="margin:10px 0 12px 0"><button ${folhaTravada?"disabled title=\"Folha fechada\" style=\"opacity:.6;cursor:not-allowed\"":""} onclick="abrirLancamentoEvento('proventos')">Lançar Outros Proventos</button><button ${folhaTravada?"disabled title=\"Folha fechada\" style=\"opacity:.6;cursor:not-allowed\"":""} onclick="abrirLancamentoEvento('descontos')">Lançar Outros Descontos</button><div class="muted" style="margin-top:6px">Somente eventos compatíveis com contrato <b>${tipoContrato.toUpperCase()}</b></div>${folhaTravada?`<div class="muted" style="margin-top:6px"><b>A folha está fechada.</b> Reabra para incluir ou alterar eventos.</div>`:""}</div>`; if(tipoContrato==="intermitente"){ document.getElementById("folhaCadastro").innerHTML=`<b>Cadastro (FUNCIONARIOS)</b><br>Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>Tipo de contrato: <b>INTERMITENTE</b><br>Valor hora intermitente: <b>${moeda(c.valorHora||0)}</b> • Adic. noturno: <b>${c.adicionalNoturnoPercent||20}%</b><br>Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa?(c.vtPercent||6):0}%</b>`; document.getElementById("folhaResultado").innerHTML=`<b>Apuração do período (INTERMITENTE)</b><br>Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>Total trabalhado: <b>${horas(a.totalMin)}</b><br>HE 50%: <b>${horas(a.he50_min)}</b> • HE 100%: <b>${horas(a.he100_min)}</b> • Noturno: <b>${horas(a.heNoturno_min)}</b><br>Dias trabalhados: <b>${a.diasTrabalhados||0}</b><br><br>${botoesLancamento}<table id="tabelaFolha"><tr><th style="text-align:left">Descrição</th><th>Ref.</th><th>Proventos</th><th>Descontos</th></tr><tr><td style="text-align:left">Remuneração horas trabalhadas</td><td>${horas(a.totalMin)}</td><td>${moeda(c.remunHoras)}</td><td></td></tr><tr><td style="text-align:left">Adicional HE 50%</td><td>${horas(a.he50_min)}</td><td>${moeda(c.he50_val)}</td><td></td></tr><tr><td style="text-align:left">Adicional HE 100%</td><td>${horas(a.he100_min)}</td><td>${moeda(c.he100_val)}</td><td></td></tr><tr><td style="text-align:left">Adicional Noturno</td><td>${horas(a.heNoturno_min)}</td><td>${moeda(c.heNoturno_val)}</td><td></td></tr><tr><td style="text-align:left">DSR sobre verbas variáveis</td><td></td><td>${moeda(c.dsr)}</td><td></td></tr><tr><td style="text-align:left">Férias proporcionais</td><td>1/12</td><td>${moeda(c.feriasProp)}</td><td></td></tr><tr><td style="text-align:left">1/3 férias proporcionais</td><td>1/3</td><td>${moeda(c.umTercoFerias)}</td><td></td></tr><tr><td style="text-align:left">13º proporcional</td><td>1/12</td><td>${moeda(c.decimoTerceiroProp)}</td><td></td></tr>${renderEventosManuais_("proventos")}<tr><th colspan="4" style="text-align:left">Descontos</th></tr><tr><td style="text-align:left">INSS</td><td></td><td></td><td>${moeda(c.inss)}</td></tr><tr><td style="text-align:left">IRRF</td><td></td><td></td><td>${moeda(c.irrf)}</td></tr><tr><td style="text-align:left">Vale Transporte</td><td>${c.vtUsa?`${c.vtPercent||6}%`:"0%"}</td><td></td><td>${moeda(c.vt)}</td></tr>${renderEventosManuais_("descontos")}<tr><th style="text-align:left">TOTAL</th><th></th><th>${moeda(c.bruto)}</th><th>${moeda(c.descontos)}</th></tr><tr><th style="text-align:left">LÍQUIDO A RECEBER</th><th></th><th colspan="2">${moeda(c.liquido)}</th></tr></table><p class="muted" style="margin-top:8px">Memória de cálculo: Horas trabalhadas × valor hora, com pagamento separado de DSR, férias proporcionais + 1/3 e 13º proporcional, além dos adicionais legais.</p><p class="muted" style="margin-top:8px">Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b></p>`; preencherHoleritePrint_(); return; } document.getElementById("folhaCadastro").innerHTML=`<b>Cadastro (FUNCIONARIOS)</b><br>Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>Salário base: <b>${f.salario_base||""}</b> • Horas mensais: <b>${c.horasMensais||""}</b> • Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b><br>Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa?(c.vtPercent||6):0}%</b>`; document.getElementById("folhaResultado").innerHTML=`<b>Apuração do período (PONTOS)</b><br>Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>Total trabalhado: <b>${horas(a.totalMin)}</b> • Crédito: <b>${horas(a.creditoMin)}</b><br><br>${botoesLancamento}<table id="tabelaFolha"><tr><th style="text-align:left">Descrição</th><th>Ref.</th><th>Proventos</th><th>Descontos</th></tr><tr><td style="text-align:left">Salário Base</td><td></td><td>${moeda(c.salarioBase)}</td><td></td></tr><tr><td style="text-align:left">Hora extra 50%</td><td>${horas(a.he50_min)}</td><td>${moeda(c.he50_val)}</td><td></td></tr><tr><td style="text-align:left">Hora extra 100%</td><td>${horas(a.he100_min)}</td><td>${moeda(c.he100_val)}</td><td></td></tr>${renderEventosManuais_("proventos")}<tr><th colspan="4" style="text-align:left">Descontos</th></tr><tr><td style="text-align:left">Faltas/Atrasos</td><td>${horas(a.faltas_min)}</td><td></td><td>${moeda(c.faltas_val)}</td></tr><tr><td style="text-align:left">INSS</td><td></td><td></td><td>${moeda(c.inss)}</td></tr><tr><td style="text-align:left">IRRF</td><td></td><td></td><td>${moeda(c.irrf)}</td></tr><tr><td style="text-align:left">Vale Transporte</td><td>${c.vtUsa?`${c.vtPercent||6}%`:"0%"}</td><td></td><td>${moeda(c.vt)}</td></tr>${renderEventosManuais_("descontos")}<tr><th style="text-align:left">TOTAL</th><th></th><th>${moeda(c.bruto)}</th><th>${moeda(c.descontos)}</th></tr><tr><th style="text-align:left">LÍQUIDO A RECEBER</th><th></th><th colspan="2">${moeda(c.liquido)}</th></tr></table><p class="muted" style="margin-top:8px">Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b></p>`; preencherHoleritePrint_(); }
+function preencherHoleritePrint_(){ const f=folhaState.funcionario||{}; const a=folhaState.apuracao||{}; const c=folhaState.calculado||{}; const p=folhaState.periodo||{}; const tipoContrato=normalizaTipoContrato(folhaState.tipoContrato||f.tipo_contrato||"mensal"); const comp=document.getElementById("folhaCompetencia").value||""; document.getElementById("hpCompetencia").textContent=comp; document.getElementById("hpPeriodo").textContent=`${p.iniBR} até ${p.fimBR}`; document.getElementById("hpFuncionario").innerHTML=`<b>Empregado</b><br>Nome: <b>${f.nome||""}</b><br>CPF: ${f.cpf||""} • PIS: ${f.pis||""}<br>Cargo: ${f.cargo||""} • Setor: ${f.setor||""}<br>Admissão: ${f.data_admissao||""}`; if(tipoContrato==="intermitente"){ document.getElementById("hpResumo").innerHTML=`<b>Apuração</b><br>Tipo: <b>INTERMITENTE</b><br>Total trabalhado: <b>${horas(a.totalMin)}</b><br>HE 50%: <b>${horas(a.he50_min)}</b><br>HE 100%: <b>${horas(a.he100_min)}</b><br>Valor hora: <b>${moeda(c.valorHora||0)}</b>`; } else { document.getElementById("hpResumo").innerHTML=`<b>Apuração</b><br>Total trabalhado: <b>${horas(a.totalMin)}</b><br>Crédito: <b>${horas(a.creditoMin)}</b><br>Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b>`; } let tbody=""; if(tipoContrato==="intermitente"){ tbody=`<tr><td>Remuneração horas trabalhadas</td><td style="text-align:center">${horas(a.totalMin)}</td><td style="text-align:right">${moeda(c.remunHoras)}</td><td></td></tr><tr><td>Adicional HE 50%</td><td style="text-align:center">${horas(a.he50_min)}</td><td style="text-align:right">${moeda(c.he50_val)}</td><td></td></tr><tr><td>Adicional HE 100%</td><td style="text-align:center">${horas(a.he100_min)}</td><td style="text-align:right">${moeda(c.he100_val)}</td><td></td></tr><tr><td>Adicional Noturno</td><td style="text-align:center">${horas(a.heNoturno_min)}</td><td style="text-align:right">${moeda(c.heNoturno_val)}</td><td></td></tr><tr><td>DSR</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.dsr)}</td><td></td></tr><tr><td>Férias proporcionais</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.feriasProp)}</td><td></td></tr><tr><td>1/3 férias</td><td style="text-align:center">1/3</td><td style="text-align:right">${moeda(c.umTercoFerias)}</td><td></td></tr><tr><td>13º proporcional</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.decimoTerceiroProp)}</td><td></td></tr>${(folhaState.eventosManuais.proventos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td style="text-align:right">${moeda(item.valor)}</td><td></td></tr>`).join("")}<tr><td>INSS</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.inss)}</td></tr><tr><td>IRRF</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.irrf)}</td></tr><tr><td>Vale Transporte</td><td style="text-align:center">${c.vtUsa?`${c.vtPercent||6}%`:"0%"}</td><td></td><td style="text-align:right">${moeda(c.vt)}</td></tr>${(folhaState.eventosManuais.descontos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td></td><td style="text-align:right">${moeda(item.valor)}</td></tr>`).join("")}`; } else { tbody=`<tr><td>Salário Base</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.salarioBase)}</td><td></td></tr><tr><td>Hora extra 50%</td><td style="text-align:center">${horas(a.he50_min)}</td><td style="text-align:right">${moeda(c.he50_val)}</td><td></td></tr><tr><td>Hora extra 100%</td><td style="text-align:center">${horas(a.he100_min)}</td><td style="text-align:right">${moeda(c.he100_val)}</td><td></td></tr>${(folhaState.eventosManuais.proventos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td style="text-align:right">${moeda(item.valor)}</td><td></td></tr>`).join("")}<tr><td>Faltas/Atrasos</td><td style="text-align:center">${horas(a.faltas_min)}</td><td></td><td style="text-align:right">${moeda(c.faltas_val)}</td></tr><tr><td>INSS</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.inss)}</td></tr><tr><td>IRRF</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.irrf)}</td></tr><tr><td>Vale Transporte</td><td style="text-align:center">${c.vtUsa?`${c.vtPercent||6}%`:"0%"}</td><td></td><td style="text-align:right">${moeda(c.vt)}</td></tr>${(folhaState.eventosManuais.descontos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td></td><td style="text-align:right">${moeda(item.valor)}</td></tr>`).join("")}`; } document.getElementById("hpTabela").innerHTML=tbody; document.getElementById("hpTotais").innerHTML=`<b>Totais</b><br>Bruto: <b>${moeda(c.bruto)}</b><br>Descontos: <b>${moeda(c.descontos)}</b>`; document.getElementById("hpBases").innerHTML=`<b>Bases</b><br>Base IR: <b>${moeda(c.base_ir)}</b><br>Base FGTS: <b>${moeda(c.base_fgts)}</b><br>Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>`; document.getElementById("hpLiquido").innerHTML=`<b>Líquido</b><br><span style="font-size:16px"><b>${moeda(c.liquido)}</b></span>`; }
+function imprimirHolerite(){ if(!folhaState.calculado){ alert("Calcule a folha antes de imprimir."); return; } preencherHoleritePrint_(); window.print(); }
+async function gerarPDFHolerite(){ if(!folhaState.calculado){ alert("Calcule a folha antes de gerar PDF."); return; } preencherHoleritePrint_(); const { jsPDF }=window.jspdf; const doc=new jsPDF("p","mm","a4"); doc.setFontSize(12); doc.text("HOLERITE / RECIBO DE PAGAMENTO",105,12,{align:"center"}); const f=folhaState.funcionario||{}; const p=folhaState.periodo||{}; const comp=document.getElementById("folhaCompetencia").value||""; doc.setFontSize(9); doc.text(`Competência: ${comp}`,14,20); doc.text(`Período: ${p.iniBR} até ${p.fimBR}`,14,25); doc.text(`Nome: ${f.nome||""}`,14,32); doc.text(`CPF: ${f.cpf||""}   PIS: ${f.pis||""}`,14,37); doc.text(`Cargo: ${f.cargo||""}   Setor: ${f.setor||""}`,14,42); const tabela=document.querySelector("#tabelaFolha"); if(tabela){ doc.autoTable({ startY:48, html:tabela, styles:{ fontSize:8 } }); } else { doc.text("Tabela não encontrada. Calcule a folha novamente.",14,55); } const c=folhaState.calculado||{}; const y=(doc.lastAutoTable?.finalY||120)+8; doc.setFontSize(9); doc.text(`Base IR: ${moeda(c.base_ir)}`,14,y); doc.text(`Base FGTS: ${moeda(c.base_fgts)}  |  Guia FGTS (8%): ${moeda(c.fgts_guia)}`,14,y+5); doc.text("Assinatura do empregado: ________________________________",14,y+18); doc.save(`holerite_${(f.nome||"funcionario").replaceAll(" ","_")}_${comp||"periodo"}.pdf`); }
 
-function calcINSS2026(salario){
-  const teto = 8475.55;
-  const base = Math.min(Math.max(0, salario), teto);
-  const faixas = [
-    { ate: 1621.00, aliq: 0.075 },
-    { ate: 2902.84, aliq: 0.09  },
-    { ate: 4354.27, aliq: 0.12  },
-    { ate: 8475.55, aliq: 0.14  }
-  ];
-  let restante = base, prev = 0, inss = 0;
-  for(const f of faixas){
-    const faixaValor = Math.max(0, Math.min(restante, f.ate - prev));
-    inss += faixaValor * f.aliq;
-    restante -= faixaValor;
-    prev = f.ate;
-    if(restante <= 0) break;
-  }
-  return round2(inss);
+const ESOCIAL_CFG={ tpAmb:"1", procEmi:"1", verProc:"PontoEletronico1", tpInscEmpregador:"1", nrInscEmpregador:"00000000000000", tpInscEstab:"1", nrInscEstab:"00000000000000", ideTabRubr:"1", indGuia:"1", lotacaoPadrao:"1", codCategPadrao:"101", cboPadrao:"411005", natAtividadePadrao:"1", xmlnsLote:"http://www.esocial.gov.br/schema/lote/eventos/envio/v1_1_1", xmlnsEvtRemun:"http://www.esocial.gov.br/schema/evt/evtRemun/v_S_01_03_00" };
+function onlyDigits(v){ return String(v||"").replace(/\D+/g,""); }
+function xmlEscape_(v){ return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&apos;"); }
+function fmtXMLMoney(v){ return round2(Number(v||0)).toFixed(2); }
+function fmtXMLQtd(v){ return round2(Number(v||0)).toFixed(2); }
+function competenciaToPeriodo_(ym){ if(!ym||!/^[0-9]{4}-[0-9]{2}$/.test(ym)) return null; const [y,m]=ym.split("-").map(Number); const ini=new Date(y,m-1,1); const fim=new Date(y,m,0); return { ini,fim,iniBR:dateToBR_(ini),fimBR:dateToBR_(fim),perApur:`${y}-${String(m).padStart(2,"0")}` }; }
+function gerarIdESocial_(cpf,perApur,sufixo="1"){ const ts=new Date(); const YYYY=ts.getFullYear(); const MM=String(ts.getMonth()+1).padStart(2,"0"); const DD=String(ts.getDate()).padStart(2,"0"); const HH=String(ts.getHours()).padStart(2,"0"); const MI=String(ts.getMinutes()).padStart(2,"0"); const SS=String(ts.getSeconds()).padStart(2,"0"); const base=onlyDigits(cpf).padStart(11,"0").slice(-11); const per=String(perApur||"").replace("-",""); const compl=`${YYYY}${MM}${DD}${HH}${MI}${SS}${String(sufixo).padStart(5,"0")}`; return `ID${base}${per}${compl}`.slice(0,36); }
+function horasMinDiaPorMarcacao_(regDia){ const ent=formataHoraCelula(regDia?.entrada); const sAl=formataHoraCelula(regDia?.saidaAlmoco); const ret=formataHoraCelula(regDia?.retornoAlmoco); const sai=formataHoraCelula(regDia?.saida); let totalMin=0; if(ent&&sAl&&ret&&sai){ totalMin=(hm(sAl)-hm(ent))+(hm(sai)-hm(ret)); } else if(ent&&sai&&!sAl&&!ret){ totalMin=hm(sai)-hm(ent); } if(totalMin<0) totalMin=0; return totalMin; }
+function minToHHMMSemDoisPontos_(min){ const total=Math.max(0,Math.round(min||0)); const hh=String(Math.floor(total/60)).padStart(2,"0"); const mm=String(total%60).padStart(2,"0"); return `${hh}${mm}`; }
+function montarRubricasESocial_(tipoContrato,ap,calc,eventosManuais){ const rubs=[]; function add(codRubr,descricao,valor,qtd=null,fator=null,indApurIR="0"){ const vr=round2(valor||0); if(vr<=0) return; rubs.push({ codRubr, descricao, vrRubr:vr, qtdRubr:qtd, fatorRubr:fator, indApurIR }); } if(tipoContrato==="intermitente"){ add("REMHORA","Remuneração horas trabalhadas",calc.remunHoras,(ap.totalMin||0)/60,null,"0"); add("HE50","Hora extra 50%",calc.he50_val,(ap.he50_min||0)/60,50,"0"); add("HE100","Hora extra 100%",calc.he100_val,(ap.he100_min||0)/60,100,"0"); add("ADNOT","Adicional noturno",calc.heNoturno_val,(ap.heNoturno_min||0)/60,calc.adicionalNoturnoPercent||20,"0"); add("DSRVAR","DSR sobre verbas variáveis",calc.dsr,null,null,"0"); add("FERPROP","Férias proporcionais",calc.feriasProp,1,null,"0"); add("TERCOFER","1/3 férias proporcionais",calc.umTercoFerias,1,null,"0"); add("DEC13PROP","13º proporcional",calc.decimoTerceiroProp,1,null,"0"); (eventosManuais?.proventos||[]).forEach((ev,idx)=> add(`OUTPROV${idx+1}`,ev.descricao||"Outros proventos",Number(ev.valor||0),null,null,"0")); add("DESCINSS","INSS",calc.inss,null,null,"0"); add("DESCIRRF","IRRF",calc.irrf,null,null,"0"); add("DESCVT","Vale Transporte",calc.vt,null,null,"0"); (eventosManuais?.descontos||[]).forEach((ev,idx)=> add(`OUTDESC${idx+1}`,ev.descricao||"Outros descontos",Number(ev.valor||0),null,null,"0")); return rubs; } add("SALBASE","Salário Base",calc.salarioBase,30,null,"0"); add("HE50","Hora extra 50%",calc.he50_val,(ap.he50_min||0)/60,50,"0"); add("HE100","Hora extra 100%",calc.he100_val,(ap.he100_min||0)/60,100,"0"); (eventosManuais?.proventos||[]).forEach((ev,idx)=> add(`OUTPROV${idx+1}`,ev.descricao||"Outros proventos",Number(ev.valor||0),null,null,"0")); add("FALTAS","Faltas/Atrasos",calc.faltas_val,(ap.faltas_min||0)/60,null,"0"); add("DESCINSS","INSS",calc.inss,null,null,"0"); add("DESCIRRF","IRRF",calc.irrf,null,null,"0"); add("DESCVT","Vale Transporte",calc.vt,null,null,"0"); (eventosManuais?.descontos||[]).forEach((ev,idx)=> add(`OUTDESC${idx+1}`,ev.descricao||"Outros descontos",Number(ev.valor||0),null,null,"0")); return rubs; }
+async function calcularFolhaFuncionarioCompetenciaESocial_(u,ym){ const per=competenciaToPeriodo_(ym); if(!per) throw new Error("Competência inválida."); const escRes=await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u }); if(escRes?.status==="ok"&&escRes.escala){ users[u]=users[u]||{}; users[u].escalaSemanal=escRes.escala; } const cad=await apiPost({ tipo:"getFuncionarioFull", usuario_login:u }); if(!cad||cad.status!=="ok") throw new Error(cad?.message||`Erro ao buscar cadastro de ${u}.`); const f=cad.funcionario||{}; const periodo=await apiPost({ tipo:"getPeriodo", usuario_login:u, dataInicio:per.iniBR, dataFim:per.fimBR }); if(!periodo||periodo.status!=="ok") throw new Error(periodo?.message||`Erro ao buscar período de ${u}.`); const registros=periodo.registros||{}; const tipoContrato=normalizaTipoContrato(f.tipo_contrato||users[u]?.tipoContrato||"mensal"); const eventosManuais={ proventos:[], descontos:[] }; let somaTotalMin=0,somaCreditoMin=0,he50_min=0,he100_min=0,heNoturno_min=0,faltas_min=0,diasTrabalhados=0; const diasInterm=[]; let d=new Date(per.ini); while(d<=per.fim){ const dBR=dateToBR_(d); const diaObj=registros[dBR]||{}; const calc=calcularLinhaDia_(u,diaObj,d); somaTotalMin+=calc.totalMin; somaCreditoMin+=(calc.creditoMin||0); if((calc.totalMin||0)>0) diasTrabalhados++; heNoturno_min += calcAdicionalNoturnoMinDia_(diaObj); const ddmm=`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`; const ehFeriadoLista=feriados.includes(ddmm); const folgaProgramada=isFolgaEscala_(getEscalaDoDia_(u,d)); if(tipoContrato==="intermitente"){ const minDia=horasMinDiaPorMarcacao_(diaObj); if(minDia>0){ diasInterm.push({ dia:d.getDate(), hrsTrab:minToHHMMSemDoisPontos_(minDia) }); } if(ehFeriadoLista||folgaProgramada){ if((calc.totalMin||0)>0) he100_min+=(calc.totalMin||0); } else { he50_min += (calc.creditoMin||0); } } else { if(ehFeriadoLista||folgaProgramada){ if((calc.totalMin||0)>0) he100_min+=(calc.totalMin||0); } else { he50_min += (calc.creditoMin||0); const faltaDia=Math.max(0,(calc.jornadaEscala||0)-(calc.totalMin||0)); faltas_min += faltaDia; } } d.setDate(d.getDate()+1); } const ap={ totalMin:somaTotalMin, creditoMin:somaCreditoMin, he50_min, he100_min, heNoturno_min, faltas_min, diasTrabalhados }; const salarioBase=parseNumeroBR(f.salario_base); const horasMensais=parseNumeroBR(f.horas_mensais)||220; let depIR=0; if(f.dep_ir!==""&&f.dep_ir!=null) depIR=parseNumeroBR(f.dep_ir); else depIR=parseNumeroBR(f.dep_menor14)+parseNumeroBR(f.dep_maior14); depIR=Math.max(0,Math.floor(depIR)); const vtUsa=simNao(f.vt_usa); let vtPercent=parseNumeroBR(f.vt_percent); if(!vtUsa) vtPercent=0; if(vtUsa&&!vtPercent) vtPercent=6; const pensao=parseNumeroBR(f.pensao_alimenticia); const prevCompl=parseNumeroBR(f.prev_complementar); let calc={}; if(tipoContrato==="intermitente"){ const valorHora=parseNumeroBR(f.valor_hora_intermitente||users[u]?.valorHoraIntermitente||0); const adicionalNoturnoPercent=parseNumeroBR(f.adicional_noturno_percent||users[u]?.adicionalNoturnoPercent||20)||20; const horasTotais=(ap.totalMin||0)/60; const horasHE50=(ap.he50_min||0)/60; const horasHE100=(ap.he100_min||0)/60; const horasNoturnas=(ap.heNoturno_min||0)/60; const remunHoras=horasTotais*valorHora; const adicHE50=horasHE50*valorHora*0.5; const adicHE100=horasHE100*valorHora*1; const adicNoturno=horasNoturnas*valorHora*(adicionalNoturnoPercent/100); const refsDSR=contarDiasDSRNoPeriodo_(per.ini,per.fim); const baseVariavelDSR=remunHoras+adicHE50+adicHE100+adicNoturno; const dsr=(refsDSR.uteis>0)?((baseVariavelDSR/refsDSR.uteis)*refsDSR.dsr):0; const baseFerias13=remunHoras+adicHE50+adicHE100+adicNoturno+dsr; const feriasProp=baseFerias13/12; const umTercoFerias=feriasProp/3; const decimoTerceiroProp=baseFerias13/12; const bruto=remunHoras+adicHE50+adicHE100+adicNoturno+dsr+feriasProp+umTercoFerias+decimoTerceiroProp; const inss=calcINSS2026(bruto); const dedDep=depIR*189.59; const descSimpl=607.20; const dedLegais=inss+dedDep+pensao+prevCompl; const dedUsada=Math.max(dedLegais,descSimpl); const base_ir=Math.max(0,bruto-dedUsada); const irAntes=calcIRRFBase2025(base_ir); const irrf=aplicaRedutorIRRF2026(base_ir,irAntes); const vt=vtUsa?((Math.max(0,Math.min(6,vtPercent))/100)*remunHoras):0; const descontos=inss+irrf+vt; const liquido=bruto-descontos; const base_fgts=bruto; const fgts_guia=round2(base_fgts*0.08); calc={ modo:"intermitente", valorHora, adicionalNoturnoPercent, depIR, vtUsa, vtPercent, remunHoras, he50_val:adicHE50, he100_val:adicHE100, heNoturno_val:adicNoturno, dsr, feriasProp, umTercoFerias, decimoTerceiroProp, bruto, inss, base_ir, irrf, vt, descontos, liquido, base_fgts, fgts_guia }; } else { const valorHora=horasMensais?(salarioBase/horasMensais):0; const he50_val=(ap.he50_min/60)*valorHora*1.5; const he100_val=(ap.he100_min/60)*valorHora*2; const faltas_val=(ap.faltas_min/60)*valorHora; const bruto=salarioBase+he50_val+he100_val; const inss=calcINSS2026(bruto); const dedDep=depIR*189.59; const descSimpl=607.20; const dedLegais=inss+dedDep+pensao+prevCompl; const dedUsada=Math.max(dedLegais,descSimpl); const base_ir=Math.max(0,bruto-dedUsada); const irAntes=calcIRRFBase2025(base_ir); const irrf=aplicaRedutorIRRF2026(base_ir,irAntes); const vt=(Math.max(0,Math.min(6,vtPercent))/100)*salarioBase; const descontos=faltas_val+inss+irrf+vt; const liquido=bruto-descontos; const base_fgts=bruto; const fgts_guia=round2(base_fgts*0.08); calc={ modo:"mensal", salarioBase, horasMensais, valorHora, depIR, vtUsa, vtPercent, he50_val, he100_val, faltas_val, bruto, inss, base_ir, irrf, vt, descontos, liquido, base_fgts, fgts_guia }; } return { usuario:u, funcionario:f, tipoContrato, periodo:per, apuracao:ap, calculado:calc, registros, diasInterm, eventosManuais }; }
+function montarItensRemunXML_(rubs){ return rubs.map(r=>`<itensRemun><codRubr>${xmlEscape_(r.codRubr)}</codRubr><ideTabRubr>${xmlEscape_(ESOCIAL_CFG.ideTabRubr)}</ideTabRubr>${r.qtdRubr!=null?`<qtdRubr>${fmtXMLQtd(r.qtdRubr)}</qtdRubr>`:``}${r.fatorRubr!=null?`<fatorRubr>${fmtXMLQtd(r.fatorRubr)}</fatorRubr>`:``}<vrRubr>${fmtXMLMoney(r.vrRubr)}</vrRubr><indApurIR>${xmlEscape_(r.indApurIR||"0")}</indApurIR></itensRemun>`).join(""); }
+function montarInfoIntermXML_(diasInterm){ if(!diasInterm||!diasInterm.length) return `<infoInterm><dia>0</dia></infoInterm>`; return diasInterm.map(d=>`<infoInterm><dia>${String(d.dia)}</dia><hrsTrab>${xmlEscape_(d.hrsTrab)}</hrsTrab></infoInterm>`).join(""); }
+function montarEventoS1200XML_(dados,seq){ const f=dados.funcionario||{}; const tipoContrato=dados.tipoContrato; const perApur=dados.periodo.perApur; const cpfTrab=onlyDigits(f.cpf); const matricula=String(f.matricula_esocial||"").trim(); const codLotacao=String(f.cod_lotacao_esocial||ESOCIAL_CFG.lotacaoPadrao).trim(); const cbo=String(f.cbo_esocial||ESOCIAL_CFG.cboPadrao).trim(); const idEvt=gerarIdESocial_(cpfTrab,perApur,seq); const ideDmDev=`FOL${perApur.replace("-","")}`; const rubs=montarRubricasESocial_(tipoContrato,dados.apuracao,dados.calculado,dados.eventosManuais); if(!cpfTrab||cpfTrab.length!==11) throw new Error(`Funcionário ${f.nome||dados.usuario} sem CPF válido.`); if(!codLotacao) throw new Error(`Funcionário ${f.nome||dados.usuario} sem lotação tributária.`); if(!rubs.length) throw new Error(`Funcionário ${f.nome||dados.usuario} sem rubricas calculadas para exportar.`); return `<evento Id="${xmlEscape_(idEvt)}"><eSocial xmlns="${xmlEscape_(ESOCIAL_CFG.xmlnsEvtRemun)}"><evtRemun Id="${xmlEscape_(idEvt)}"><ideEvento><indRetif>1</indRetif><indApuracao>1</indApuracao><perApur>${xmlEscape_(perApur)}</perApur><indGuia>${xmlEscape_(ESOCIAL_CFG.indGuia)}</indGuia><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><ideTrabalhador><cpfTrab>${xmlEscape_(cpfTrab)}</cpfTrab>${tipoContrato==="intermitente"?montarInfoIntermXML_(dados.diasInterm):``}</ideTrabalhador><dmDev><ideDmDev>${xmlEscape_(ideDmDev)}</ideDmDev><ideEstabLot><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEstab)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEstab))}</nrInsc><codLotacao>${xmlEscape_(codLotacao)}</codLotacao><remunPerApur>${matricula?`<matricula>${xmlEscape_(matricula)}</matricula>`:``}${montarItensRemunXML_(rubs)}</remunPerApur></ideEstabLot>${!matricula?`<infoComplCont><codCBO>${xmlEscape_(cbo)}</codCBO><natAtividade>${xmlEscape_(ESOCIAL_CFG.natAtividadePadrao)}</natAtividade></infoComplCont>`:``}</dmDev></evtRemun></eSocial></evento>`; }
+function montarEventoS1299XML_(perApur,seq){ const idEvt=`ID1299${perApur.replace("-","")}${String(seq).padStart(10,"0")}`.slice(0,36); return `<evento Id="${xmlEscape_(idEvt)}"><eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtFechaEvPer/v_S_01_03_00"><evtFechaEvPer Id="${xmlEscape_(idEvt)}"><ideEvento><indApuracao>1</indApuracao><perApur>${xmlEscape_(perApur)}</perApur><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><infoFech><evtRemun>S</evtRemun></infoFech></evtFechaEvPer></eSocial></evento>`; }
+async function baixarArquivoESocialCompetencia(){ try{ const compEl=document.getElementById("folhaCompetencia"); const ym=(compEl?.value||"").trim(); if(!ym){ alert("Selecione a competência no campo da Folha de Pagamento."); return; } if(!onlyDigits(ESOCIAL_CFG.nrInscEmpregador)||ESOCIAL_CFG.nrInscEmpregador==="00000000000000"){ alert("Preencha o CNPJ/CPF/CAEPF do empregador em ESOCIAL_CFG.nrInscEmpregador."); return; } if(!onlyDigits(ESOCIAL_CFG.nrInscEstab)||ESOCIAL_CFG.nrInscEstab==="00000000000000"){ alert("Preencha a inscrição do estabelecimento em ESOCIAL_CFG.nrInscEstab."); return; } const operacionais=Object.keys(users).filter(u=>users[u]?.role==="operacional"); if(!operacionais.length){ alert("Nenhum funcionário operacional encontrado."); return; } const incluirFechamento=confirm("Deseja incluir também o S-1299 (fechamento)?\n\nOK = inclui S-1299 no XML\nCancelar = gera somente os S-1200"); let eventos=[], seq=1, erros=[]; for(const u of operacionais){ try{ const dados=await calcularFolhaFuncionarioCompetenciaESocial_(u,ym); const f=dados.funcionario||{}; if(!f.cpf){ erros.push(`${users[u]?.nomeCompleto||u}: sem CPF`); continue; } const xmlEvt=montarEventoS1200XML_(dados,seq++); eventos.push(xmlEvt); }catch(err){ erros.push(`${users[u]?.nomeCompleto||u}: ${err.message||err}`); } } if(!eventos.length){ alert("Nenhum evento S-1200 foi gerado.\n\n"+(erros.length?erros.join("\n"):"")); return; } const perApur=ym; if(incluirFechamento){ eventos.push(montarEventoS1299XML_(perApur,seq++)); } const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<eSocial xmlns="${xmlEscape_(ESOCIAL_CFG.xmlnsLote)}"><envioLoteEventos grupo="3"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos>${eventos.join("\n")}</eventos></envioLoteEventos></eSocial>`; const blob=new Blob([xml],{ type:"application/xml;charset=utf-8" }); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=`esocial_folha_${perApur.replace("-","")}.xml`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); if(erros.length){ alert("XML gerado com sucesso, mas alguns funcionários ficaram de fora:\n\n"+erros.join("\n")); } else { alert("Arquivo XML eSocial gerado com sucesso."); } }catch(e){ alert("Erro ao gerar arquivo eSocial: "+(e.message||e)); } }
+function obterFuncionarioSelecionadoESocial_(){ const u=document.getElementById("funcionarioSelect")?.value||""; if(!u) throw new Error("Selecione um funcionário."); return u; }
+async function obterCadastroFuncionarioESocial_(u){ const cad=await apiPost({ tipo:"getFuncionarioFull", usuario_login:u }); if(!cad||cad.status!=="ok"||!cad.funcionario) throw new Error(cad?.message||"Não foi possível carregar o cadastro do funcionário."); return cad.funcionario; }
+function fecharModalESocial(){ const el=document.getElementById("modalESocial"); if(el){ el.innerHTML=""; el.classList.add("hidden"); } }
+function inputLinhaESocial_(id,label,value="",type="text",placeholder=""){ return `<label>${label}</label><input id="${id}" type="${type}" value="${value||""}" placeholder="${placeholder||""}">`; }
+function selectLinhaESocial_(id,label,options,value=""){ return `<label>${label}</label><select id="${id}">${options.map(op=>`<option value="${op.value}" ${String(op.value)===String(value)?'selected':''}>${op.label}</option>`).join("")}</select>`; }
+async function abrirModalESocial(tipo){ try{ if((tipo==="admissao"||tipo==="altCadastral"||tipo==="altContratual"||tipo==="ferias"||tipo==="rescisao"||tipo==="pagamento") && !exigirFolhaAberta_("gerar ou alterar eventos eSocial")) return; const u=obterFuncionarioSelecionadoESocial_(); const f=await obterCadastroFuncionarioESocial_(u); const modal=document.getElementById("modalESocial"); modal.className="modalMask"; let titulo=""; let corpo=""; if(tipo==="admissao"){ titulo="Admissão eSocial (S-2200)"; corpo=`${inputLinhaESocial_("es_dtAdm","Data de admissão",brToISODate_(f.data_admissao||""),"date")}${inputLinhaESocial_("es_matricula","Matrícula",f.matricula_esocial||"")}${inputLinhaESocial_("es_cpf","CPF",f.cpf||"")}${inputLinhaESocial_("es_nome","Nome",f.nome||f.nomeCompleto||"")}${inputLinhaESocial_("es_codCateg","Categoria eSocial",f.cod_categ_esocial||"101")}${inputLinhaESocial_("es_cargo","Cargo",f.cargo||"")}${inputLinhaESocial_("es_cbo","CBO",f.cbo_esocial||"")}${inputLinhaESocial_("es_lotacao","Lotação tributária",f.cod_lotacao_esocial||"1")}${inputLinhaESocial_("es_salario","Salário base",f.salario_base||"")}${inputLinhaESocial_("es_tpContrato","Tipo contrato",f.tipo_contrato||"mensal")}`; }
+if(tipo==="altCadastral"){ titulo="Alteração Cadastral (S-2205)"; corpo=`${inputLinhaESocial_("es_dtAlterCad","Data da alteração","","date")}${inputLinhaESocial_("es_cpf","CPF",f.cpf||"")}${inputLinhaESocial_("es_nome","Nome",f.nome||f.nomeCompleto||"")}`; }
+if(tipo==="altContratual"){ titulo="Alteração Contratual (S-2206)"; corpo=`${inputLinhaESocial_("es_dtAlter","Data da alteração","","date")}${inputLinhaESocial_("es_dtEf","Data de efeito","","date")}${inputLinhaESocial_("es_matricula","Matrícula",f.matricula_esocial||"")}${inputLinhaESocial_("es_cargo","Cargo",f.cargo||"")}${inputLinhaESocial_("es_cbo","CBO",f.cbo_esocial||"")}${inputLinhaESocial_("es_lotacao","Lotação tributária",f.cod_lotacao_esocial||"1")}${inputLinhaESocial_("es_salario","Novo salário",f.salario_base||"")}`; }
+if(tipo==="ferias"){ titulo="Férias / Afastamento (S-2230)"; corpo=`${inputLinhaESocial_("es_dtIniAfast","Início do afastamento","","date")}${inputLinhaESocial_("es_dtFimAfast","Fim do afastamento","","date")}${selectLinhaESocial_("es_codMotAfast","Motivo do afastamento",[{value:"15",label:"15 - Férias"},{value:"01",label:"01 - Doença"},{value:"03",label:"03 - Acidente/Doença do trabalho"},{value:"06",label:"06 - Licença maternidade"},{value:"07",label:"07 - Serviço militar"},{value:"11",label:"11 - Licença sem vencimentos"}],"15")}${inputLinhaESocial_("es_matricula","Matrícula",f.matricula_esocial||"")}`; }
+if(tipo==="rescisao"){ titulo="Rescisão / Desligamento (S-2299)"; corpo=`${inputLinhaESocial_("es_dtDeslig","Data do desligamento","","date")}${inputLinhaESocial_("es_dtAviso","Data do aviso prévio","","date")}${inputLinhaESocial_("es_matricula","Matrícula",f.matricula_esocial||"")}${inputLinhaESocial_("es_mtvDeslig","Motivo do desligamento","","text","Ex: 01")}${inputLinhaESocial_("es_dtProjFimAPI","Data projetada fim aviso","","date")}`; }
+if(tipo==="pagamento"){ titulo="Pagamento eSocial (S-1210)"; corpo=`${inputLinhaESocial_("es_dtPgto","Data do pagamento","","date")}${inputLinhaESocial_("es_matricula","Matrícula",f.matricula_esocial||"")}${inputLinhaESocial_("es_cpf","CPF",f.cpf||"")}${inputLinhaESocial_("es_comp","Competência",document.getElementById("folhaCompetencia")?.value||"","month")}`; }
+modal.innerHTML=`<div class="modalCard"><h3>${titulo}</h3>${corpo}<div class="modalActions"><button class="btn-sec" onclick="fecharModalESocial()">Cancelar</button><button onclick="baixarEventoESocial('${tipo}')">Baixar XML</button></div></div>`; modal.classList.remove("hidden"); }catch(e){ alert(e.message||e); } }
+function getVal_(id){ return (document.getElementById(id)?.value||"").trim(); }
+function makeEvtIdSimple_(cpf,prefixo){ const baseCpf=onlyDigits(cpf).padStart(11,"0").slice(-11); const d=new Date(); const ts=d.getFullYear().toString()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+String(d.getSeconds()).padStart(2,"0"); return (`ID${prefixo}${baseCpf}${ts}`).slice(0,36); }
+function downloadXMLString_(xml,filename){ const blob=new Blob([xml],{ type:"application/xml;charset=utf-8" }); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+async function baixarEventoESocial(tipo){ try{ validarCfgEmpregadorESocial_(); const u=obterFuncionarioSelecionadoESocial_(); const f=await obterCadastroFuncionarioESocial_(u); const cpf=onlyDigits(getVal_("es_cpf")||f.cpf||""); const matricula=getVal_("es_matricula")||f.matricula_esocial||""; const nome=getVal_("es_nome")||f.nome||""; const xmlNsNaoPeriodicos="http://www.esocial.gov.br/schema/lote/eventos/envio/v1_1_1"; let xmlEvento=""; let arquivo=""; if(tipo==="admissao"){ const id=makeEvtIdSimple_(cpf,"2200"); const dtAdm=getVal_("es_dtAdm"); const codCateg=getVal_("es_codCateg")||f.cod_categ_esocial||"101"; const cargo=getVal_("es_cargo")||f.cargo||""; const cbo=getVal_("es_cbo")||f.cbo_esocial||""; const lotacao=getVal_("es_lotacao")||f.cod_lotacao_esocial||"1"; const salario=parseNumeroBR(getVal_("es_salario")||f.salario_base||0).toFixed(2); xmlEvento=`<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${xmlNsNaoPeriodicos}"><envioLoteEventos grupo="1"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos><evento Id="${xmlEscape_(id)}"><eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtAdmPrelim/v_S_01_03_00"><evtAdmPrelim Id="${xmlEscape_(id)}"><ideEvento><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><trabalhador><cpfTrab>${xmlEscape_(cpf)}</cpfTrab><nmTrab>${xmlEscape_(nome)}</nmTrab></trabalhador><infoRegPrelim><matricula>${xmlEscape_(matricula)}</matricula><dtNascto>1900-01-01</dtNascto><dtAdm>${xmlEscape_(dtAdm)}</dtAdm><codCateg>${xmlEscape_(codCateg)}</codCateg><natAtividade>${xmlEscape_(ESOCIAL_CFG.natAtividadePadrao)}</natAtividade><infoRegCTPS><CBOCargo>${xmlEscape_(cbo)}</CBOCargo><nmCargo>${xmlEscape_(cargo)}</nmCargo><vrSalFx>${xmlEscape_(salario)}</vrSalFx><undSalFixo>5</undSalFixo><tpContr>1</tpContr></infoRegCTPS><lotacao>${xmlEscape_(lotacao)}</lotacao></infoRegPrelim></evtAdmPrelim></eSocial></evento></eventos></envioLoteEventos></eSocial>`; arquivo=`esocial_s2200_${matricula||cpf}.xml`; }
+if(tipo==="altCadastral"){ const id=makeEvtIdSimple_(cpf,"2205"); const dtAlter=getVal_("es_dtAlterCad"); xmlEvento=`<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${xmlNsNaoPeriodicos}"><envioLoteEventos grupo="1"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos><evento Id="${xmlEscape_(id)}"><eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtAltCadastral/v_S_01_03_00"><evtAltCadastral Id="${xmlEscape_(id)}"><ideEvento><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><ideTrabalhador><cpfTrab>${xmlEscape_(cpf)}</cpfTrab></ideTrabalhador><alteracao><dtAlteracao>${xmlEscape_(dtAlter)}</dtAlteracao><dadosTrabalhador><nmTrab>${xmlEscape_(nome)}</nmTrab></dadosTrabalhador></alteracao></evtAltCadastral></eSocial></evento></eventos></envioLoteEventos></eSocial>`; arquivo=`esocial_s2205_${matricula||cpf}.xml`; }
+if(tipo==="altContratual"){ const id=makeEvtIdSimple_(cpf,"2206"); const dtAlter=getVal_("es_dtAlter"); const dtEf=getVal_("es_dtEf"); const cargo=getVal_("es_cargo")||f.cargo||""; const cbo=getVal_("es_cbo")||f.cbo_esocial||""; const lotacao=getVal_("es_lotacao")||f.cod_lotacao_esocial||"1"; const salario=parseNumeroBR(getVal_("es_salario")||f.salario_base||0).toFixed(2); xmlEvento=`<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${xmlNsNaoPeriodicos}"><envioLoteEventos grupo="1"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos><evento Id="${xmlEscape_(id)}"><eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtAltContratual/v_S_01_03_00"><evtAltContratual Id="${xmlEscape_(id)}"><ideEvento><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><ideVinculo><cpfTrab>${xmlEscape_(cpf)}</cpfTrab><matricula>${xmlEscape_(matricula)}</matricula></ideVinculo><altContratual><dtAlteracao>${xmlEscape_(dtAlter)}</dtAlteracao>${dtEf?`<dtEf>${xmlEscape_(dtEf)}</dtEf>`:``}<vinculo><infoRegimeTrab><infoCeletista><codCBO>${xmlEscape_(cbo)}</codCBO></infoCeletista></infoRegimeTrab><infoContrato><nmCargo>${xmlEscape_(cargo)}</nmCargo><codCateg>${xmlEscape_(f.cod_categ_esocial||"101")}</codCateg><remuneracao><vrSalFx>${xmlEscape_(salario)}</vrSalFx><undSalFixo>5</undSalFixo></remuneracao><lotacao>${xmlEscape_(lotacao)}</lotacao></infoContrato></vinculo></altContratual></evtAltContratual></eSocial></evento></eventos></envioLoteEventos></eSocial>`; arquivo=`esocial_s2206_${matricula||cpf}.xml`; }
+if(tipo==="ferias"){ const id=makeEvtIdSimple_(cpf,"2230"); const dtIni=getVal_("es_dtIniAfast"); const dtFim=getVal_("es_dtFimAfast"); const codMot=getVal_("es_codMotAfast")||"15"; xmlEvento=`<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${xmlNsNaoPeriodicos}"><envioLoteEventos grupo="1"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos><evento Id="${xmlEscape_(id)}"><eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtAfastTemp/v_S_01_03_00"><evtAfastTemp Id="${xmlEscape_(id)}"><ideEvento><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><ideVinculo><cpfTrab>${xmlEscape_(cpf)}</cpfTrab><matricula>${xmlEscape_(matricula)}</matricula></ideVinculo><infoAfastamento><iniAfastamento><dtIniAfast>${xmlEscape_(dtIni)}</dtIniAfast><codMotAfast>${xmlEscape_(codMot)}</codMotAfast></iniAfastamento>${dtFim?`<fimAfastamento><dtTermAfast>${xmlEscape_(dtFim)}</dtTermAfast></fimAfastamento>`:``}</infoAfastamento></evtAfastTemp></eSocial></evento></eventos></envioLoteEventos></eSocial>`; arquivo=`esocial_s2230_${matricula||cpf}.xml`; }
+if(tipo==="rescisao"){ const id=makeEvtIdSimple_(cpf,"2299"); const dtDeslig=getVal_("es_dtDeslig"); const dtAviso=getVal_("es_dtAviso"); const mtvDeslig=getVal_("es_mtvDeslig"); const dtProj=getVal_("es_dtProjFimAPI"); xmlEvento=`<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${xmlNsNaoPeriodicos}"><envioLoteEventos grupo="1"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos><evento Id="${xmlEscape_(id)}"><eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtDeslig/v_S_01_03_00"><evtDeslig Id="${xmlEscape_(id)}"><ideEvento><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><ideVinculo><cpfTrab>${xmlEscape_(cpf)}</cpfTrab><matricula>${xmlEscape_(matricula)}</matricula></ideVinculo><infoDeslig><dtDeslig>${xmlEscape_(dtDeslig)}</dtDeslig><mtvDeslig>${xmlEscape_(mtvDeslig)}</mtvDeslig>${dtAviso?`<dtAvPrv>${xmlEscape_(dtAviso)}</dtAvPrv>`:``}${dtProj?`<dtProjFimAPI>${xmlEscape_(dtProj)}</dtProjFimAPI>`:``}</infoDeslig></evtDeslig></eSocial></evento></eventos></envioLoteEventos></eSocial>`; arquivo=`esocial_s2299_${matricula||cpf}.xml`; }
+if(tipo==="pagamento"){ const id=makeEvtIdSimple_(cpf,"1210"); const dtPgto=getVal_("es_dtPgto"); const comp=getVal_("es_comp"); const perApur=comp||""; const ideDmDev=`FOL${perApur.replace("-","")}`; const dados=await calcularFolhaFuncionarioCompetenciaESocial_(u,comp); const liquido=fmtXMLMoney(dados.calculado.liquido||0); xmlEvento=`<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${xmlNsNaoPeriodicos}"><envioLoteEventos grupo="3"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos><evento Id="${xmlEscape_(id)}"><eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtPgtos/v_S_01_03_00"><evtPgtos Id="${xmlEscape_(id)}"><ideEvento><indApuracao>1</indApuracao><perApur>${xmlEscape_(perApur)}</perApur><tpAmb>${xmlEscape_(ESOCIAL_CFG.tpAmb)}</tpAmb><procEmi>${xmlEscape_(ESOCIAL_CFG.procEmi)}</procEmi><verProc>${xmlEscape_(ESOCIAL_CFG.verProc)}</verProc></ideEvento><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><ideBenef><cpfBenef>${xmlEscape_(cpf)}</cpfBenef></ideBenef><infoPgto><dtPgto>${xmlEscape_(dtPgto)}</dtPgto><tpPgto>1</tpPgto><perRef>${xmlEscape_(perApur)}</perRef><ideDmDev>${xmlEscape_(ideDmDev)}</ideDmDev><vrLiq>${xmlEscape_(liquido)}</vrLiq></infoPgto></evtPgtos></eSocial></evento></eventos></envioLoteEventos></eSocial>`; arquivo=`esocial_s1210_${matricula||cpf}.xml`; }
+if(!xmlEvento) throw new Error("Tipo de evento não implementado."); downloadXMLString_(xmlEvento,arquivo); fecharModalESocial(); }catch(e){ alert(e.message||e); } }
+function padRightBB_(txt,len,fill=" "){ return String(txt||"").slice(0,len).padEnd(len,fill); }
+function padLeftBB_(txt,len,fill="0"){ return String(txt||"").replace(/\D/g,"").slice(0,len).padStart(len,fill); }
+function valorCentavosBB_(v,len=15){ return String(Math.round(Number(v||0)*100)).padStart(len,"0"); }
+function somenteNumeros_(v){ return String(v||"").replace(/\D/g,""); }
+function montarLinha240_(partes){ let s=partes.join(""); if(s.length<240) s=s.padEnd(240," "); return s.slice(0,240); }
+function montarArquivoRemessaBancoBrasil_(snap){
+  const f=snap.funcionario||{};
+  const c=snap.calculado||{};
+  const comp=(snap.competencia||"").replace("-","");
+  const convenio=padLeftBB_(ESOCIAL_CFG.nrInscEmpregador||"",20);
+  const ag=padLeftBB_(f.agencia||"",5);
+  const agdv=padRightBB_(f.agencia_dv||"",1);
+  const conta=padLeftBB_(f.conta||"",12);
+  const contadv=padRightBB_(f.conta_dv||"",1);
+  const nomeFav=padRightBB_(f.nome||"",30);
+  const cpf=padLeftBB_(f.cpf||"",14);
+  const valor=valorCentavosBB_(c.liquido||0,15);
+  const dataPag=(new Date()).toLocaleDateString("pt-BR").split("/").reverse().join("");
+  const header=montarLinha240_([
+    "001","0000","0","         ","2",convenio,padRightBB_(ESOCIAL_CFG.nomeEmpregador||"EMPREGADOR",30),"BANCO DO BRASIL",padRightBB_("REMESSA",10),dataPag,padRightBB_(comp,6),"016"," ",padRightBB_("",69)
+  ]);
+  const loteHeader=montarLinha240_([
+    "001","0001","1","C","20","30","045"," ","2",convenio,padRightBB_(ESOCIAL_CFG.nomeEmpregador||"EMPREGADOR",30),padRightBB_("",40),padRightBB_("",40),padRightBB_("",8),padRightBB_("",33)
+  ]);
+  const segA=montarLinha240_([
+    "001","0001","3","00001","A","0","00","000",
+    "001",ag,agdv,conta,contadv," ",
+    nomeFav,padRightBB_("",20),valor,padRightBB_("",20),
+    dataPag,"BRL","000000000000000",
+    padRightBB_("",40),cpf,padRightBB_(f.codigo_funcionario||f.matricula_esocial||"",20),padRightBB_("",7)
+  ]);
+  const loteTrailer=montarLinha240_([
+    "001","0001","5",padRightBB_("",9),"000002","000001",valorCentavosBB_(c.liquido||0,18),padRightBB_("",217)
+  ]);
+  const fileTrailer=montarLinha240_([
+    "001","9999","9",padRightBB_("",9),"000001","000004",padRightBB_("",211)
+  ]);
+  return [header,loteHeader,segA,loteTrailer,fileTrailer].join("\\r\\n");
 }
-
-function calcIRRFBase2025(baseCalculo){
-  const b = Math.max(0, baseCalculo);
-  const faixas = [
-    { ate: 2428.80, aliq: 0.0,   ded: 0.00 },
-    { ate: 2826.65, aliq: 0.075, ded: 182.16 },
-    { ate: 3751.05, aliq: 0.15,  ded: 394.16 },
-    { ate: 4664.68, aliq: 0.225, ded: 675.49 },
-    { ate: Infinity, aliq: 0.275, ded: 908.73 }
-  ];
-  const f = faixas.find(x => b <= x.ate) || faixas[faixas.length-1];
-  return Math.max(0, round2((b * f.aliq) - f.ded));
+function gerarRemessaBancoBrasil(){
+  try{
+    const u=obterFuncionarioFolhaAtual_();
+    const comp=obterCompetenciaFolhaAtual_();
+    if(!u) throw new Error("Selecione um funcionário.");
+    if(!comp) throw new Error("Selecione a competência.");
+    const snap=obterFechamentoFolha_(u,comp);
+    if(!snap?.fechado) throw new Error("A remessa do Banco do Brasil só pode ser gerada após o fechamento da folha.");
+    const f=snap.funcionario||{};
+    if(!somenteNumeros_(f.cpf)) throw new Error("Cadastre o CPF do funcionário para gerar a remessa.");
+    if(!somenteNumeros_(f.agencia||"")||!somenteNumeros_(f.conta||"")) throw new Error("Cadastre agência e conta do funcionário para gerar a remessa BB.");
+    const txt=montarArquivoRemessaBancoBrasil_(snap);
+    const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=`bb_remessa_${(comp||"").replace("-","")}_${u}.rem`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    const chave=chaveFechamentoFolha_(u,comp);
+    folhaFechamentos[chave]={...(folhaFechamentos[chave]||snap), remessaGerada:true, remessaEm:new Date().toISOString()};
+    salvarFechamentosLocal_();
+    atualizarStatusFechamentoFolha_();
+    alert("Arquivo de remessa Banco do Brasil gerado.\n\nRecomenda-se validar o arquivo no validador de leiautes do BB antes do envio.");
+  }catch(e){ alert(e.message||e); }
 }
-
-function aplicaRedutorIRRF2026(rendTributavel, irAntes){
-  const r = Math.max(0, rendTributavel);
-  if(r <= 5000.00) return 0;
-  let reducao = 0;
-  if(r > 5000.00 && r <= 7350.00){
-    reducao = 978.62 - (0.133145 * r);
-    if(reducao < 0) reducao = 0;
-  }
-  return Math.max(0, round2(irAntes - reducao));
-}
-
-function getEventosCompativeis_(grupo){
-  const tipo = normalizaTipoContrato(folhaState.tipoContrato || "mensal");
-  if(grupo === "proventos"){
-    return tipo === "intermitente" ? EVENTOS_PROVENTOS_INTERMITENTE : EVENTOS_PROVENTOS_MENSAL;
-  }
-  return tipo === "intermitente" ? EVENTOS_DESCONTOS_INTERMITENTE : EVENTOS_DESCONTOS_MENSAL;
-}
-
-function somaEventosManuais_(grupo){
-  return (folhaState.eventosManuais[grupo] || []).reduce((acc, item)=> acc + Number(item.valor || 0), 0);
-}
-
-function abrirLancamentoEvento(grupo){
-  const eventos = getEventosCompativeis_(grupo);
-
-  const mask = document.createElement("div");
-  mask.className = "modalMask";
-  mask.innerHTML = `
-    <div class="modalCard">
-      <h3>${grupo === "proventos" ? "Lançar Outros Proventos" : "Lançar Outros Descontos"}</h3>
-      <label>Quantidade de eventos</label>
-      <input id="qtdEventos" type="number" min="1" max="20" value="1">
-
-      <div class="modalActions">
-        <button class="btn-sec" id="evCancelar1">Cancelar</button>
-        <button id="evContinuar">Continuar</button>
-      </div>
-
-      <div id="eventosContainer" style="margin-top:10px"></div>
-    </div>
-  `;
-  document.body.appendChild(mask);
-
-  mask.querySelector("#evCancelar1").onclick = ()=> mask.remove();
-
-  mask.querySelector("#evContinuar").onclick = ()=>{
-    const qtd = Math.max(1, Math.min(20, Number(mask.querySelector("#qtdEventos").value || 1)));
-    const box = mask.querySelector("#eventosContainer");
-
-    box.innerHTML = `
-      <div class="muted" style="margin-bottom:8px">
-        Somente eventos compatíveis com contrato <b>${String(folhaState.tipoContrato || "mensal").toUpperCase()}</b>
-      </div>
-      ${Array.from({length:qtd}).map((_,i)=>`
-        <div class="box" style="margin-top:8px">
-          <label>Evento</label>
-          <select id="ev_desc_${i}">
-            <option value="">Selecione</option>
-            ${eventos.map(ev=>`<option value="${ev}">${ev}</option>`).join("")}
-          </select>
-
-          <label>Referência</label>
-          <input id="ev_ref_${i}" placeholder="Ex: 1, 7:30, 10%, etc">
-
-          <label>Valor (R$)</label>
-          <input id="ev_val_${i}" placeholder="0,00">
-        </div>
-      `).join("")}
-
-      <div class="modalActions">
-        <button class="btn-sec" id="evCancelar2">Cancelar</button>
-        <button id="evSalvarLista">Salvar</button>
-      </div>
-    `;
-
-    box.querySelector("#evCancelar2").onclick = ()=> mask.remove();
-
-    box.querySelector("#evSalvarLista").onclick = ()=>{
-      const lista = folhaState.eventosManuais[grupo] || [];
-
-      for(let i=0;i<qtd;i++){
-        const descricao = (document.getElementById(`ev_desc_${i}`)?.value || "").trim();
-        const referencia = (document.getElementById(`ev_ref_${i}`)?.value || "").trim();
-        const valor = parseNumeroBR(document.getElementById(`ev_val_${i}`)?.value || "");
-
-        if(!descricao || !valor) continue;
-
-        lista.push({
-          id: `${Date.now()}_${grupo}_${i}_${Math.random().toString(36).slice(2,7)}`,
-          descricao,
-          referencia,
-          valor
-        });
-      }
-
-      folhaState.eventosManuais[grupo] = lista;
-      mask.remove();
-      recalcularFolha_();
-    };
-  };
-}
-
-function editarEventoManual(grupo, id){
-  const lista = folhaState.eventosManuais[grupo] || [];
-  const item = lista.find(x => x.id === id);
-  if(!item) return;
-
-  const eventos = getEventosCompativeis_(grupo);
-
-  const mask = document.createElement("div");
-  mask.className = "modalMask";
-  mask.innerHTML = `
-    <div class="modalCard">
-      <h3>Editar evento</h3>
-
-      <label>Evento</label>
-      <select id="ed_desc">
-        <option value="">Selecione</option>
-        ${eventos.map(ev=>`<option value="${ev}" ${ev===item.descricao?'selected':''}>${ev}</option>`).join("")}
-      </select>
-
-      <label>Referência</label>
-      <input id="ed_ref" value="${item.referencia || ""}">
-
-      <label>Valor (R$)</label>
-      <input id="ed_val" value="${Number(item.valor||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}">
-
-      <div class="modalActions">
-        <button class="btn-warn" id="edExcluir">Excluir</button>
-        <button class="btn-sec" id="edCancelar">Cancelar</button>
-        <button id="edSalvar">Salvar</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(mask);
-
-  mask.querySelector("#edCancelar").onclick = ()=> mask.remove();
-
-  mask.querySelector("#edExcluir").onclick = ()=>{
-    folhaState.eventosManuais[grupo] = lista.filter(x => x.id !== id);
-    mask.remove();
-    recalcularFolha_();
-  };
-
-  mask.querySelector("#edSalvar").onclick = ()=>{
-    item.descricao = (mask.querySelector("#ed_desc").value || "").trim();
-    item.referencia = (mask.querySelector("#ed_ref").value || "").trim();
-    item.valor = parseNumeroBR(mask.querySelector("#ed_val").value || "");
-
-    if(!item.descricao || !item.valor){
-      alert("Preencha evento e valor.");
-      return;
-    }
-
-    mask.remove();
-    recalcularFolha_();
-  };
-}
-
-function renderEventosManuais_(grupo){
-  const lista = folhaState.eventosManuais[grupo] || [];
-  if(!lista.length) return "";
-
-  return lista.map(item=>`
-    <tr>
-      <td style="text-align:left">
-        ${item.descricao}
-        <button class="mini" onclick="editarEventoManual('${grupo}','${item.id}')">Editar</button>
-      </td>
-      <td>${item.referencia || ""}</td>
-      <td>${grupo === "proventos" ? moeda(item.valor) : ""}</td>
-      <td>${grupo === "descontos" ? moeda(item.valor) : ""}</td>
-    </tr>
-  `).join("");
-}
-
-async function carregarFolha(){
-  const msg = document.getElementById("folhaMsg");
-  msg.textContent = "";
-
-  const u = document.getElementById("funcionarioSelect").value;
-  if(!u){ msg.textContent = "Selecione um funcionário no Cartão de Ponto."; return; }
-
-  const di = document.getElementById("dataInicio").value;
-  const df = document.getElementById("dataFim").value || di;
-  if(!di){ msg.textContent = "Selecione a data início no Cartão de Ponto."; return; }
-
-  folhaState.eventosManuais = { proventos: [], descontos: [] };
-
-  const escRes = await apiPost({ tipo:"getEscalaFuncionario", usuario_login:u });
-  if(escRes?.status === "ok" && escRes.escala){
-    users[u] = users[u] || {};
-    users[u].escalaSemanal = escRes.escala;
-  }
-
-  const cad = await apiPost({ tipo:"getFuncionarioFull", usuario_login:u });
-  if(!cad || cad.status !== "ok"){ msg.textContent = cad?.message || "Erro ao buscar cadastro."; return; }
-  const f = cad.funcionario || {};
-  folhaState.funcionario = f;
-  folhaState.tipoContrato = normalizaTipoContrato(f.tipo_contrato || users[u]?.tipoContrato || "mensal");
-
-  const ini = parseInputDateLocal(di);
-  const fim = parseInputDateLocal(df);
-  const iniBR = dateToBR_(ini);
-  const fimBR = dateToBR_(fim);
-
-  folhaState.periodo = { iniBR, fimBR, ini, fim };
-
-  const periodo = await apiPost({
-    tipo:"getPeriodo",
-    usuario_login:u,
-    dataInicio: iniBR,
-    dataFim: fimBR
-  });
-  if(!periodo || periodo.status !== "ok"){ msg.textContent = periodo?.message || "Erro ao buscar período."; return; }
-
-  const registros = periodo.registros || {};
-
-  let somaTotalMin = 0;
-  let somaCreditoMin = 0;
-  let he50_min = 0;
-  let he100_min = 0;
-  let heNoturno_min = 0;
-  let faltas_min = 0;
-  let diasTrabalhados = 0;
-
-  let d = new Date(ini);
-  while(d <= fim){
-    const dBR = dateToBR_(d);
-    const diaObj = registros[dBR] || {};
-    const calc = calcularLinhaDia_(u, diaObj, d);
-
-    somaTotalMin += calc.totalMin;
-    somaCreditoMin += (calc.creditoMin || 0);
-
-    if((calc.totalMin || 0) > 0) diasTrabalhados++;
-
-    heNoturno_min += calcAdicionalNoturnoMinDia_(diaObj);
-
-    const ddmm = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
-    const ehFeriadoLista = feriados.includes(ddmm);
-    const folgaProgramada = isFolgaEscala_(getEscalaDoDia_(u, d));
-
-    if(folhaState.tipoContrato === "intermitente"){
-      if(ehFeriadoLista || folgaProgramada){
-        if((calc.totalMin || 0) > 0){
-          he100_min += (calc.totalMin || 0);
-        }
-      } else {
-        he50_min += (calc.creditoMin || 0);
-      }
-    } else {
-      if(ehFeriadoLista || folgaProgramada){
-        if((calc.totalMin || 0) > 0){
-          he100_min += (calc.totalMin || 0);
-        }
-      } else {
-        he50_min += (calc.creditoMin || 0);
-        const faltaDia = Math.max(0, (calc.jornadaEscala || 0) - (calc.totalMin || 0));
-        faltas_min += faltaDia;
-      }
-    }
-
-    d.setDate(d.getDate()+1);
-  }
-
-  folhaState.apuracao = {
-    totalMin: somaTotalMin,
-    creditoMin: somaCreditoMin,
-    he50_min,
-    he100_min,
-    heNoturno_min,
-    faltas_min,
-    diasTrabalhados
-  };
-
-  recalcularFolha_();
-}
-
-function recalcularFolha_(){
-  const f = folhaState.funcionario || {};
-  const a = folhaState.apuracao || {};
-  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || f.tipo_contrato || "mensal");
-
-  const salarioBase = parseNumeroBR(f.salario_base);
-  const horasMensais = parseNumeroBR(f.horas_mensais) || 220;
-
-  let depIR = 0;
-  if(f.dep_ir !== "" && f.dep_ir != null) depIR = parseNumeroBR(f.dep_ir);
-  else depIR = parseNumeroBR(f.dep_menor14) + parseNumeroBR(f.dep_maior14);
-  depIR = Math.max(0, Math.floor(depIR));
-
-  const vtUsa = simNao(f.vt_usa);
-  let vtPercent = parseNumeroBR(f.vt_percent);
-  if(!vtUsa) vtPercent = 0;
-  if(vtUsa && !vtPercent) vtPercent = 6;
-
-  const pensao = parseNumeroBR(f.pensao_alimenticia);
-  const prevCompl = parseNumeroBR(f.prev_complementar);
-
-  const eventosProv = somaEventosManuais_("proventos");
-  const eventosDesc = somaEventosManuais_("descontos");
-
-  if(tipoContrato === "intermitente"){
-    const usuarioSel = document.getElementById("funcionarioSelect").value;
-    const valorHora = parseNumeroBR(f.valor_hora_intermitente || users[usuarioSel]?.valorHoraIntermitente || 0);
-    const adicionalNoturnoPercent = parseNumeroBR(f.adicional_noturno_percent || users[usuarioSel]?.adicionalNoturnoPercent || 20) || 20;
-
-    const horasTotais = (a.totalMin || 0) / 60;
-    const horasHE50 = (a.he50_min || 0) / 60;
-    const horasHE100 = (a.he100_min || 0) / 60;
-    const horasNoturnas = (a.heNoturno_min || 0) / 60;
-
-    const remunHoras = horasTotais * valorHora;
-    const adicHE50 = horasHE50 * valorHora * 0.5;
-    const adicHE100 = horasHE100 * valorHora * 1.0;
-    const adicNoturno = horasNoturnas * valorHora * (adicionalNoturnoPercent / 100);
-
-    const refsDSR = contarDiasDSRNoPeriodo_(folhaState.periodo.ini, folhaState.periodo.fim);
-    const baseVariavelDSR = remunHoras + adicHE50 + adicHE100 + adicNoturno;
-    const dsr = (refsDSR.uteis > 0) ? ((baseVariavelDSR / refsDSR.uteis) * refsDSR.dsr) : 0;
-
-    const baseFerias13 = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr;
-    const feriasProp = baseFerias13 / 12;
-    const umTercoFerias = feriasProp / 3;
-    const decimoTerceiroProp = baseFerias13 / 12;
-
-    const bruto = remunHoras + adicHE50 + adicHE100 + adicNoturno + dsr + feriasProp + umTercoFerias + decimoTerceiroProp + eventosProv;
-    const inss = calcINSS2026(bruto);
-
-    const dedDep = depIR * 189.59;
-    const descSimpl = 607.20;
-    const dedLegais = inss + dedDep + pensao + prevCompl;
-    const dedUsada = Math.max(dedLegais, descSimpl);
-
-    const base_ir = Math.max(0, bruto - dedUsada);
-    const irAntes = calcIRRFBase2025(base_ir);
-    const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
-
-    const vt = vtUsa ? ((Math.max(0, Math.min(6, vtPercent)) / 100) * remunHoras) : 0;
-    const faltas_val = 0;
-    const descontos = faltas_val + inss + irrf + vt + eventosDesc;
-    const liquido = bruto - descontos;
-    const base_fgts = bruto;
-    const fgts_guia = round2(base_fgts * 0.08);
-
-    folhaState.calculado = {
-      modo: "intermitente",
-      salarioBase: 0,
-      horasMensais: 0,
-      valorHora,
-      adicionalNoturnoPercent,
-      depIR, vtUsa, vtPercent,
-      eventosProv, eventosDesc,
-      he50_val: adicHE50,
-      he100_val: adicHE100,
-      heNoturno_val: adicNoturno,
-      remunHoras,
-      dsr,
-      feriasProp,
-      umTercoFerias,
-      decimoTerceiroProp,
-      faltas_val,
-      bruto, inss, base_ir, irrf, vt,
-      descontos, liquido,
-      base_fgts, fgts_guia,
-      dedDep, dedUsada
-    };
-
-    renderFolha_();
-    return;
-  }
-
-  const valorHora = horasMensais ? (salarioBase / horasMensais) : 0;
-  const he50_val = (a.he50_min/60) * valorHora * 1.5;
-  const he100_val = (a.he100_min/60) * valorHora * 2.0;
-  const faltas_val = (a.faltas_min/60) * valorHora;
-  const bruto = salarioBase + he50_val + he100_val + eventosProv;
-  const inss = calcINSS2026(bruto);
-
-  const dedDep = depIR * 189.59;
-  const descSimpl = 607.20;
-  const dedLegais = inss + dedDep + pensao + prevCompl;
-  const dedUsada = Math.max(dedLegais, descSimpl);
-
-  const base_ir = Math.max(0, bruto - dedUsada);
-  const irAntes = calcIRRFBase2025(base_ir);
-  const irrf = aplicaRedutorIRRF2026(base_ir, irAntes);
-
-  const vt = (Math.max(0, Math.min(6, vtPercent)) / 100) * salarioBase;
-  const descontos = faltas_val + inss + irrf + vt + eventosDesc;
-  const liquido = bruto - descontos;
-  const base_fgts = bruto;
-  const fgts_guia = round2(base_fgts * 0.08);
-
-   folhaState.calculado = {
-    modo: "mensal",
-    salarioBase, horasMensais, valorHora,
-    depIR, vtUsa, vtPercent,
-    eventosProv, eventosDesc,
-    he50_val, he100_val, faltas_val,
-    bruto, inss, base_ir, irrf, vt,
-    descontos, liquido,
-    base_fgts, fgts_guia,
-    dedDep, dedUsada
-  };
-
-  renderFolha_();
-}
-
-function renderFolha_(){
-  const f = folhaState.funcionario || {};
-  const a = folhaState.apuracao || {};
-  const c = folhaState.calculado || {};
-  const p = folhaState.periodo || {};
-  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || f.tipo_contrato || "mensal");
-
-  const botoesLancamento = `
-    <div style="margin:10px 0 12px 0">
-      <button onclick="abrirLancamentoEvento('proventos')">Lançar Outros Proventos</button>
-      <button onclick="abrirLancamentoEvento('descontos')">Lançar Outros Descontos</button>
-      <div class="muted" style="margin-top:6px">
-        Somente eventos compatíveis com contrato <b>${tipoContrato.toUpperCase()}</b>
-      </div>
-    </div>
-  `;
-
-  if(tipoContrato === "intermitente"){
-    document.getElementById("folhaCadastro").innerHTML = `
-      <b>Cadastro (FUNCIONARIOS)</b><br>
-      Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>
-      Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>
-      Tipo de contrato: <b>INTERMITENTE</b><br>
-      Valor hora intermitente: <b>${moeda(c.valorHora||0)}</b> • Adic. noturno: <b>${c.adicionalNoturnoPercent || 20}%</b><br>
-      Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa ? (c.vtPercent||6) : 0}%</b>
-    `;
-
-    document.getElementById("folhaResultado").innerHTML = `
-      <b>Apuração do período (INTERMITENTE)</b><br>
-      Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>
-      Total trabalhado: <b>${horas(a.totalMin)}</b><br>
-      HE 50%: <b>${horas(a.he50_min)}</b> • HE 100%: <b>${horas(a.he100_min)}</b> • Noturno: <b>${horas(a.heNoturno_min)}</b><br>
-      Dias trabalhados: <b>${a.diasTrabalhados || 0}</b><br><br>
-
-      ${botoesLancamento}
-
-      <table id="tabelaFolha">
-        <tr>
-          <th style="text-align:left">Descrição</th>
-          <th>Ref.</th>
-          <th>Proventos</th>
-          <th>Descontos</th>
-        </tr>
-        <tr>
-          <td style="text-align:left">Remuneração horas trabalhadas</td>
-          <td>${horas(a.totalMin)}</td>
-          <td>${moeda(c.remunHoras)}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="text-align:left">Adicional HE 50%</td>
-          <td>${horas(a.he50_min)}</td>
-          <td>${moeda(c.he50_val)}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="text-align:left">Adicional HE 100%</td>
-          <td>${horas(a.he100_min)}</td>
-          <td>${moeda(c.he100_val)}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="text-align:left">Adicional Noturno</td>
-          <td>${horas(a.heNoturno_min)}</td>
-          <td>${moeda(c.heNoturno_val)}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="text-align:left">DSR sobre verbas variáveis</td>
-          <td></td>
-          <td>${moeda(c.dsr)}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="text-align:left">Férias proporcionais</td>
-          <td>1/12</td>
-          <td>${moeda(c.feriasProp)}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="text-align:left">1/3 férias proporcionais</td>
-          <td>1/3</td>
-          <td>${moeda(c.umTercoFerias)}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="text-align:left">13º proporcional</td>
-          <td>1/12</td>
-          <td>${moeda(c.decimoTerceiroProp)}</td>
-          <td></td>
-        </tr>
-
-        ${renderEventosManuais_("proventos")}
-
-        <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
-
-        <tr>
-          <td style="text-align:left">INSS</td>
-          <td></td>
-          <td></td>
-          <td>${moeda(c.inss)}</td>
-        </tr>
-        <tr>
-          <td style="text-align:left">IRRF</td>
-          <td></td>
-          <td></td>
-          <td>${moeda(c.irrf)}</td>
-        </tr>
-        <tr>
-          <td style="text-align:left">Vale Transporte</td>
-          <td>${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td>
-          <td></td>
-          <td>${moeda(c.vt)}</td>
-        </tr>
-
-        ${renderEventosManuais_("descontos")}
-
-        <tr>
-          <th style="text-align:left">TOTAL</th>
-          <th></th>
-          <th>${moeda(c.bruto)}</th>
-          <th>${moeda(c.descontos)}</th>
-        </tr>
-        <tr>
-          <th style="text-align:left">LÍQUIDO A RECEBER</th>
-          <th></th>
-          <th colspan="2">${moeda(c.liquido)}</th>
-        </tr>
-      </table>
-
-      <p class="muted" style="margin-top:8px">
-        Memória de cálculo: Horas trabalhadas × valor hora, com pagamento separado de DSR, férias proporcionais + 1/3 e 13º proporcional, além dos adicionais legais.
-      </p>
-
-      <p class="muted" style="margin-top:8px">
-        Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
-      </p>
-    `;
-    preencherHoleritePrint_();
-    return;
-  }
-
-  document.getElementById("folhaCadastro").innerHTML = `
-    <b>Cadastro (FUNCIONARIOS)</b><br>
-    Nome: <b>${f.nome||""}</b> • PIS: <b>${f.pis||""}</b> • CPF: <b>${f.cpf||""}</b><br>
-    Cargo: <b>${f.cargo||""}</b> • Setor: <b>${f.setor||""}</b><br>
-    Salário base: <b>${f.salario_base||""}</b> • Horas mensais: <b>${c.horasMensais||""}</b> • Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b><br>
-    Admissão: <b>${f.data_admissao||""}</b> • Dep IR: <b>${c.depIR||0}</b> • VT: <b>${c.vtUsa ? (c.vtPercent||6) : 0}%</b>
-  `;
-
-  document.getElementById("folhaResultado").innerHTML = `
-    <b>Apuração do período (PONTOS)</b><br>
-    Período: <b>${p.iniBR}</b> até <b>${p.fimBR}</b><br>
-    Total trabalhado: <b>${horas(a.totalMin)}</b> • Crédito: <b>${horas(a.creditoMin)}</b><br><br>
-
-    ${botoesLancamento}
-
-    <table id="tabelaFolha">
-      <tr>
-        <th style="text-align:left">Descrição</th>
-        <th>Ref.</th>
-        <th>Proventos</th>
-        <th>Descontos</th>
-      </tr>
-      <tr>
-        <td style="text-align:left">Salário Base</td>
-        <td></td>
-        <td>${moeda(c.salarioBase)}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td style="text-align:left">Hora extra 50%</td>
-        <td>${horas(a.he50_min)}</td>
-        <td>${moeda(c.he50_val)}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td style="text-align:left">Hora extra 100%</td>
-        <td>${horas(a.he100_min)}</td>
-        <td>${moeda(c.he100_val)}</td>
-        <td></td>
-      </tr>
-
-      ${renderEventosManuais_("proventos")}
-
-      <tr><th colspan="4" style="text-align:left">Descontos</th></tr>
-
-      <tr>
-        <td style="text-align:left">Faltas/Atrasos</td>
-        <td>${horas(a.faltas_min)}</td>
-        <td></td>
-        <td>${moeda(c.faltas_val)}</td>
-      </tr>
-      <tr>
-        <td style="text-align:left">INSS</td>
-        <td></td>
-        <td></td>
-        <td>${moeda(c.inss)}</td>
-      </tr>
-      <tr>
-        <td style="text-align:left">IRRF</td>
-        <td></td>
-        <td></td>
-        <td>${moeda(c.irrf)}</td>
-      </tr>
-      <tr>
-        <td style="text-align:left">Vale Transporte</td>
-        <td>${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td>
-        <td></td>
-        <td>${moeda(c.vt)}</td>
-      </tr>
-
-      ${renderEventosManuais_("descontos")}
-
-      <tr>
-        <th style="text-align:left">TOTAL</th>
-        <th></th>
-        <th>${moeda(c.bruto)}</th>
-        <th>${moeda(c.descontos)}</th>
-      </tr>
-      <tr>
-        <th style="text-align:left">LÍQUIDO A RECEBER</th>
-        <th></th>
-        <th colspan="2">${moeda(c.liquido)}</th>
-      </tr>
-    </table>
-
-    <p class="muted" style="margin-top:8px">
-      Base IR: <b>${moeda(c.base_ir)}</b> • FGTS (Base): <b>${moeda(c.base_fgts)}</b> • Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
-    </p>
-  `;
-
-  preencherHoleritePrint_();
-}
-
-function preencherHoleritePrint_(){
-  const f = folhaState.funcionario || {};
-  const a = folhaState.apuracao || {};
-  const c = folhaState.calculado || {};
-  const p = folhaState.periodo || {};
-  const tipoContrato = normalizaTipoContrato(folhaState.tipoContrato || f.tipo_contrato || "mensal");
-
-  const comp = document.getElementById("folhaCompetencia").value || "";
-  document.getElementById("hpCompetencia").textContent = comp;
-  document.getElementById("hpPeriodo").textContent = `${p.iniBR} até ${p.fimBR}`;
-
-  document.getElementById("hpFuncionario").innerHTML = `
-    <b>Empregado</b><br>
-    Nome: <b>${f.nome||""}</b><br>
-    CPF: ${f.cpf||""} • PIS: ${f.pis||""}<br>
-    Cargo: ${f.cargo||""} • Setor: ${f.setor||""}<br>
-    Admissão: ${f.data_admissao||""}
-  `;
-
-  if(tipoContrato === "intermitente"){
-    document.getElementById("hpResumo").innerHTML = `
-      <b>Apuração</b><br>
-      Tipo: <b>INTERMITENTE</b><br>
-      Total trabalhado: <b>${horas(a.totalMin)}</b><br>
-      HE 50%: <b>${horas(a.he50_min)}</b><br>
-      HE 100%: <b>${horas(a.he100_min)}</b><br>
-      Valor hora: <b>${moeda(c.valorHora||0)}</b>
-    `;
-  } else {
-    document.getElementById("hpResumo").innerHTML = `
-      <b>Apuração</b><br>
-      Total trabalhado: <b>${horas(a.totalMin)}</b><br>
-      Crédito: <b>${horas(a.creditoMin)}</b><br>
-      Valor hora (ref.): <b>${moeda(c.valorHora||0)}</b>
-    `;
-  }
-
-  let tbody = "";
-
-  if(tipoContrato === "intermitente"){
-    tbody = `
-      <tr><td>Remuneração horas trabalhadas</td><td style="text-align:center">${horas(a.totalMin)}</td><td style="text-align:right">${moeda(c.remunHoras)}</td><td></td></tr>
-      <tr><td>Adicional HE 50%</td><td style="text-align:center">${horas(a.he50_min)}</td><td style="text-align:right">${moeda(c.he50_val)}</td><td></td></tr>
-      <tr><td>Adicional HE 100%</td><td style="text-align:center">${horas(a.he100_min)}</td><td style="text-align:right">${moeda(c.he100_val)}</td><td></td></tr>
-      <tr><td>Adicional Noturno</td><td style="text-align:center">${horas(a.heNoturno_min)}</td><td style="text-align:right">${moeda(c.heNoturno_val)}</td><td></td></tr>
-      <tr><td>DSR</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.dsr)}</td><td></td></tr>
-      <tr><td>Férias proporcionais</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.feriasProp)}</td><td></td></tr>
-      <tr><td>1/3 férias</td><td style="text-align:center">1/3</td><td style="text-align:right">${moeda(c.umTercoFerias)}</td><td></td></tr>
-      <tr><td>13º proporcional</td><td style="text-align:center">1/12</td><td style="text-align:right">${moeda(c.decimoTerceiroProp)}</td><td></td></tr>
-      ${(folhaState.eventosManuais.proventos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td style="text-align:right">${moeda(item.valor)}</td><td></td></tr>`).join("")}
-      <tr><td>INSS</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.inss)}</td></tr>
-      <tr><td>IRRF</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.irrf)}</td></tr>
-      <tr><td>Vale Transporte</td><td style="text-align:center">${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td><td></td><td style="text-align:right">${moeda(c.vt)}</td></tr>
-      ${(folhaState.eventosManuais.descontos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td></td><td style="text-align:right">${moeda(item.valor)}</td></tr>`).join("")}
-    `;
-  } else {
-    tbody = `
-      <tr><td>Salário Base</td><td style="text-align:center"></td><td style="text-align:right">${moeda(c.salarioBase)}</td><td></td></tr>
-      <tr><td>Hora extra 50%</td><td style="text-align:center">${horas(a.he50_min)}</td><td style="text-align:right">${moeda(c.he50_val)}</td><td></td></tr>
-      <tr><td>Hora extra 100%</td><td style="text-align:center">${horas(a.he100_min)}</td><td style="text-align:right">${moeda(c.he100_val)}</td><td></td></tr>
-      ${(folhaState.eventosManuais.proventos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td style="text-align:right">${moeda(item.valor)}</td><td></td></tr>`).join("")}
-      <tr><td>Faltas/Atrasos</td><td style="text-align:center">${horas(a.faltas_min)}</td><td></td><td style="text-align:right">${moeda(c.faltas_val)}</td></tr>
-      <tr><td>INSS</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.inss)}</td></tr>
-      <tr><td>IRRF</td><td style="text-align:center"></td><td></td><td style="text-align:right">${moeda(c.irrf)}</td></tr>
-      <tr><td>Vale Transporte</td><td style="text-align:center">${c.vtUsa ? `${c.vtPercent||6}%` : "0%"}</td><td></td><td style="text-align:right">${moeda(c.vt)}</td></tr>
-      ${(folhaState.eventosManuais.descontos||[]).map(item=>`<tr><td>${item.descricao}</td><td style="text-align:center">${item.referencia||""}</td><td></td><td style="text-align:right">${moeda(item.valor)}</td></tr>`).join("")}
-    `;
-  }
-
-  document.getElementById("hpTabela").innerHTML = tbody;
-
-  document.getElementById("hpTotais").innerHTML = `
-    <b>Totais</b><br>
-    Bruto: <b>${moeda(c.bruto)}</b><br>
-    Descontos: <b>${moeda(c.descontos)}</b>
-  `;
-
-  document.getElementById("hpBases").innerHTML = `
-    <b>Bases</b><br>
-    Base IR: <b>${moeda(c.base_ir)}</b><br>
-    Base FGTS: <b>${moeda(c.base_fgts)}</b><br>
-    Guia FGTS (8%): <b>${moeda(c.fgts_guia)}</b>
-  `;
-
-  document.getElementById("hpLiquido").innerHTML = `
-    <b>Líquido</b><br>
-    <span style="font-size:16px"><b>${moeda(c.liquido)}</b></span>
-  `;
-}
-
-function imprimirHolerite(){
-  if(!folhaState.calculado){
-    alert("Calcule a folha antes de imprimir.");
-    return;
-  }
-  preencherHoleritePrint_();
-  window.print();
-}
-
-async function gerarPDFHolerite(){
-  if(!folhaState.calculado){
-    alert("Calcule a folha antes de gerar PDF.");
-    return;
-  }
-
-  preencherHoleritePrint_();
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("p","mm","a4");
-
-  doc.setFontSize(12);
-  doc.text("HOLERITE / RECIBO DE PAGAMENTO", 105, 12, {align:"center"});
-
-  const f = folhaState.funcionario || {};
-  const p = folhaState.periodo || {};
-  const comp = document.getElementById("folhaCompetencia").value || "";
-
-  doc.setFontSize(9);
-  doc.text(`Competência: ${comp}`, 14, 20);
-  doc.text(`Período: ${p.iniBR} até ${p.fimBR}`, 14, 25);
-  doc.text(`Nome: ${f.nome||""}`, 14, 32);
-  doc.text(`CPF: ${f.cpf||""}   PIS: ${f.pis||""}`, 14, 37);
-  doc.text(`Cargo: ${f.cargo||""}   Setor: ${f.setor||""}`, 14, 42);
-
-  const tabela = document.querySelector("#tabelaFolha");
-  if(tabela){
-    doc.autoTable({ startY: 48, html: tabela, styles:{ fontSize: 8 }});
-  } else {
-    doc.text("Tabela não encontrada. Calcule a folha novamente.", 14, 55);
-  }
-
-  const c = folhaState.calculado || {};
-  const y = (doc.lastAutoTable?.finalY || 120) + 8;
-
-  doc.setFontSize(9);
-  doc.text(`Base IR: ${moeda(c.base_ir)}`, 14, y);
-  doc.text(`Base FGTS: ${moeda(c.base_fgts)}  |  Guia FGTS (8%): ${moeda(c.fgts_guia)}`, 14, y+5);
-  doc.text("Assinatura do empregado: ________________________________", 14, y+18);
-
-  doc.save(`holerite_${(f.nome||"funcionario").replaceAll(" ","_")}_${comp||"periodo"}.pdf`);
-}
+function baixarFechamentoESocial(){ try{ validarCfgEmpregadorESocial_(); const comp=(document.getElementById("folhaCompetencia")?.value||"").trim(); if(!comp) throw new Error("Selecione a competência da folha."); const u=obterFuncionarioFolhaAtual_(); if(!u) throw new Error("Selecione um funcionário para fechar a folha."); if(!folhaState.calculado) throw new Error("Carregue / calcule a folha antes do fechamento."); const perApur=comp; const xml=`<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${xmlEscape_(ESOCIAL_CFG.xmlnsLote)}"><envioLoteEventos grupo="3"><ideEmpregador><tpInsc>${xmlEscape_(ESOCIAL_CFG.tpInscEmpregador)}</tpInsc><nrInsc>${xmlEscape_(onlyDigits(ESOCIAL_CFG.nrInscEmpregador))}</nrInsc></ideEmpregador><eventos>${montarEventoS1299XML_(perApur,1)}</eventos></envioLoteEventos></eSocial>`; downloadXMLString_(xml,`esocial_s1299_${perApur.replace("-","")}.xml`); fecharFolhaCompetenciaAtual(); const querRemessa=confirm("Fechamento eSocial gerado com sucesso.\n\nDeseja gerar agora também o arquivo de remessa do Banco do Brasil?"); if(querRemessa) gerarRemessaBancoBrasil(); }catch(e){ alert(e.message||e); } }
 </script>
 </body>
 </html>
