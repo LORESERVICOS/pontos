@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relógio de Ponto Eletrônico</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11,6 +12,37 @@
   body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;margin:0}
   header{background:#1e40af;color:#fff;padding:20px;font-size:16px}
   .card{background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin:20px auto}
+/* Aumentar fonte somente Login e Registro de Ponto */
+#loginSection,
+#operacionalSection .card{
+  font-size:26px;
+}
+
+#loginSection h2,
+#operacionalSection h2{
+  font-size:34px;
+}
+
+#loginSection input,
+#operacionalSection input{
+  font-size:26px;
+  padding:16px;
+  border-radius:12px;
+}
+
+#loginSection button,
+#operacionalSection button{
+  font-size:28px;
+  padding:18px 24px;
+  border-radius:14px;
+}
+
+#dataAtual,
+#horaAtual,
+#registrosUsuario,
+#botoesRegistro{
+  font-size:28px;
+}
   button{padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;margin:2px}
   button:hover{background:#1d4ed8}
   .hidden{display:none}
@@ -28,6 +60,36 @@
     table tr{display:block;border:1px solid #ddd;margin-bottom:10px;border-radius:8px}
     table td{display:flex;justify-content:space-between;border:none}
     table td::before{content:attr(data-label);font-weight:600}
+  #loginSection,
+  #operacionalSection .card{
+    max-width:100% !important;
+    margin:10px;
+    font-size:30px;
+  }
+
+  #loginSection h2,
+  #operacionalSection h2{
+    font-size:38px;
+    text-align:center;
+  }
+
+  #loginSection input,
+  #operacionalSection input,
+  #loginSection button,
+  #operacionalSection button{
+    width:100%;
+    font-size:30px;
+    padding:18px;
+    box-sizing:border-box;
+  }
+
+  #dataAtual,
+  #horaAtual,
+  #registrosUsuario,
+  #botoesRegistro{
+    font-size:32px;
+    text-align:center;
+  }
   }
 
   .credito-excedente{
