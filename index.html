@@ -812,7 +812,11 @@ async function salvarLancamentosFolhaAtual_(){
       }
     ))
   };
-  try{ await apiPost(payload); }catch(e){ console.error('Erro ao salvar lançamentos da folha:', e); }
+  try{
+    const r=await apiPost(payload);
+    if(!r||r.status!=='ok')throw new Error(r?.message||'Falha ao gravar lançamentos');
+    return r;
+  }catch(e){console.error('Erro ao salvar lançamentos da folha:',e);throw e;}
 }
 
 function parseNumeroBR(v){ if(v===null||v===undefined||v==="") return 0; if(typeof v==="number") return v; const s=String(v).trim().replace(/\./g,"").replace(",", ".").replace(/[^\d.-]/g,""); const n=Number(s); return isNaN(n)?0:n; }
@@ -1066,6 +1070,78 @@ preencherHoleritePrint_=function(){if(!folhaState.calculado?.prolabore)return ol
      const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='resumo_folha_'+comp+'.csv';a.click();URL.revokeObjectURL(url);
    };
    atualizar();
+ };
+})();
+</script>
+<script>
+/* Integração persistente: requer implantação do Apps Script fornecido separadamente. */
+(function(){
+ const originalCarregar=carregarFolha;
+ carregarFolha=async function(){
+   const u=obterFuncionarioFolhaAtual_(),competencia=obterCompetenciaFolhaAtual_();
+   if(!u||!competencia)return originalCarregar();
+   let remoto;
+   try{remoto=await apiPost({tipo:'obterFolhaPersistida',usuario_login:u,competencia});
+     if(remoto?.status!=='ok')throw Error(remoto?.message||'Falha ao consultar a planilha');
+   }catch(e){
+     if(/Tipo não reconhecido:\s*obterFolhaPersistida/i.test(String(e.message||''))){
+       // Implantação antiga: permitir o cálculo normal, sem afirmar que a folha está salva.
+       console.warn('A implantação do Apps Script ainda não oferece obterFolhaPersistida. Calculando normalmente.');
+       delete folhaFechamentos[chaveFechamentoFolha_(u,competencia)];salvarFechamentosLocal_();
+       return await originalCarregar();
+     }
+     alert('Não foi possível consultar a folha salva na planilha: '+e.message);return;
+   }
+   if(remoto.folha?.fechado){
+     folhaFechamentos[chaveFechamentoFolha_(u,competencia)]=remoto.folha;
+     salvarFechamentosLocal_();
+     aplicarSnapshotFechamentoNaFolha_(remoto.folha);
+     atualizarStatusFechamentoFolha_();
+     document.getElementById('folhaMsg').textContent='Folha FECHADA recuperada da planilha. Para recalcular, clique em Reabrir Folha.';
+     return;
+   }
+   if(!remoto.folha?.fechado){
+     delete folhaFechamentos[chaveFechamentoFolha_(u,competencia)];
+     salvarFechamentosLocal_();
+   }
+   await originalCarregar();
+   if(!folhaState.calculado)return;
+   if(remoto.folha){folhaFechamentos[chaveFechamentoFolha_(u,competencia)]=remoto.folha;salvarFechamentosLocal_();}
+   // O cálculo original já carrega os lançamentos persistidos pelo endpoint existente.
+   // Não aplicar uma segunda carga assíncrona que poderia sobrescrever a tela.
+ };
+ fecharFolhaCompetenciaAtual=async function(){
+   const u=obterFuncionarioFolhaAtual_(),competencia=obterCompetenciaFolhaAtual_();
+   if(!u||!competencia||!folhaState.calculado){alert('Selecione funcionário, competência e calcule a folha.');return;}
+   if(folhaFechadaAtual_()){alert('Folha já fechada. Reabra antes de alterar.');return;}
+   const snap={...snapshotFolhaAtual_(),fechado:true,fechadoEm:new Date().toISOString(),reabertoEm:'',remessaGerada:false};
+   try{
+     const res=await apiPost({tipo:'fecharFolhaPersistida',usuario_login:u,competencia,folha:snap});
+     if(res?.status!=='ok')throw Error(res?.message||'Gravação não confirmada');
+     folhaFechamentos[chaveFechamentoFolha_(u,competencia)]=snap;salvarFechamentosLocal_();
+     folhaState.fechamento=snap;atualizarStatusFechamentoFolha_();
+     document.getElementById('folhaMsg').textContent='Folha fechada e gravada na aba FOLHA CALCULADA.';
+     if(confirm('Folha fechada e salva. Deseja gerar a remessa do Banco do Brasil?'))gerarRemessaBancoBrasil();
+   }catch(e){alert('A folha NÃO foi fechada: '+e.message);}
+ };
+ reabrirFolhaCompetenciaAtual=async function(){
+   const u=obterFuncionarioFolhaAtual_(),competencia=obterCompetenciaFolhaAtual_();
+   if(!u||!competencia){alert('Selecione funcionário e competência.');return;}
+   let consulta;
+   try{consulta=await apiPost({tipo:'obterFolhaPersistida',usuario_login:u,competencia});if(consulta?.status!=='ok')throw Error(consulta?.message);}catch(e){alert('Erro ao consultar fechamento: '+e.message);return;}
+   if(!consulta.folha?.fechado){alert('Esta folha não está fechada na planilha.');return;}
+   if(!confirm('Reabrir folha de '+u+' na competência '+competencia+'?'))return;
+   const excluir=confirm('Deseja EXCLUIR a folha calculada e TODOS os lançamentos desta competência?\n\nOK = excluir folha e lançamentos.\nCancelar = reabrir mantendo todos os dados.');
+   if(excluir&&!confirm('Confirma a EXCLUSÃO DEFINITIVA dos dados desta folha?'))return;
+   try{
+     const res=await apiPost({tipo:'reabrirFolhaPersistida',usuario_login:u,competencia,excluir});
+     if(res?.status!=='ok')throw Error(res?.message||'Operação não confirmada');
+     delete folhaFechamentos[chaveFechamentoFolha_(u,competencia)];salvarFechamentosLocal_();
+     if(excluir){folhaState.eventosManuais={proventos:[],descontos:[]};folhaState.calculado=null;folhaState.fechamento=null;document.getElementById('folhaResultado').innerHTML='';}
+     else{const snap={...consulta.folha,fechado:false,reabertoEm:new Date().toISOString()};folhaFechamentos[chaveFechamentoFolha_(u,competencia)]=snap;salvarFechamentosLocal_();aplicarSnapshotFechamentoNaFolha_(snap);}
+     atualizarStatusFechamentoFolha_();
+     document.getElementById('folhaMsg').textContent=excluir?'Folha e lançamentos excluídos da planilha.':'Folha reaberta; dados preservados na planilha.';
+   }catch(e){alert('Não foi possível reabrir a folha: '+e.message);}
  };
 })();
 </script>
