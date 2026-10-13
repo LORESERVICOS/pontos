@@ -447,7 +447,7 @@
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyW_1Y_mw_-jlbs3gNUt5UoxGkLV1sn-srbME4Se4OsUmNPZwBnTcJhf7CunKNHTVeqJw/exec";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzpOU5JDXmqyYre82svm5NZ9LM3HByt273d78uVI_PGbe_hX4aI-F15Rk_A_Ih39_VHLQ/exec";
 
 let users = {};
 let currentUser = null;
@@ -1114,8 +1114,11 @@ preencherHoleritePrint_=function(){if(!folhaState.calculado?.prolabore)return ol
    const u=obterFuncionarioFolhaAtual_(),competencia=obterCompetenciaFolhaAtual_();
    if(!u||!competencia||!folhaState.calculado){alert('Selecione funcionário, competência e calcule a folha.');return;}
    if(folhaFechadaAtual_()){alert('Folha já fechada. Reabra antes de alterar.');return;}
-   const snap={...snapshotFolhaAtual_(),fechado:true,fechadoEm:new Date().toISOString(),reabertoEm:'',remessaGerada:false};
    try{
+     // Sincronizar os lançamentos da tela com a planilha ANTES do fechamento.
+     // Aguardar a resposta evita que a validação compare dados ainda não gravados.
+     await salvarLancamentosFolhaAtual_();
+     const snap={...snapshotFolhaAtual_(),fechado:true,fechadoEm:new Date().toISOString(),reabertoEm:'',remessaGerada:false};
      const res=await apiPost({tipo:'fecharFolhaPersistida',usuario_login:u,competencia,folha:snap});
      if(res?.status!=='ok')throw Error(res?.message||'Gravação não confirmada');
      folhaFechamentos[chaveFechamentoFolha_(u,competencia)]=snap;salvarFechamentosLocal_();
